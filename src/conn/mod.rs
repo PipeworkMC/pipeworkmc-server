@@ -11,6 +11,7 @@ use std::{
 use bevy_app::{ App, Plugin, Update };
 use bevy_ecs::{
     resource::Resource,
+    schedule::IntoScheduleConfigs,
     system::{ Commands, Res }
 };
 
@@ -76,12 +77,14 @@ impl Default for ConnListenerPlugin {
 impl Plugin for ConnListenerPlugin {
     fn build(&self, app : &mut App) {
         app .add_event::<peer::event::IncomingHandshakePacketEvent>()
+            .add_event::<peer::event::IncomingStatusPacketEvent>()
             .insert_resource(ConnListener::new(&*self.listen_addrs).unwrap()) // TODO: Error handler.
             .insert_resource(ConnCompressThreshold(self.compress_threshold))
             .insert_resource(ConnMojauthEnabled(self.mojauth_enabled))
             .add_systems(Update, accept_conn_peers)
             .add_systems(Update, peer::read_conn_peer_incoming)
             .add_systems(Update, peer::decode_conn_peer_incoming)
+            .add_systems(Update, peer::event::switch_handshake_state.before(peer::decode_conn_peer_incoming))
         ;
     }
 }
@@ -126,7 +129,7 @@ fn accept_conn_peers(
                 incoming : ConnPeerIncoming::default(),
                 decoder  : ConnPeerDecoder::default(),
                 // writer   : ConnPeerWriter { stream : write_stream },
-                state    : ConnPeerState::default()
+                state    : ConnPeerState::handshake()
             });
         },
         Err(err) if (err.kind() == io::ErrorKind::WouldBlock) => { },

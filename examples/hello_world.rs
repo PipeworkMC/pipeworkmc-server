@@ -1,6 +1,6 @@
 use pipeworkmc_server::conn::{
     ConnListenerPlugin,
-    peer::event::IncomingHandshakePacketEvent
+    peer::event::IncomingStatusPacketEvent
 };
 use core::time::Duration;
 use bevy_app::{
@@ -21,9 +21,9 @@ fn main() -> AppExit {
 
 
 fn server_status_response(
-    mut er_handshake : EventReader<IncomingHandshakePacketEvent>
+    mut er_status : EventReader<IncomingStatusPacketEvent>
 ) {
-    er_handshake.par_read().for_each(|event| {
+    er_status.par_read().for_each(|event| {
         println!("{:?}", event);
     });
 }

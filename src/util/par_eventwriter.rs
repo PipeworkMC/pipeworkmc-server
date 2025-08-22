@@ -10,18 +10,19 @@ use bevy_ecs::{
         unsafe_world_cell::UnsafeWorldCell
     }
 };
-use core::iter;
+use core::{ iter, marker::PhantomData };
 use std::sync::mpmc;
 
 
-pub struct ParallelEventWriter<E>
+pub struct ParallelEventWriter<'state, E>
 where
     E : Event
 {
-    sender : mpmc::Sender<E>
+    sender  : mpmc::Sender<E>,
+    _marker : PhantomData<&'state mpmc::Receiver<E>>
 }
 
-impl<E> ParallelEventWriter<E>
+impl<E> ParallelEventWriter<'_, E>
 where
     E : Event
 {
@@ -47,12 +48,12 @@ where
 }
 
 
-unsafe impl<E> SystemParam for ParallelEventWriter<E>
+unsafe impl<E> SystemParam for ParallelEventWriter<'_, E>
 where
     E : Event
 {
     type State                = (mpmc::Sender<E>, mpmc::Receiver<E>,);
-    type Item<'world, 'state> = ParallelEventWriter<E>;
+    type Item<'world, 'state> = ParallelEventWriter<'state, E>;
 
     fn init_state(_ : &mut World, _ : &mut SystemMeta) -> Self::State {
         mpmc::channel()
@@ -64,7 +65,10 @@ where
         _            : UnsafeWorldCell<'world>,
         _            : Tick,
     ) -> Self::Item<'world, 'state> {
-        ParallelEventWriter { sender : sender.clone() }
+        ParallelEventWriter {
+            sender  : sender.clone(),
+            _marker : PhantomData
+        }
     }
 
     fn apply(

@@ -1,5 +1,8 @@
 use crate::conn::{
-    peer::event::IncomingHandshakePacketEvent,
+    peer::event::{
+        IncomingHandshakePacketEvent,
+        IncomingStatusPacketEvent
+    },
     protocol::{
         codec::decode::{
             PrefixedPacketDecode,
@@ -7,7 +10,10 @@ use crate::conn::{
         },
         packet::{
             PacketState,
-            c2s::handshake::C2SHandshakePackets
+            c2s::{
+                handshake::C2SHandshakePackets,
+                status::C2SStatusPackets
+            }
         },
         value::varint::{
             VarIntType,
@@ -22,7 +28,10 @@ use crate::util::{
     },
     par_eventwriter::ParallelEventWriter
 };
-use core::net::SocketAddr;
+use core::{
+    net::SocketAddr,
+    time::Duration
+};
 use std::{
     collections::VecDeque,
     io::{ self, Read },
@@ -66,9 +75,32 @@ impl From<SocketAddr> for ConnPeer {
     }
 }
 
-#[derive(Component, Default)]
-pub struct ConnPeerState {
-    pub(super) state : PacketState
+#[derive(Component)]
+pub struct ConnPeerState { // TODO: Timeout handshake/status/login
+    incoming_state : PacketState,
+    outgoing_state : PacketState,
+    expires        : Option<Instant>
+}
+impl ConnPeerState {
+
+    pub fn handshake() -> Self { Self {
+        incoming_state : PacketState::Handshake,
+        outgoing_state : PacketState::Handshake,
+        expires        : Some(Instant::now() + Duration::from_millis(1000))
+    } }
+
+    pub fn switch_to_status(&mut self) {
+        self.incoming_state = PacketState::Status;
+        self.outgoing_state = PacketState::Status;
+        self.expires        = Some(Instant::now() + Duration::from_millis(1000));
+    }
+
+    pub fn switch_to_login(&mut self) {
+        self.incoming_state = PacketState::Login;
+        self.outgoing_state = PacketState::Login;
+        self.expires        = Some(Instant::now() + Duration::from_millis(1000));
+    }
+
 }
 
 
@@ -112,9 +144,10 @@ pub(super) fn read_conn_peer_incoming(
 
 pub(super) fn decode_conn_peer_incoming(
     mut q_peers      : Query<(Entity, &mut ConnPeerIncoming, &mut ConnPeerDecoder, &ConnPeerState)>,
-        ew_handshake : ParallelEventWriter<IncomingHandshakePacketEvent>
+        ew_handshake : ParallelEventWriter<IncomingHandshakePacketEvent>,
+        ew_status    : ParallelEventWriter<IncomingStatusPacketEvent>
 ) {
-    q_peers.par_iter_mut().for_each(|(entity, mut incoming, mut decoder, state)| {
+    q_peers.par_iter_mut().for_each(|(peer, mut incoming, mut decoder, state)| {
 
         // Get or try to decode next packet size.
         let packet_size = decoder.next_size.get_or_maybe_insert_with(|| {
@@ -133,22 +166,22 @@ pub(super) fn decode_conn_peer_incoming(
         if let Some(&mut packet_size) = packet_size
             && (incoming.queue.len() >= packet_size)
         {
+            decoder.next_size = None;
             let     buf = unsafe { incoming.queue.pop_many_front_into_unchecked(packet_size) };
             let mut buf = DecodeBuf::from(&*buf);
             // TODO: Decompress
-            match (state.state) {
+            match (state.incoming_state) {
                 PacketState::Handshake => {
                     let packet = C2SHandshakePackets::decode_prefixed(&mut buf).unwrap(); // TODO: Error handler.
-                    ew_handshake.write(IncomingHandshakePacketEvent {
-                        peer      : entity,
-                        packet,
-                        timestamp : Instant::now()
-                    });
+                    ew_handshake.write(IncomingHandshakePacketEvent { peer, packet, timestamp : Instant::now()});
                 },
-                PacketState::Status    => todo!(),
-                PacketState::Login     => todo!(),
-                PacketState::Config    => todo!(),
-                PacketState::Play      => todo!()
+                PacketState::Status => {
+                    let packet = C2SStatusPackets::decode_prefixed(&mut buf).unwrap(); // TODO: Error handler.
+                    ew_status.write(IncomingStatusPacketEvent { peer, packet, timestamp : Instant::now()});
+                },
+                PacketState::Login  => todo!(),
+                PacketState::Config => todo!(),
+                PacketState::Play   => todo!()
             };
         }
 

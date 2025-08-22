@@ -2,6 +2,7 @@
 
     // Language
     decl_macro,
+    never_type,
 
     // Standard library
     maybe_uninit_array_assume_init,
