@@ -1,0 +1,16 @@
+[package]
+name = "pipeworkmc-server"
+version = "0.1.0"
+edition = "2024"
+
+[lints.rust]
+unused_parens = "allow"
+# TODO: missing_docs = "deny"
+
+
+[dependencies.bevy_ecs]
+version  = "0.16"
+features = [ "multi_threaded" ]
+
+[dependencies.bevy_app]
+version = "0.16"
