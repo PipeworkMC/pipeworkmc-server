@@ -53,19 +53,19 @@ impl ConnPeerState {
     pub fn handshake() -> Self { Self {
         incoming_state : PacketState::Handshake,
         outgoing_state : PacketState::Handshake,
-        expires        : Some(Instant::now() + Duration::from_millis(1000))
+        expires        : Some(Instant::now() + Duration::from_millis(500))
     } }
 
     pub fn switch_to_status(&mut self) {
         self.incoming_state = PacketState::Status;
         self.outgoing_state = PacketState::Status;
-        self.expires        = Some(Instant::now() + Duration::from_millis(1000));
+        self.expires        = Some(Instant::now() + Duration::from_millis(500));
     }
 
     pub fn switch_to_login(&mut self) {
         self.incoming_state = PacketState::Login;
         self.outgoing_state = PacketState::Login;
-        self.expires        = Some(Instant::now() + Duration::from_millis(1000));
+        self.expires        = Some(Instant::now() + Duration::from_millis(2500));
     }
 
 }

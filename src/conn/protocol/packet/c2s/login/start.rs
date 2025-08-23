@@ -36,7 +36,7 @@ impl PacketDecode for C2SLoginStartPacket {
     fn decode(buf : &mut DecodeBuf<'_>)
         -> Result<Self, Self::Error>
     { Ok(Self {
-        username : buf.read_decode().map_err(C2SLoginStartDecodeError::Username)?,
+        username : buf.read_decode().map_err(C2SLoginStartDecodeError::Username)?, // TODO: Validate username characters
         uuid     : buf.read_decode().map_err(C2SLoginStartDecodeError::Uuid)?
     }) }
 }

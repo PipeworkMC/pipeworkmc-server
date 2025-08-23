@@ -79,6 +79,7 @@ impl Plugin for ConnListenerPlugin {
     fn build(&self, app : &mut App) {
         app .add_event::<peer::event::handshake::IncomingHandshakePacketEvent>()
             .add_event::<peer::event::status::IncomingStatusPacketEvent>()
+            .add_event::<peer::event::status::StatusRequestEvent>()
             .add_event::<peer::event::login::IncomingLoginPacketEvent>()
             .add_event::<peer::event::OutgoingPacketEvent>()
             .insert_resource(ConnListener::new(&*self.listen_addrs).unwrap()) // TODO: Error handler.
@@ -90,7 +91,8 @@ impl Plugin for ConnListenerPlugin {
             .add_systems(Update, peer::encode_conn_peer_outgoing)
             .add_systems(Update, peer::write_conn_peer_outgoing)
             .add_systems(Update, peer::event::handshake::switch_state.before(peer::decode_conn_peer_incoming))
-            .add_systems(Update, peer::event::status::send_pong)
+            .add_systems(Update, peer::event::status::request::respond_to_requests)
+            .add_systems(Update, peer::event::status::ping::respond_to_pings)
         ;
     }
 }

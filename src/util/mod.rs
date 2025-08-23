@@ -1,5 +1,5 @@
+pub mod channel_pair;
 pub mod ext;
-
 pub mod par_eventwriter;
 
 

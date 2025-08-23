@@ -44,9 +44,7 @@ pub mod prelude {
     pub mod packet {
         pub use crate::conn::{
             peer::event::{
-                handshake::IncomingHandshakePacketEvent,
-                status::IncomingStatusPacketEvent,
-                login::IncomingLoginPacketEvent,
+                status::StatusRequestEvent,
                 OutgoingPacketEvent
             },
             protocol::packet::{
@@ -58,7 +56,15 @@ pub mod prelude {
                 },
                 s2c::{
                     S2CPackets,
-                    status::S2CStatusPackets,
+                    status::{
+                        S2CStatusPackets,
+                        response::{
+                            Status,
+                            StatusVersion,
+                            StatusPlayers,
+                            StatusPlayer
+                        }
+                    },
                 }
             }
         };
@@ -73,5 +79,11 @@ pub mod prelude {
             pub use bevy_ecs::prelude::*;
         }
     }
+
+    #[inline(always)]
+    pub fn default<D>() -> D
+    where
+        D : Default
+    { D::default() }
 
 }
