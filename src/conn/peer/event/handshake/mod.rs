@@ -1,6 +1,6 @@
 use crate::conn::{
     peer::event::IncomingPacketEvent,
-    protocol::packet::c2s::status::C2SStatusPackets
+    protocol::packet::c2s::handshake::C2SHandshakePackets
 };
 use std::time::Instant;
 use bevy_ecs::{
@@ -9,29 +9,26 @@ use bevy_ecs::{
 };
 
 
-mod request;
-pub use request::*;
-
-mod ping;
-pub(in crate::conn) use ping::*;
+mod intention;
+pub(in crate::conn) use intention::*;
 
 
 #[derive(Event, Debug)]
-pub struct IncomingStatusPacketEvent {
+pub struct IncomingHandshakePacketEvent {
     peer      : Entity,
-    packet    : C2SStatusPackets,
+    packet    : C2SHandshakePackets,
     timestamp : Instant
 }
 
-impl IncomingStatusPacketEvent {
+impl IncomingHandshakePacketEvent {
     #[inline]
-    pub(crate) fn new(peer : Entity, packet : C2SStatusPackets) -> Self {
+    pub(crate) fn new(peer : Entity, packet : C2SHandshakePackets) -> Self {
         Self { peer, packet, timestamp : Instant::now() }
     }
 }
 
-impl IncomingPacketEvent for IncomingStatusPacketEvent {
-    type Packet = C2SStatusPackets;
+impl IncomingPacketEvent for IncomingHandshakePacketEvent {
+    type Packet = C2SHandshakePackets;
 
     #[inline(always)]
     fn peer(&self) -> Entity { self.peer }

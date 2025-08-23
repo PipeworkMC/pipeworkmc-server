@@ -11,22 +11,22 @@ use bevy_ecs::{
 
 
 mod read_decode;
-pub(super) use read_decode::*;
+pub(in crate::conn) use read_decode::*;
 mod write_encode;
-pub(super) use write_encode::*;
+pub(in crate::conn) use write_encode::*;
 
 pub mod event;
 
 
 #[derive(Bundle)]
-pub(super) struct ConnPeerBundle {
-    pub(super) peer     : ConnPeer,
-    pub(super) reader   : ConnPeerReader,
-    pub(super) incoming : ConnPeerIncoming,
-    pub(super) decoder  : ConnPeerDecoder,
-    pub(super) writer   : ConnPeerWriter,
-    pub(super) outgoing : ConnPeerOutgoing,
-    pub(super) state    : ConnPeerState
+pub(in crate::conn) struct ConnPeerBundle {
+    pub(in crate::conn) peer     : ConnPeer,
+    pub(in crate::conn) reader   : ConnPeerReader,
+    pub(in crate::conn) incoming : ConnPeerIncoming,
+    pub(in crate::conn) decoder  : ConnPeerDecoder,
+    pub(in crate::conn) writer   : ConnPeerWriter,
+    pub(in crate::conn) outgoing : ConnPeerOutgoing,
+    pub(in crate::conn) state    : ConnPeerState
 }
 
 

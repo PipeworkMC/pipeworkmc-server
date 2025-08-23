@@ -16,7 +16,7 @@ use crate::util::par_eventwriter::ParallelEventWriter;
 use bevy_ecs::event::EventReader;
 
 
-pub(in super::super::super::super) fn respond_to_pings(
+pub(in crate::conn) fn respond_to_pings(
     mut er_status : EventReader<IncomingStatusPacketEvent>,
         ew_packet : ParallelEventWriter<OutgoingPacketEvent>
 ) {

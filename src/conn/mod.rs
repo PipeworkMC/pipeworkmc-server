@@ -90,9 +90,9 @@ impl Plugin for ConnListenerPlugin {
             .add_systems(Update, peer::decode_conn_peer_incoming)
             .add_systems(Update, peer::encode_conn_peer_outgoing)
             .add_systems(Update, peer::write_conn_peer_outgoing)
-            .add_systems(Update, peer::event::handshake::switch_state.before(peer::decode_conn_peer_incoming))
-            .add_systems(Update, peer::event::status::request::respond_to_requests)
-            .add_systems(Update, peer::event::status::ping::respond_to_pings)
+            .add_systems(Update, peer::event::handshake::handle_intention.before(peer::decode_conn_peer_incoming))
+            .add_systems(Update, peer::event::status::respond_to_requests)
+            .add_systems(Update, peer::event::status::respond_to_pings)
         ;
     }
 }

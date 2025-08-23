@@ -22,17 +22,17 @@ use bevy_ecs::{
 
 
 #[derive(Component)]
-pub(in super::super) struct ConnPeerWriter {
-    pub(in super::super) stream : TcpStream
+pub(in crate::conn) struct ConnPeerWriter {
+    pub(in crate::conn) stream : TcpStream
 }
 
 #[derive(Component, Default)]
-pub(in super::super) struct ConnPeerOutgoing {
+pub(in crate::conn) struct ConnPeerOutgoing {
     queue : VecDeque<u8>
 }
 
 
-pub(in super::super) fn encode_conn_peer_outgoing(
+pub(in crate::conn) fn encode_conn_peer_outgoing(
     mut q_peers   : Query<(&mut ConnPeerOutgoing,)>,
     mut er_packet : EventReader<OutgoingPacketEvent>
 ) {
@@ -50,7 +50,7 @@ pub(in super::super) fn encode_conn_peer_outgoing(
     }
 }
 
-pub(in super::super) fn write_conn_peer_outgoing(
+pub(in crate::conn) fn write_conn_peer_outgoing(
     mut q_peers : Query<(&mut ConnPeerWriter, &mut ConnPeerOutgoing,)>
 ) {
     q_peers.par_iter_mut().for_each(|(mut writer, mut outgoing,)| {

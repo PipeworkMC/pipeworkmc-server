@@ -52,7 +52,7 @@ impl StatusRequestEvent {
 }
 
 
-pub(in super::super::super::super) fn respond_to_requests(
+pub(in crate::conn) fn respond_to_requests(
     mut er_status  : EventReader<IncomingStatusPacketEvent>,
         ew_request : ParallelEventWriter<StatusRequestEvent>,
     mut ew_packet  : EventWriter<OutgoingPacketEvent>,

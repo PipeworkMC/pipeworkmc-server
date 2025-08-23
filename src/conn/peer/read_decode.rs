@@ -49,21 +49,21 @@ const READ_BYTES_PER_CYCLE : usize = 256;
 
 
 #[derive(Component)]
-pub(in super::super) struct ConnPeerReader {
-    pub(in super::super) stream : TcpStream
+pub(in crate::conn) struct ConnPeerReader {
+    pub(in crate::conn) stream : TcpStream
 }
 
 #[derive(Component, Default)]
-pub(in super::super) struct ConnPeerIncoming {
+pub(in crate::conn) struct ConnPeerIncoming {
     queue : VecDeque<u8>
 }
 #[derive(Component, Default)]
-pub(in super::super) struct ConnPeerDecoder {
+pub(in crate::conn) struct ConnPeerDecoder {
     next_size : Option<usize>
 }
 
 
-pub(in super::super) fn read_conn_peer_incoming(
+pub(in crate::conn) fn read_conn_peer_incoming(
     mut q_peers : Query<(&mut ConnPeerReader, &mut ConnPeerIncoming,)>
 ) {
     q_peers.par_iter_mut().for_each(|(mut reader, mut incoming,)| {
@@ -81,7 +81,7 @@ pub(in super::super) fn read_conn_peer_incoming(
 }
 
 
-pub(in super::super) fn decode_conn_peer_incoming(
+pub(in crate::conn) fn decode_conn_peer_incoming(
     mut q_peers      : Query<(Entity, &mut ConnPeerIncoming, &mut ConnPeerDecoder, &ConnPeerState)>,
         ew_handshake : ParallelEventWriter<IncomingHandshakePacketEvent>,
         ew_status    : ParallelEventWriter<IncomingStatusPacketEvent>,
