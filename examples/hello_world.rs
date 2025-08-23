@@ -1,5 +1,4 @@
 use pipeworkmc_server::{
-    PROTOCOL,
     conn::{
         ConnListenerPlugin,
         peer::event::{
@@ -18,7 +17,8 @@ use pipeworkmc_server::{
                     StatusVersion
                 }
             },
-            value::text::TextFormatted
+            value::text::TextFormatted,
+            Protocol
         }
     }
 };
@@ -50,7 +50,7 @@ fn server_status_response(
             ew_packet.write(OutgoingPacketEvent::new(event.peer(), S2CStatusResponsePacket::from(Status {
                 version               : StatusVersion {
                     name     : Some("Hello, World!".into()),
-                    protocol : PROTOCOL
+                    protocol : Protocol::LATEST.id()
                 },
                 players               : None,
                 motd                  : Some(("Hello,".bold().red() + " World!").italic()),
