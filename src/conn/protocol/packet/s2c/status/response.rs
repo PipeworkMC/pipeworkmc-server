@@ -11,7 +11,8 @@ use crate::conn::protocol::{
             S2CPackets,
             status::S2CStatusPackets
         }
-    }
+    },
+    value::text::Text
 };
 use std::borrow::Cow;
 use serde::Serialize as Ser;
@@ -58,9 +59,10 @@ impl From<S2CStatusResponsePacket> for S2CStatusPackets {
 #[derive(Ser)]
 pub struct Status {
     pub version               : StatusVersion,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub players               : Option<StatusPlayers>,
-    #[serde(rename = "description")]
-    pub motd                  : Option<()>, // TODO
+    #[serde(rename = "description", skip_serializing_if = "Option::is_none")]
+    pub motd                  : Option<Text>,
     pub favicon               : Cow<'static, str>,
     #[serde(rename = "enforcesSecureChat")]
     pub enforces_secure_chat  : bool,
@@ -70,6 +72,7 @@ pub struct Status {
 
 #[derive(Ser)]
 pub struct StatusVersion {
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub name     : Option<Cow<'static, str>>,
     pub protocol : u32
 }

@@ -9,7 +9,7 @@ use crate::conn::protocol::codec::{
         EncodeBuf
     }
 };
-use core::ops::{ Deref, Index, Range };
+use core::ops::Deref;
 
 
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
@@ -40,11 +40,11 @@ where
     fn decode(iter : impl Iterator<Item = u8>)
         -> Result<(Self, usize,), VarIntDecodeError>;
 
-    type ENCODE_BUF : Default;
+    type EncodeBuf : Default;
 
     fn encode_len(self) -> usize;
 
-    fn encode(self, buf : &mut Self::ENCODE_BUF) -> &[u8];
+    fn encode(self, buf : &mut Self::EncodeBuf) -> &[u8];
 
 }
 
@@ -70,13 +70,13 @@ macro impl_varinttype_for_signed_int($unsigned_ty:ty => $signed_ty:ty) {
             Ok((value, consumed,))
         }
 
-        type ENCODE_BUF = [u8; size_of::<Self>() + 1];
+        type EncodeBuf = [u8; size_of::<Self>() + 1];
 
         fn encode_len(self) -> usize {
             <$unsigned_ty as VarIntType>::encode_len(self.cast_unsigned())
         }
 
-        fn encode(mut self, buf : &mut Self::ENCODE_BUF) -> &[u8] {
+        fn encode(mut self, buf : &mut Self::EncodeBuf) -> &[u8] {
             const SELF_SEGMENT_BITS : $signed_ty = SEGMENT_BITS as $signed_ty;
             const SELF_CONTINUE_BIT : $signed_ty = CONTINUE_BIT as $signed_ty;
             let mut i = 0;
@@ -116,10 +116,10 @@ macro impl_varinttype_for_unsigned_int($signed_ty:ty => $unsigned_ty:ty) {
             1
         }
 
-        type ENCODE_BUF = <$signed_ty as VarIntType>::ENCODE_BUF;
+        type EncodeBuf = <$signed_ty as VarIntType>::EncodeBuf;
 
         #[inline]
-        fn encode(self, buf : &mut Self::ENCODE_BUF) -> &[u8] {
+        fn encode(self, buf : &mut Self::EncodeBuf) -> &[u8] {
             <$signed_ty as VarIntType>::encode(self.cast_signed(), buf)
         }
 
@@ -159,7 +159,7 @@ where
 
     #[inline(always)]
     unsafe fn encode(&self, buf : &mut EncodeBuf) {
-        let mut bytes = <T as VarIntType>::ENCODE_BUF::default();
+        let mut bytes = <T as VarIntType>::EncodeBuf::default();
          unsafe { buf.write_slice(<T as VarIntType>::encode(self.0, &mut bytes)); }
     }
 

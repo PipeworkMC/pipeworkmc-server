@@ -45,7 +45,7 @@ pub(in super::super) fn encode_conn_peer_outgoing(
             // TODO: Compression
 
             let buf = buf.as_slice();
-            outgoing.queue.extend(<u32 as VarIntType>::encode(buf.len() as u32, &mut <u32 as VarIntType>::ENCODE_BUF::default()));
+            outgoing.queue.extend(<u32 as VarIntType>::encode(buf.len() as u32, &mut <u32 as VarIntType>::EncodeBuf::default()));
             outgoing.queue.extend(buf);
         }
     }

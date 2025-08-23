@@ -6,16 +6,19 @@ use pipeworkmc_server::{
             status::IncomingStatusPacketEvent,
             OutgoingPacketEvent
         },
-        protocol::packet::{
-            c2s::status::{
-                C2SStatusPackets,
-                request::C2SStatusRequestPacket
+        protocol::{
+            packet::{
+                c2s::status::{
+                    C2SStatusPackets,
+                    request::C2SStatusRequestPacket
+                },
+                s2c::status::response::{
+                    S2CStatusResponsePacket,
+                    Status,
+                    StatusVersion
+                }
             },
-            s2c::status::response::{
-                S2CStatusResponsePacket,
-                Status,
-                StatusVersion
-            }
+            value::text::TextFormatted
         }
     }
 };
@@ -50,7 +53,7 @@ fn server_status_response(
                     protocol : PROTOCOL
                 },
                 players               : None,
-                motd                  : None,
+                motd                  : Some(("Hello,".bold().red() + " World!").italic()),
                 favicon               : "".into(),
                 enforces_secure_chat  : false,
                 prevents_chat_reports : true
