@@ -3,7 +3,8 @@ use crate::conn::{
         ConnPeerState,
         event::{
             handshake::IncomingHandshakePacketEvent,
-            status::IncomingStatusPacketEvent
+            status::IncomingStatusPacketEvent,
+            login::IncomingLoginPacketEvent
         }
     },
     protocol::{
@@ -15,7 +16,8 @@ use crate::conn::{
             PacketState,
             c2s::{
                 handshake::C2SHandshakePackets,
-                status::C2SStatusPackets
+                status::C2SStatusPackets,
+                login::C2SLoginPackets
             }
         },
         value::varint::{
@@ -82,7 +84,8 @@ pub(in super::super) fn read_conn_peer_incoming(
 pub(in super::super) fn decode_conn_peer_incoming(
     mut q_peers      : Query<(Entity, &mut ConnPeerIncoming, &mut ConnPeerDecoder, &ConnPeerState)>,
         ew_handshake : ParallelEventWriter<IncomingHandshakePacketEvent>,
-        ew_status    : ParallelEventWriter<IncomingStatusPacketEvent>
+        ew_status    : ParallelEventWriter<IncomingStatusPacketEvent>,
+        ew_login     : ParallelEventWriter<IncomingLoginPacketEvent>
 ) {
     q_peers.par_iter_mut().for_each(|(peer, mut incoming, mut decoder, state)| {
 
@@ -115,7 +118,10 @@ pub(in super::super) fn decode_conn_peer_incoming(
                     let packet = C2SStatusPackets::decode_prefixed(&mut buf).unwrap(); // TODO: Error handler.
                     ew_status.write(IncomingStatusPacketEvent::new(peer, packet));
                 },
-                PacketState::Login  => todo!(),
+                PacketState::Login  => {
+                    let packet = C2SLoginPackets::decode_prefixed(&mut buf).unwrap(); // TODO: Error handler.
+                    ew_login.write(IncomingLoginPacketEvent::new(peer, packet));
+                },
                 PacketState::Config => todo!(),
                 PacketState::Play   => todo!()
             };

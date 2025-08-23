@@ -1,5 +1,8 @@
 use crate::conn::{
-    peer::event::OutgoingPacketEvent,
+    peer::event::{
+        IncomingPacketEvent,
+        OutgoingPacketEvent
+    },
     protocol::packet::{
         c2s::status::{
             C2SStatusPackets,
@@ -27,22 +30,25 @@ pub struct IncomingStatusPacketEvent {
 }
 
 impl IncomingStatusPacketEvent {
-
     #[inline]
     pub(crate) fn new(peer : Entity, packet : C2SStatusPackets) -> Self {
         Self { peer, packet, timestamp : Instant::now() }
     }
+}
+
+impl IncomingPacketEvent for IncomingStatusPacketEvent {
+    type Packet = C2SStatusPackets;
 
     #[inline(always)]
-    pub fn peer(&self) -> Entity { self.peer }
+    fn peer(&self) -> Entity { self.peer }
 
     #[inline(always)]
-    pub fn packet(&self) -> &C2SStatusPackets { &self.packet }
+    fn packet(&self) -> &Self::Packet { &self.packet }
     #[inline(always)]
-    pub fn take_packet(self) -> C2SStatusPackets { self.packet }
+    fn take_packet(self) -> Self::Packet { self.packet }
 
     #[inline(always)]
-    pub fn timestamp(&self) -> Instant { self.timestamp }
+    fn timestamp(&self) -> Instant { self.timestamp }
 
 }
 

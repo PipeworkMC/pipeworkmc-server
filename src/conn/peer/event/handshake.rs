@@ -1,5 +1,8 @@
 use crate::conn::{
-    peer::ConnPeerState,
+    peer::{
+        ConnPeerState,
+        event::IncomingPacketEvent
+    },
     protocol::packet::{
         c2s::handshake::{
             C2SHandshakePackets,
@@ -23,22 +26,25 @@ pub struct IncomingHandshakePacketEvent {
 }
 
 impl IncomingHandshakePacketEvent {
-
     #[inline]
     pub(crate) fn new(peer : Entity, packet : C2SHandshakePackets) -> Self {
         Self { peer, packet, timestamp : Instant::now() }
     }
+}
+
+impl IncomingPacketEvent for IncomingHandshakePacketEvent {
+    type Packet = C2SHandshakePackets;
 
     #[inline(always)]
-    pub fn peer(&self) -> Entity { self.peer }
+    fn peer(&self) -> Entity { self.peer }
 
     #[inline(always)]
-    pub fn packet(&self) -> &C2SHandshakePackets { &self.packet }
+    fn packet(&self) -> &Self::Packet { &self.packet }
     #[inline(always)]
-    pub fn take_packet(self) -> C2SHandshakePackets { self.packet }
+    fn take_packet(self) -> Self::Packet { self.packet }
 
     #[inline(always)]
-    pub fn timestamp(&self) -> Instant { self.timestamp }
+    fn timestamp(&self) -> Instant { self.timestamp }
 
 }
 
@@ -53,7 +59,6 @@ pub(in super::super::super) fn switch_state(
                 Intention::Status => state.switch_to_status(),
                 Intention::Login { .. } => {
                     state.switch_to_login();
-                    todo!("Login");
                     // TODO: Check protocol version.
                 },
             };

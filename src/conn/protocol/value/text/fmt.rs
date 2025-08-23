@@ -55,9 +55,9 @@ impl TextComponent {
 impl Display for TextContent {
     fn fmt(&self, f : &mut Formatter<'_>) -> fmt::Result {
         match (self) {
-            TextContent::Literal    { text    } => write!(f, "{}", text),
-            TextContent::Translated { key, .. } => write!(f, "{}", key),
-            TextContent::Keybind    { id      } => write!(f, "{}", id)
+            TextContent::Literal   { text    } => write!(f, "{}", text),
+            TextContent::Translate { key, .. } => write!(f, "{}", key),
+            TextContent::Keybind   { id      } => write!(f, "{}", id)
         }
     }
 }

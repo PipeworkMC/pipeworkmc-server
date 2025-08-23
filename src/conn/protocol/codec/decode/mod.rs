@@ -1,5 +1,5 @@
 use crate::conn::protocol::packet::PacketMeta;
-use core::{ mem::MaybeUninit, ptr };
+use core::ptr;
 
 
 mod num;
@@ -42,16 +42,22 @@ impl<'l> DecodeBuf<'l> {
         Ok(b.to_vec())
     }
 
+    #[inline(always)]
     pub fn read_arr<const COUNT : usize>(&mut self) -> Result<[u8; COUNT], IncompleteDecodeError> {
-        let b = self.buf.get(self.head..(self.head + COUNT)).ok_or(IncompleteDecodeError)?;
-        self.head += COUNT;
-        let mut c = [const { MaybeUninit::uninit() }; COUNT];
+        let mut buf = [0u8; COUNT];
+        self.read_buf(&mut buf)?;
+        Ok(buf)
+    }
+
+    pub fn read_buf(&mut self, buf : &mut [u8]) -> Result<(), IncompleteDecodeError> {
+        let b = self.buf.get(self.head..(self.head + buf.len())).ok_or(IncompleteDecodeError)?;
+        self.head += buf.len();
         unsafe { ptr::copy_nonoverlapping(
             b.as_ptr(),
-            c.get_unchecked_mut(0).as_mut_ptr(),
-            COUNT
+            buf.as_mut_ptr(),
+            buf.len()
         ); }
-        Ok(unsafe { MaybeUninit::array_assume_init(c) })
+        Ok(())
     }
 
     pub fn read_decode<P>(&mut self) -> Result<P, P::Error>

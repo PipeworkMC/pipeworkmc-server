@@ -3,7 +3,10 @@ use crate::conn::protocol::value::{
     colour::{ Rgb, Argb },
     ident::Ident
 };
-use core::ops::Add;
+use core::{
+    mem,
+    ops::{ Add, AddAssign }
+};
 use std::borrow::Cow;
 
 
@@ -37,7 +40,7 @@ pub enum TextContent {
     Literal {
         text : Cow<'static, str>
     },
-    Translated {
+    Translate {
         key      : Cow<'static, str>,
         fallback : Option<Cow<'static, str>>,
         with     : Cow<'static, [Text]>
@@ -47,6 +50,70 @@ pub enum TextContent {
     }
 }
 
+
+impl Text {
+
+    #[inline]
+    pub fn literal<S>(text : S) -> Self
+    where
+        S : Into<Cow<'static, str>>
+    { TextContent::Literal {
+        text : text.into()
+    }.into() }
+
+    #[inline]
+    pub fn translate<S>(key : S) -> Self
+    where
+        S : Into<Cow<'static, str>>
+    { TextContent::Translate {
+        key      : key.into(),
+        fallback : None,
+        with     : Cow::Borrowed(&[])
+    }.into() }
+
+    #[inline]
+    pub fn translate_or<S, F>(key : S, fallback : F) -> Self
+    where
+        S : Into<Cow<'static, str>>,
+        F : Into<Cow<'static, str>>
+    { TextContent::Translate {
+        key      : key.into(),
+        fallback : Some(fallback.into()),
+        with     : Cow::Borrowed(&[])
+    }.into() }
+
+    #[inline]
+    pub fn translate_with<S, W>(key : S, with : W) -> Self
+    where
+        S : Into<Cow<'static, str>>,
+        W : Into<Cow<'static, [Text]>>
+    { TextContent::Translate {
+        key      : key.into(),
+        fallback : None,
+        with     : with.into()
+    }.into() }
+
+    #[inline]
+    pub fn translate_with_or<S, W, F>(key : S, with : W, fallback : F) -> Self
+    where
+        S : Into<Cow<'static, str>>,
+        W : Into<Cow<'static, [Text]>>,
+        F : Into<Cow<'static, str>>
+    { TextContent::Translate {
+        key      : key.into(),
+        fallback : Some(fallback.into()),
+        with     : with.into()
+    }.into() }
+
+    #[inline]
+    pub fn keybind<S>(id : S) -> Self
+    where
+        S : Into<Cow<'static, str>>
+    { TextContent::Keybind {
+        id : id.into()
+    }.into() }
+
+}
 
 impl Text {
 
@@ -65,8 +132,9 @@ impl Text {
 }
 
 
-impl Default for TextComponent {
-    fn default() -> Self { Self {
+impl TextComponent {
+
+    pub const EMPTY : Self = Self {
         content   : TextContent::Literal { text : Cow::Borrowed("") },
         colour    : Rgb::WHITE,
         font      : None,
@@ -79,32 +147,37 @@ impl Default for TextComponent {
         insertion : None,
         on_click  : None,
         tooltip   : None
-    } }
+    };
+
 }
 
+impl Default for TextComponent {
+    #[inline(always)]
+    fn default() -> Self { Self::EMPTY }
+}
 
 impl From<&'static str> for TextComponent {
     fn from(value : &'static str) -> Self { Self {
         content : TextContent::Literal { text : Cow::Borrowed(value) },
-        ..Default::default()
+        ..Self::EMPTY
     } }
 }
 impl From<String> for TextComponent {
     fn from(value : String) -> Self { Self {
         content : TextContent::Literal { text : Cow::Owned(value) },
-        ..Default::default()
+        ..Self::EMPTY
     } }
 }
 impl From<Cow<'static, str>> for TextComponent {
     fn from(value : Cow<'static, str>) -> Self { Self {
         content : TextContent::Literal { text : value },
-        ..Default::default()
+        ..Self::EMPTY
     } }
 }
 impl From<TextContent> for TextComponent {
     fn from(value : TextContent) -> Self { Self {
         content : value,
-        ..Default::default()
+        ..Self::EMPTY
     } }
 }
 
@@ -323,11 +396,21 @@ where
     T : Into<Text>
 {
     type Output = Text;
+    #[inline(always)]
     fn add(mut self, rhs : T) -> Self::Output {
-        let mut components = self.components.into_owned();
+        self += rhs;
+        self
+    }
+}
+
+impl<T> AddAssign<T> for Text
+where
+    T : Into<Text>
+{
+    fn add_assign(&mut self, rhs : T) {
+        let mut components = mem::replace(&mut self.components, Cow::Borrowed(&[])).into_owned();
         components.extend_from_slice(&*rhs.into().components);
         self.components = Cow::Owned(components);
-        self
     }
 }
 

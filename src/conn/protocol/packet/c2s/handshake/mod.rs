@@ -24,7 +24,7 @@ impl PrefixedPacketDecode for C2SHandshakePackets {
         -> Result<Self, Self::Error>
     {
         Ok(match (buf.read()?) {
-            intention::C2SHandshakeIntentionPacket::PREFIX => Self::Intention(intention::C2SHandshakeIntentionPacket::decode(buf).map_err(C2SHandshakeDecodeError::Intention)?),
+            intention::C2SHandshakeIntentionPacket::PREFIX => Self::Intention(intention::C2SHandshakeIntentionPacket::decode(buf)?),
 
             v => { return Err(C2SHandshakeDecodeError::UnknownPrefix(v)); }
         })
@@ -35,12 +35,14 @@ impl PrefixedPacketDecode for C2SHandshakePackets {
 #[derive(Debug)]
 pub enum C2SHandshakeDecodeError {
     Incomplete,
-    Intention(intention::IntentionDecodeError),
+    Intention(intention::C2SHandshakeIntentionDecodeError),
     UnknownPrefix(u8)
 }
 impl From<IncompleteDecodeError> for C2SHandshakeDecodeError {
     #[inline(always)]
-    fn from(_ : IncompleteDecodeError) -> Self {
-        Self::Incomplete
-    }
+    fn from(_ : IncompleteDecodeError) -> Self { Self::Incomplete }
+}
+impl From<intention::C2SHandshakeIntentionDecodeError> for C2SHandshakeDecodeError {
+    #[inline(always)]
+    fn from(value : intention::C2SHandshakeIntentionDecodeError) -> Self { Self::Intention(value) }
 }

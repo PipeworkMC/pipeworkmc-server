@@ -1,41 +1,19 @@
-use pipeworkmc_server::{
-    conn::{
-        ConnListenerPlugin,
-        peer::event::{
-            status::IncomingStatusPacketEvent,
-            OutgoingPacketEvent
-        },
-        protocol::{
-            packet::{
-                c2s::status::{
-                    C2SStatusPackets,
-                    request::C2SStatusRequestPacket
-                },
-                s2c::status::response::{
-                    S2CStatusResponsePacket,
-                    Status,
-                    StatusVersion
-                }
-            },
-            value::text::TextFormatted,
-            Protocol
-        }
+use pipeworkmc_server::prelude::*;
+use pipeworkmc_server::prelude::packet::*;
+use pipeworkmc_server::conn::protocol::packet::{
+    c2s::status::request::C2SStatusRequestPacket,
+    s2c::status::response::{
+        S2CStatusResponsePacket,
+        Status,
+        StatusVersion
     }
 };
-use pipeworkmc_server::util::par_eventwriter::ParallelEventWriter;
-use core::time::Duration;
-use bevy_app::{
-    App, AppExit,
-    ScheduleRunnerPlugin,
-    Update
-};
-use bevy_ecs::event::EventReader;
+use bevy::prelude::*;
 
 
 fn main() -> AppExit {
     App::new()
-        .add_plugins(ScheduleRunnerPlugin::run_loop(Duration::ZERO))
-        .add_plugins(ConnListenerPlugin::default())
+        .add_plugins(DefaultPlugins)
         .add_systems(Update, server_status_response)
         .run()
 }

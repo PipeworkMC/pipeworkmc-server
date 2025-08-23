@@ -14,3 +14,64 @@
 pub mod conn;
 
 pub mod util;
+
+
+pub mod prelude {
+
+    bevy_app::plugin_group! {
+        #[derive(Debug)]
+        pub struct DefaultPlugins {
+            bevy_app:::ScheduleRunnerPlugin,
+            crate::conn:::ConnListenerPlugin
+        }
+    }
+
+    pub use crate::conn::{
+        ConnListenerPlugin,
+        peer::event::IncomingPacketEvent as _,
+        protocol::Protocol
+    };
+
+    pub use crate::conn::protocol::value::{
+        colour::{ Rgb, Argb },
+        ident::Ident,
+        itemstack::ItemStack,
+        text::{ Text, TextFormatted as _ },
+        varint::VarInt
+    };
+    pub use uuid::Uuid;
+
+    pub mod packet {
+        pub use crate::conn::{
+            peer::event::{
+                handshake::IncomingHandshakePacketEvent,
+                status::IncomingStatusPacketEvent,
+                login::IncomingLoginPacketEvent,
+                OutgoingPacketEvent
+            },
+            protocol::packet::{
+                c2s::{
+                    C2SPackets,
+                    handshake::C2SHandshakePackets,
+                    status::C2SStatusPackets,
+                    login::C2SLoginPackets
+                },
+                s2c::{
+                    S2CPackets,
+                    status::S2CStatusPackets,
+                }
+            }
+        };
+    }
+
+    pub mod bevy {
+        pub use bevy_app as app;
+        pub use bevy_ecs as ecs;
+        pub mod prelude {
+            pub use crate::util::par_eventwriter::ParallelEventWriter;
+            pub use bevy_app::prelude::*;
+            pub use bevy_ecs::prelude::*;
+        }
+    }
+
+}

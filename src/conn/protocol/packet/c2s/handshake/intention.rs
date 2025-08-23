@@ -32,19 +32,19 @@ impl PacketMeta for C2SHandshakeIntentionPacket {
 }
 
 impl PacketDecode for C2SHandshakeIntentionPacket {
-    type Error = IntentionDecodeError;
+    type Error = C2SHandshakeIntentionDecodeError;
 
     fn decode(buf : &mut DecodeBuf<'_>)
         -> Result<Self, Self::Error>
     { Ok(Self {
-        protocol       : buf.read_decode().map_err(IntentionDecodeError::Protocol)?,
-        server_address : buf.read_decode().map_err(IntentionDecodeError::Address)?,
-        server_port    : buf.read_decode().map_err(IntentionDecodeError::Port)?,
-        intent         : match (*buf.read_decode::<VarInt<u32>>().map_err(IntentionDecodeError::Intent)?) {
+        protocol       : buf.read_decode().map_err(C2SHandshakeIntentionDecodeError::Protocol)?,
+        server_address : buf.read_decode().map_err(C2SHandshakeIntentionDecodeError::Address)?,
+        server_port    : buf.read_decode().map_err(C2SHandshakeIntentionDecodeError::Port)?,
+        intent         : match (*buf.read_decode::<VarInt<u32>>().map_err(C2SHandshakeIntentionDecodeError::Intent)?) {
             1 => Intention::Status,
             2 => Intention::Login { is_transfer : false },
             3 => Intention::Login { is_transfer : true },
-            v => { return Err(IntentionDecodeError::UnknownIntention(v)); }
+            v => { return Err(C2SHandshakeIntentionDecodeError::UnknownIntention(v)); }
         }
     }) }
 }
@@ -60,7 +60,7 @@ pub enum Intention {
 
 
 #[derive(Debug)]
-pub enum IntentionDecodeError {
+pub enum C2SHandshakeIntentionDecodeError {
     Protocol(VarIntDecodeError),
     Address(StringDecodeError),
     Port(IncompleteDecodeError),

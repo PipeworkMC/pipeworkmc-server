@@ -5,8 +5,7 @@ use crate::conn::{
             PrefixedPacketEncode,
             EncodeBuf
         },
-        packet::s2c::S2CPackets,
-        value::varint::{ VarInt, VarIntType }
+        value::varint::VarIntType
     }
 };
 use crate::util::ext::VecDequeExt;

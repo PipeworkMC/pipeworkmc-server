@@ -79,6 +79,7 @@ impl Plugin for ConnListenerPlugin {
     fn build(&self, app : &mut App) {
         app .add_event::<peer::event::handshake::IncomingHandshakePacketEvent>()
             .add_event::<peer::event::status::IncomingStatusPacketEvent>()
+            .add_event::<peer::event::login::IncomingLoginPacketEvent>()
             .add_event::<peer::event::OutgoingPacketEvent>()
             .insert_resource(ConnListener::new(&*self.listen_addrs).unwrap()) // TODO: Error handler.
             .insert_resource(ConnCompressThreshold(self.compress_threshold))

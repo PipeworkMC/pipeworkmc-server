@@ -2,6 +2,7 @@ use crate::conn::protocol::codec::encode::{
     PacketEncode,
     EncodeBuf
 };
+use uuid::Uuid;
 
 
 macro impl_packetencode_for_num($ty:ty) {
@@ -35,11 +36,24 @@ impl_packetencode_for_num!(f64);
 unsafe impl PacketEncode for bool {
 
     #[inline(always)]
-    fn encode_len(&self) -> usize { 1 }
+    fn encode_len(&self) -> usize { size_of::<u8>() }
 
     #[inline]
     unsafe fn encode(&self, buf : &mut EncodeBuf) { unsafe {
         buf.write(if (*self) { 1u8 } else { 0u8 })
+    } }
+
+}
+
+
+unsafe impl PacketEncode for Uuid {
+
+    #[inline(always)]
+    fn encode_len(&self) -> usize { size_of::<u128>() }
+
+    #[inline]
+    unsafe fn encode(&self, buf : &mut EncodeBuf) { unsafe {
+        buf.encode_write(&self.as_u128())
     } }
 
 }

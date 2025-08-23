@@ -53,7 +53,7 @@ impl Ser for ExtraTextComponent<'_> {
                 map.serialize_entry("type", "text")?;
                 map.serialize_entry("text", text)?;
             },
-            TextContent::Translated { key, fallback, with } => {
+            TextContent::Translate { key, fallback, with } => {
                 map.serialize_entry("type", "translatable")?;
                 map.serialize_entry("translate", key)?;
                 if let Some(fallback) = fallback {

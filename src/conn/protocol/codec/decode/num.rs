@@ -3,6 +3,7 @@ use crate::conn::protocol::codec::decode::{
     DecodeBuf,
     IncompleteDecodeError
 };
+use uuid::Uuid;
 
 
 macro impl_packetdecode_for_num($ty:ty) {
@@ -32,7 +33,17 @@ impl_packetdecode_for_num!(f64);
 impl PacketDecode for bool {
     type Error = IncompleteDecodeError;
 
+    #[inline(always)]
     fn decode(buf : &mut DecodeBuf<'_>)
         -> Result<Self, Self::Error>
     { Ok(buf.read()? != 0) }
+}
+
+impl PacketDecode for Uuid {
+    type Error = IncompleteDecodeError;
+
+    #[inline(always)]
+    fn decode(buf : &mut DecodeBuf<'_>)
+        -> Result<Self, Self::Error>
+    { Ok(Uuid::from_u128(buf.read_decode::<u128>()?)) }
 }
