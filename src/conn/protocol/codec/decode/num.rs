@@ -1,5 +1,6 @@
 use crate::conn::protocol::codec::decode::{
     PacketDecode,
+    DecodeBuf,
     IncompleteDecodeError
 };
 
@@ -8,9 +9,9 @@ macro impl_packetdecode_for_num($ty:ty) {
     impl PacketDecode for $ty {
         type Error = IncompleteDecodeError;
 
-        fn decode(buf : &mut super::DecodeBuf<'_>)
+        fn decode(buf : &mut DecodeBuf<'_>)
             -> Result<Self, Self::Error>
-        { Ok(Self::from_be_bytes(buf.read_n_const()?)) }
+        { Ok(Self::from_be_bytes(buf.read_arr()?)) }
     }
 }
 
@@ -31,7 +32,7 @@ impl_packetdecode_for_num!(f64);
 impl PacketDecode for bool {
     type Error = IncompleteDecodeError;
 
-    fn decode(buf : &mut super::DecodeBuf<'_>)
+    fn decode(buf : &mut DecodeBuf<'_>)
         -> Result<Self, Self::Error>
     { Ok(buf.read()? != 0) }
 }

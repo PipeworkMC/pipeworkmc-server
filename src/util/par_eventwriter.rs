@@ -19,7 +19,7 @@ where
     E : Event
 {
     sender  : mpmc::Sender<E>,
-    _marker : PhantomData<&'state mpmc::Receiver<E>>
+    _marker : PhantomData<&'state mpmc::Sender<E>>
 }
 
 impl<E> ParallelEventWriter<'_, E>

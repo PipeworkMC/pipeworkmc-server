@@ -16,8 +16,8 @@ pub mod ping;
 
 #[derive(Debug)]
 pub enum C2SStatusPackets {
-    Request(request::RequestPacket),
-    Ping(ping::PingPacket)
+    Request (request ::C2SStatusRequestPacket),
+    Ping    (ping    ::C2SStatusPingPacket)
 }
 
 impl PrefixedPacketDecode for C2SStatusPackets {
@@ -27,8 +27,8 @@ impl PrefixedPacketDecode for C2SStatusPackets {
         -> Result<Self, Self::Error>
     {
         Ok(match (buf.read()?) {
-            request ::RequestPacket ::PREFIX => Self::Request (unsafe { request ::RequestPacket ::decode(buf).unwrap_unchecked() }),
-            ping    ::PingPacket    ::PREFIX => Self::Ping    (         ping    ::PingPacket    ::decode(buf)?),
+            request ::C2SStatusRequestPacket ::PREFIX => Self::Request (unsafe { request ::C2SStatusRequestPacket ::decode(buf).unwrap_unchecked() }),
+            ping    ::C2SStatusPingPacket    ::PREFIX => Self::Ping    (         ping    ::C2SStatusPingPacket    ::decode(buf)?),
 
             v => { return Err(C2SStatusDecodeError::UnknownPrefix(v)); }
         })

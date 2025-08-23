@@ -1,8 +1,5 @@
 pub mod c2s;
-// TODO: pub mod status;
-// TODO: pub mod login;
-// TODO: pub mod config;
-// TODO: pub mod play;
+pub mod s2c;
 
 
 pub trait PacketMeta {

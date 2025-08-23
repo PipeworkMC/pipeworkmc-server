@@ -14,3 +14,6 @@
 pub mod conn;
 
 pub mod util;
+
+
+pub const PROTOCOL : u32 = 772;

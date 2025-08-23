@@ -14,7 +14,7 @@ pub mod intention;
 
 #[derive(Debug)]
 pub enum C2SHandshakePackets {
-    Intention(intention::IntentionPacket)
+    Intention(intention::C2SHandshakeIntentionPacket)
 }
 
 impl PrefixedPacketDecode for C2SHandshakePackets {
@@ -24,7 +24,7 @@ impl PrefixedPacketDecode for C2SHandshakePackets {
         -> Result<Self, Self::Error>
     {
         Ok(match (buf.read()?) {
-            intention::IntentionPacket::PREFIX => Self::Intention(intention::IntentionPacket::decode(buf).map_err(C2SHandshakeDecodeError::Intention)?),
+            intention::C2SHandshakeIntentionPacket::PREFIX => Self::Intention(intention::C2SHandshakeIntentionPacket::decode(buf).map_err(C2SHandshakeDecodeError::Intention)?),
 
             v => { return Err(C2SHandshakeDecodeError::UnknownPrefix(v)); }
         })

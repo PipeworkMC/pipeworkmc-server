@@ -11,7 +11,6 @@ pub struct DecodeBuf<'l> {
     buf  : &'l [u8]
 }
 
-
 impl<'l> DecodeBuf<'l> {
 
     #[inline]
@@ -25,9 +24,7 @@ impl<'l> DecodeBuf<'l> {
     }
 
     #[inline(always)]
-    pub fn consumed(&self) -> usize {
-        self.head
-    }
+    pub fn consumed(&self) -> usize { self.head }
 
 }
 
@@ -39,17 +36,21 @@ impl<'l> DecodeBuf<'l> {
         Ok(b)
     }
 
-    pub fn read_n(&mut self, count : usize) -> Result<Vec<u8>, IncompleteDecodeError> {
+    pub fn read_vec(&mut self, count : usize) -> Result<Vec<u8>, IncompleteDecodeError> {
         let b = self.buf.get(self.head..(self.head + count)).ok_or(IncompleteDecodeError)?;
         self.head += count;
         Ok(b.to_vec())
     }
 
-    pub fn read_n_const<const COUNT : usize>(&mut self) -> Result<[u8; COUNT], IncompleteDecodeError> {
+    pub fn read_arr<const COUNT : usize>(&mut self) -> Result<[u8; COUNT], IncompleteDecodeError> {
         let b = self.buf.get(self.head..(self.head + COUNT)).ok_or(IncompleteDecodeError)?;
         self.head += COUNT;
         let mut c = [const { MaybeUninit::uninit() }; COUNT];
-        unsafe { ptr::copy_nonoverlapping(b.as_ptr(), c.get_unchecked_mut(0).as_mut_ptr(), COUNT); }
+        unsafe { ptr::copy_nonoverlapping(
+            b.as_ptr(),
+            c.get_unchecked_mut(0).as_mut_ptr(),
+            COUNT
+        ); }
         Ok(unsafe { MaybeUninit::array_assume_init(c) })
     }
 

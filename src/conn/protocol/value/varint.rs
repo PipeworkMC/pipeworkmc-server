@@ -1,16 +1,21 @@
-use crate::conn::protocol::codec::decode::{
-    PacketDecode,
-    DecodeBuf,
-    IncompleteDecodeError
+use crate::conn::protocol::codec::{
+    decode::{
+        PacketDecode,
+        DecodeBuf,
+        IncompleteDecodeError
+    },
+    encode::{
+        PacketEncode,
+        EncodeBuf
+    }
 };
-use core::ops::{ Add, BitOr, Deref, Shl };
+use core::ops::{ Deref, Index, Range };
 
 
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
-pub struct VarInt<T>(T)
+pub struct VarInt<T>(pub T)
 where
     T : VarIntType;
-
 
 impl<T> Deref for VarInt<T>
 where
@@ -19,9 +24,7 @@ where
     type Target = T;
 
     #[inline]
-    fn deref(&self) -> &Self::Target {
-        &self.0
-    }
+    fn deref(&self) -> &Self::Target { &self.0 }
 }
 
 
@@ -29,98 +32,104 @@ pub const SEGMENT_BITS : u8 = 0b01111111;
 pub const CONTINUE_BIT : u8 = 0b10000000;
 
 
-pub unsafe trait PureVarIntType
-where Self
-        : VarIntType
-        + From<u8>
-        + Add<Self, Output = Self>
-        + BitOr<Self, Output = Self>
-        + Shl<Self, Output = Self>
-        + PartialOrd<Self>
-        + Clone + Copy
-        + Sized
-{
-    const ZERO      : Self;
-    const SEVEN     : Self;
-    const MAX_SHIFT : Self;
-    fn le_to_be(value : Self) -> Self;
-
-    fn decode<I>(mut iter : I) -> Result<(Self, usize,), VarIntDecodeError>
-    where
-        I : Iterator<Item = u8>
-    {
-        let mut value    = Self::ZERO;
-        let mut shift    = Self::ZERO;
-        let mut consumed = 0;
-        loop {
-            let b = iter.next().ok_or(VarIntDecodeError::Incomplete)?;
-            consumed += 1;
-            value = value | ((Self::from(b & SEGMENT_BITS)) << shift);
-            if ((b & CONTINUE_BIT) == 0) { break; }
-            shift = shift + Self::SEVEN;
-            if (shift > Self::MAX_SHIFT) { return Err(VarIntDecodeError::TooLong); }
-        }
-        Ok((Self::le_to_be(value), consumed,))
-    }
-
-}
-
-unsafe impl PureVarIntType for i32 {
-    const ZERO      : Self = 0;
-    const SEVEN     : Self = 7;
-    const MAX_SHIFT : Self = Self::BITS as Self;
-    fn le_to_be(value : Self) -> Self { Self::from_le(value) }
-}
-
-unsafe impl PureVarIntType for i64 {
-    const ZERO      : Self = 0;
-    const SEVEN     : Self = 7;
-    const MAX_SHIFT : Self = Self::BITS as Self;
-    fn le_to_be(value : Self) -> Self { Self::from_le(value) }
-}
-
-
-pub trait VarIntType
+pub unsafe trait VarIntType
 where
-    Self : Sized
+    Self : Copy + Sized
 {
-    const MAX_BYTES : usize = size_of::<Self>() + 1;
 
-    fn decode<I>(iter : I) -> Result<(VarInt<Self>, usize,), VarIntDecodeError>
-    where
-        I : Iterator<Item = u8>;
+    fn decode(iter : impl Iterator<Item = u8>)
+        -> Result<(Self, usize,), VarIntDecodeError>;
+
+    type ENCODE_BUF : Default;
+
+    fn encode_len(self) -> usize;
+
+    fn encode(self, buf : &mut Self::ENCODE_BUF) -> &[u8];
 
 }
 
-impl<T : PureVarIntType> VarIntType for T {
-    #[inline(always)]
-    fn decode<I>(iter : I) -> Result<(VarInt<Self>, usize,), VarIntDecodeError>
-    where
-        I : Iterator<Item = u8>
-    { <Self as PureVarIntType>::decode(iter).map(|(value, consumed,)|
-        (VarInt(value), consumed,)
-    ) }
+
+macro impl_varinttype_for_signed_int($unsigned_ty:ty => $signed_ty:ty) {
+    unsafe impl VarIntType for $signed_ty {
+
+        fn decode(mut iter : impl Iterator<Item = u8>)
+            -> Result<(Self, usize,), VarIntDecodeError>
+        {
+            const MAX_SHIFT : usize = <$signed_ty>::BITS as usize;
+            let mut value    = 0;
+            let mut shift    = 0;
+            let mut consumed = 0;
+            loop {
+                let byte = iter.next().ok_or(VarIntDecodeError::Incomplete)?;
+                consumed += 1;
+                value |= ((byte & SEGMENT_BITS) as $signed_ty) << shift;
+                if ((byte & CONTINUE_BIT) == 0) { break; }
+                shift += 7;
+                if (shift > MAX_SHIFT) { return Err(VarIntDecodeError::TooLong); }
+            }
+            Ok((value, consumed,))
+        }
+
+        type ENCODE_BUF = [u8; size_of::<Self>() + 1];
+
+        fn encode_len(self) -> usize {
+            <$unsigned_ty as VarIntType>::encode_len(self.cast_unsigned())
+        }
+
+        fn encode(mut self, buf : &mut Self::ENCODE_BUF) -> &[u8] {
+            const SELF_SEGMENT_BITS : $signed_ty = SEGMENT_BITS as $signed_ty;
+            const SELF_CONTINUE_BIT : $signed_ty = CONTINUE_BIT as $signed_ty;
+            let mut i = 0;
+            loop {
+                if ((self & (! SELF_SEGMENT_BITS)) == 0) {
+                    *unsafe { buf.get_unchecked_mut(i) } = (self & 0xFF) as u8;
+                    i += 1;
+                    return &buf[0..i];
+                }
+                *unsafe { buf.get_unchecked_mut(i) } = ((self & SELF_SEGMENT_BITS) | SELF_CONTINUE_BIT) as u8;
+                i += 1;
+                self = (self.cast_unsigned() >> 7).cast_signed();
+            }
+        }
+
+    }
 }
 
-impl VarIntType for u32 {
-    #[inline(always)]
-    fn decode<I>(iter : I) -> Result<(VarInt<Self>, usize,), VarIntDecodeError>
-    where
-        I : Iterator<Item = u8>
-    { <i32 as PureVarIntType>::decode(iter).map(|(value, consumed,)|
-        (VarInt(value.cast_unsigned()), consumed,)
-    ) }
+macro impl_varinttype_for_unsigned_int($signed_ty:ty => $unsigned_ty:ty) {
+    unsafe impl VarIntType for $unsigned_ty {
+
+        #[inline]
+        fn decode(iter : impl Iterator<Item = u8>)
+            -> Result<(Self, usize,), VarIntDecodeError>
+        { <$signed_ty as VarIntType>::decode(iter).map(|(v, consumed,)|
+            (v.cast_unsigned(), consumed,)
+        ) }
+
+        #[inline(always)]
+        fn encode_len(self) -> usize {
+            for i in (1..(size_of::<Self>() + 1)).rev() {
+                let mask = Self::MAX << (7 * i);
+                if ((self & mask) != 0) {
+                    return i + 1;
+                }
+            }
+            1
+        }
+
+        type ENCODE_BUF = <$signed_ty as VarIntType>::ENCODE_BUF;
+
+        #[inline]
+        fn encode(self, buf : &mut Self::ENCODE_BUF) -> &[u8] {
+            <$signed_ty as VarIntType>::encode(self.cast_signed(), buf)
+        }
+
+    }
 }
 
-impl VarIntType for u64 {
-    #[inline(always)]
-    fn decode<I>(iter : I) -> Result<(VarInt<Self>, usize,), VarIntDecodeError>
-    where
-        I : Iterator<Item = u8>
-    { <i64 as PureVarIntType>::decode(iter).map(|(value, consumed,)|
-        (VarInt(value.cast_unsigned()), consumed,)
-    ) }
-}
+impl_varinttype_for_signed_int!(u32 => i32);
+impl_varinttype_for_signed_int!(u64 => i64);
+impl_varinttype_for_unsigned_int!(i32 => u32);
+impl_varinttype_for_unsigned_int!(i64 => u64);
 
 
 impl<T> PacketDecode for VarInt<T>
@@ -134,9 +143,28 @@ where
     {
         let (value, consumed,) = T::decode(buf.iter())?;
         buf.skip(consumed)?;
-        Ok(value)
+        Ok(VarInt(value))
     }
 }
+
+unsafe impl<T> PacketEncode for VarInt<T>
+where
+    T : VarIntType
+{
+
+    #[inline(always)]
+    fn encode_len(&self) -> usize {
+        <T as VarIntType>::encode_len(self.0)
+    }
+
+    #[inline(always)]
+    unsafe fn encode(&self, buf : &mut EncodeBuf) {
+        let mut bytes = <T as VarIntType>::ENCODE_BUF::default();
+         unsafe { buf.write_slice(<T as VarIntType>::encode(self.0, &mut bytes)); }
+    }
+
+}
+
 
 #[derive(Debug)]
 pub enum VarIntDecodeError {

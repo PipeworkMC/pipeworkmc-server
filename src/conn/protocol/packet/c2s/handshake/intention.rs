@@ -18,20 +18,20 @@ use crate::conn::protocol::{
 
 
 #[derive(Debug)]
-pub struct IntentionPacket {
+pub struct C2SHandshakeIntentionPacket {
     pub protocol       : VarInt<u32>,
     pub server_address : String,
     pub server_port    : u16,
     pub intent         : Intention
 }
 
-impl PacketMeta for IntentionPacket {
+impl PacketMeta for C2SHandshakeIntentionPacket {
     const STATE  : PacketState = PacketState::Handshake;
     const BOUND  : PacketBound = PacketBound::C2S;
     const PREFIX : u8          = 0x00; // TODO: Check against current datagen.
 }
 
-impl PacketDecode for IntentionPacket {
+impl PacketDecode for C2SHandshakeIntentionPacket {
     type Error = IntentionDecodeError;
 
     fn decode(buf : &mut DecodeBuf<'_>)

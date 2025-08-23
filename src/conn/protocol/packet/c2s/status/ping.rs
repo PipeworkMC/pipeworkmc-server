@@ -13,19 +13,20 @@ use crate::conn::protocol::{
 
 
 #[derive(Debug)]
-pub struct PingPacket {
+pub struct C2SStatusPingPacket {
     pub timestamp : u64
 }
 
-impl PacketMeta for PingPacket {
+impl PacketMeta for C2SStatusPingPacket {
     const STATE  : PacketState = PacketState::Status;
     const BOUND  : PacketBound = PacketBound::C2S;
     const PREFIX : u8          = 0x01; // TODO: Check against current datagen.
 }
 
-impl PacketDecode for PingPacket {
+impl PacketDecode for C2SStatusPingPacket {
     type Error = IncompleteDecodeError;
 
+    #[inline]
     fn decode(buf : &mut DecodeBuf<'_>)
         -> Result<Self, Self::Error>
     { Ok(Self { timestamp : buf.read_decode()? }) }
