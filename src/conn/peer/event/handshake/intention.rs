@@ -22,9 +22,9 @@ pub(in crate::conn) fn handle_intention(
         let C2SHandshakePackets::Intention(intention) = &event.packet;
         if let Ok((mut state,)) = q_peers.get_mut(event.peer) {
             match (intention.intent) {
-                Intention::Status => state.switch_to_status(),
+                Intention::Status => unsafe { state.switch_to_status() },
                 Intention::Login { .. } => {
-                    state.switch_to_login();
+                    unsafe { state.switch_to_login(); }
                     // TODO: Check protocol version.
                 },
             };

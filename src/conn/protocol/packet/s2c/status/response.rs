@@ -29,17 +29,17 @@ use uuid::Uuid;
 
 
 #[derive(Debug)]
-pub struct S2CStatusResponsePacket {
-    status_json : Cow<'static, str>
+pub struct S2CStatusResponsePacket<'l> {
+    status_json : Cow<'l, str>
 }
 
-impl PacketMeta for S2CStatusResponsePacket {
+impl PacketMeta for S2CStatusResponsePacket<'_> {
     const STATE  : PacketState = PacketState::Status;
     const BOUND  : PacketBound = PacketBound::C2S;
     const PREFIX : u8          = 0x00; // TODO: Check against current datagen.
 }
 
-unsafe impl PacketEncode for S2CStatusResponsePacket {
+unsafe impl PacketEncode for S2CStatusResponsePacket<'_> {
 
     #[inline(always)]
     fn encode_len(&self) -> usize {
@@ -53,32 +53,32 @@ unsafe impl PacketEncode for S2CStatusResponsePacket {
 
 }
 
-impl From<S2CStatusResponsePacket> for S2CPackets {
+impl<'l> From<S2CStatusResponsePacket<'l>> for S2CPackets<'l> {
     #[inline(always)]
-    fn from(value : S2CStatusResponsePacket) -> Self { Self::Status(value.into()) }
+    fn from(value : S2CStatusResponsePacket<'l>) -> Self { Self::Status(value.into()) }
 }
 
-impl From<S2CStatusResponsePacket> for S2CStatusPackets {
+impl<'l> From<S2CStatusResponsePacket<'l>> for S2CStatusPackets<'l> {
     #[inline(always)]
-    fn from(value : S2CStatusResponsePacket) -> Self { Self::Response(value) }
+    fn from(value : S2CStatusResponsePacket<'l>) -> Self { Self::Response(value) }
 }
 
 
 #[derive(Ser)]
-pub struct Status {
-    pub version               : StatusVersion,
+pub struct Status<'l> {
+    pub version               : StatusVersion<'l>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub players               : Option<StatusPlayers>,
     #[serde(rename = "description", skip_serializing_if = "Option::is_none")]
     pub motd                  : Option<Text>,
     #[serde(skip_serializing_if = "Option::is_none", serialize_with = "add_png_b64_header")]
-    pub favicon               : Option<Cow<'static, str>>,
+    pub favicon               : Option<Cow<'l, str>>,
     #[serde(rename = "enforcesSecureChat")]
     pub enforces_secure_chat  : bool,
     #[serde(rename = "preventsChatReports")]
     pub prevents_chat_reports : bool
 }
-fn add_png_b64_header<S : Serer>(png_b64 : &Option<Cow<'static, str>>, ser : S) -> Result<S::Ok, S::Error> {
+fn add_png_b64_header<'l, S : Serer>(png_b64 : &Option<Cow<'l, str>>, ser : S) -> Result<S::Ok, S::Error> {
     if let Some(png_b64) = png_b64 {
         ser.serialize_str(&format!("data:image/png;base64,{png_b64}"))
     } else {
@@ -87,8 +87,8 @@ fn add_png_b64_header<S : Serer>(png_b64 : &Option<Cow<'static, str>>, ser : S) 
 }
 
 #[derive(Ser)]
-pub struct StatusVersion {
-    pub name     : Cow<'static, str>,
+pub struct StatusVersion<'l> {
+    pub name     : Cow<'l, str>,
     pub protocol : u32
 }
 
@@ -108,7 +108,7 @@ pub struct StatusPlayer {
 }
 
 
-impl Default for Status {
+impl Default for Status<'_> {
     fn default() -> Self { Self {
         version               : StatusVersion::default(),
         players               : None,
@@ -122,7 +122,7 @@ impl Default for Status {
     } }
 }
 
-impl Default for StatusVersion {
+impl Default for StatusVersion<'_> {
     #[inline]
     fn default() -> Self { Self {
         name     : Cow::Borrowed(Protocol::LATEST.earliest_name()),
@@ -131,15 +131,33 @@ impl Default for StatusVersion {
 }
 
 
-impl From<&Status> for S2CStatusResponsePacket {
+impl From<&Status<'_>> for S2CStatusResponsePacket<'_> {
     #[inline]
     fn from(value : &Status) -> Self {
         Self { status_json : Cow::Owned(to_json_string(&value).unwrap()) }
     }
 }
-impl From<Status> for S2CStatusResponsePacket {
+impl From<Status<'_>> for S2CStatusResponsePacket<'_> {
     #[inline]
     fn from(value : Status) -> Self {
         Self { status_json : Cow::Owned(to_json_string(&value).unwrap()) }
     }
+}
+
+impl From<&Status<'_>> for S2CPackets<'_> {
+    #[inline(always)]
+    fn from(value : &Status<'_>) -> Self { Self::Status(value.into()) }
+}
+impl From<Status<'_>> for S2CPackets<'_> {
+    #[inline(always)]
+    fn from(value : Status<'_>) -> Self { Self::Status(value.into()) }
+}
+
+impl From<&Status<'_>> for S2CStatusPackets<'_> {
+    #[inline(always)]
+    fn from(value : &Status<'_>) -> Self { Self::Response(value.into()) }
+}
+impl From<Status<'_>> for S2CStatusPackets<'_> {
+    #[inline(always)]
+    fn from(value : Status<'_>) -> Self { Self::Response(value.into()) }
 }

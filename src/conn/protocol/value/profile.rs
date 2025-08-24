@@ -12,23 +12,23 @@ use uuid::Uuid;
 
 
 #[derive(Clone, Component, Deser, Debug)]
-pub struct Profile {
+pub struct Profile<'l> {
     #[serde(rename = "id")]
     pub uuid     : Uuid,
     #[serde(rename = "name")]
     pub username : BoundedString<16>,
     #[serde(rename = "properties", default = "empty_cow_slice")]
-    pub props    : Cow<'static, [ProfileProperty]>
+    pub props    : Cow<'l, [ProfileProperty<'l>]>
 }
-fn empty_cow_slice() -> Cow<'static, [ProfileProperty]> { Cow::Borrowed(&[]) }
+fn empty_cow_slice<'l>() -> Cow<'l, [ProfileProperty<'l>]> { Cow::Borrowed(&[]) }
 
 #[derive(Clone, Deser, Debug)]
-pub struct ProfileProperty {
+pub struct ProfileProperty<'l> {
     #[serde(rename = "name")]
     pub key   : ProfilePropertyKey,
-    pub value : String,
+    pub value : Cow<'l, str>,
     #[serde(rename = "signature")]
-    pub sig   : Option<String>,
+    pub sig   : Option<Cow<'l, str>>,
 }
 
 #[derive(Clone, Deser, Debug)]
@@ -44,7 +44,7 @@ impl ProfilePropertyKey {
 }
 
 
-unsafe impl PacketEncode for Profile {
+unsafe impl PacketEncode for Profile<'_> {
 
     fn encode_len(&self) -> usize {
         self.uuid.encode_len()
@@ -60,7 +60,7 @@ unsafe impl PacketEncode for Profile {
 
 }
 
-unsafe impl PacketEncode for ProfileProperty {
+unsafe impl PacketEncode for ProfileProperty<'_> {
 
     fn encode_len(&self) -> usize {
         self.key.as_str().encode_len()

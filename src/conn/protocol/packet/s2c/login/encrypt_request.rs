@@ -19,20 +19,20 @@ use std::borrow::Cow;
 
 
 #[derive(Debug)]
-pub struct S2CLoginEncryptRequestPacket {
+pub struct S2CLoginEncryptRequestPacket<'l> {
     pub server_id       : BoundedString<20>,
-    pub public_key      : Redacted<Cow<'static, [u8]>>,
+    pub public_key      : Redacted<Cow<'l, [u8]>>,
     pub verify_token    : [u8; 4],
     pub mojauth_enabled : bool
 }
 
-impl PacketMeta for S2CLoginEncryptRequestPacket {
+impl PacketMeta for S2CLoginEncryptRequestPacket<'_> {
     const STATE  : PacketState = PacketState::Login;
     const BOUND  : PacketBound = PacketBound::C2S;
     const PREFIX : u8          = 0x01; // TODO: Check against current datagen.
 }
 
-unsafe impl PacketEncode for S2CLoginEncryptRequestPacket {
+unsafe impl PacketEncode for S2CLoginEncryptRequestPacket<'_> {
 
     fn encode_len(&self) -> usize {
         self.server_id.encode_len()
@@ -50,12 +50,12 @@ unsafe impl PacketEncode for S2CLoginEncryptRequestPacket {
 
 }
 
-impl From<S2CLoginEncryptRequestPacket> for S2CPackets {
+impl<'l> From<S2CLoginEncryptRequestPacket<'l>> for S2CPackets<'l> {
     #[inline(always)]
-    fn from(value : S2CLoginEncryptRequestPacket) -> Self { Self::Login(value.into()) }
+    fn from(value : S2CLoginEncryptRequestPacket<'l>) -> Self { Self::Login(value.into()) }
 }
 
-impl From<S2CLoginEncryptRequestPacket> for S2CLoginPackets {
+impl<'l> From<S2CLoginEncryptRequestPacket<'l>> for S2CLoginPackets<'l> {
     #[inline(always)]
-    fn from(value : S2CLoginEncryptRequestPacket) -> Self { Self::EncryptRequest(value) }
+    fn from(value : S2CLoginEncryptRequestPacket<'l>) -> Self { Self::EncryptRequest(value) }
 }

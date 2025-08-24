@@ -13,13 +13,16 @@ pub mod compression;
 
 
 #[derive(Debug)]
-pub enum S2CLoginPackets {
-    EncryptRequest (encrypt_request ::S2CLoginEncryptRequestPacket),
-    Finish         (finish          ::S2CLoginFinishPacket),
+pub enum S2CLoginPackets<'l> {
+    // TODO: Disconnect
+    EncryptRequest (encrypt_request ::S2CLoginEncryptRequestPacket<'l>),
+    Finish         (finish          ::S2CLoginFinishPacket<'l>),
     Compression    (compression     ::S2CLoginCompressionPacket)
+    // TODO: QueryRequest
+    // TODO: CookieRequest
 }
 
-unsafe impl PrefixedPacketEncode for S2CLoginPackets {
+unsafe impl PrefixedPacketEncode for S2CLoginPackets<'_> {
 
     fn encode_prefixed_len(&self) -> usize { match (self) {
         Self::EncryptRequest (packet) => packet.encode_prefixed_len(),
@@ -35,7 +38,7 @@ unsafe impl PrefixedPacketEncode for S2CLoginPackets {
 
 }
 
-impl From<S2CLoginPackets> for S2CPackets {
+impl<'l> From<S2CLoginPackets<'l>> for S2CPackets<'l> {
     #[inline(always)]
-    fn from(value : S2CLoginPackets) -> Self { Self::Login(value) }
+    fn from(value : S2CLoginPackets<'l>) -> Self { Self::Login(value) }
 }

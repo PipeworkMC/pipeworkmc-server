@@ -2,11 +2,11 @@ use crate::conn::{
     peer::{
         event::{
             IncomingPacketEvent,
-            login::IncomingLoginPacketEvent,
-            OutgoingPacketEvent
+            login::IncomingLoginPacketEvent
         },
         ConnPeerReader,
         ConnPeerWriter,
+        ConnPeerSender,
         ConnPeerState
     },
     protocol::{
@@ -34,7 +34,7 @@ use std::borrow::Cow;
 use bevy_ecs::{
     component::Component,
     entity::Entity,
-    event::{ EventReader, EventWriter },
+    event::EventReader,
     system::{ Commands, Query, Res }
 };
 use bevy_tasks::{ IoTaskPool, Task, futures };
@@ -59,8 +59,8 @@ const OFFLINE_NAMESPACE : Uuid = Uuid::from_bytes([b'P', b'i', b'p', b'e', b'w',
 pub(in crate::conn) struct ConnPeerLoginFlow {
     declared_account : Option<DeclaredAccount>,
     exchanging_key   : Option<ExchangingKey>,
-    mojauth_task     : Option<Task<surf::Result<Profile>>>,
-    profile          : Option<Profile>
+    mojauth_task     : Option<Task<surf::Result<Profile<'static>>>>,
+    profile          : Option<Profile<'static>>
 }
 
 #[derive(Debug)]
@@ -78,13 +78,12 @@ struct ExchangingKey {
 
 pub(in crate::conn) fn handle_login_flow(
     mut cmds      : Commands,
-    mut q_peers   : Query<(Entity, &mut ConnPeerLoginFlow, &mut ConnPeerReader, &mut ConnPeerWriter, &mut ConnPeerState)>,
+    mut q_peers   : Query<(Entity, &mut ConnPeerReader, &mut ConnPeerWriter, &mut ConnPeerSender, &mut ConnPeerState, &mut ConnPeerLoginFlow,)>,
     mut er_login  : EventReader<IncomingLoginPacketEvent>,
-    mut ew_packet : EventWriter<OutgoingPacketEvent>,
         r_options : Res<ConnOptions>
 ) {
     for event in er_login.read() {
-        if let Ok((entity, mut login_flow, mut reader, mut writer, mut state,)) = q_peers.get_mut(event.peer()) {
+        if let Ok((entity, mut reader, mut writer, mut sender, mut state, mut login_flow,)) = q_peers.get_mut(event.peer()) {
             match (event.packet()) {
 
 
@@ -98,12 +97,12 @@ pub(in crate::conn) fn handle_login_flow(
                     let     pkeyder = Redacted::from(unsafe { rsa.as_ref() }.public_key_to_der().unwrap());
                     let mut vtoken  = [0u8; 4];
                     rand::rng().fill_bytes(&mut vtoken);
-                    ew_packet.write(OutgoingPacketEvent::new(event.peer(), S2CLoginEncryptRequestPacket {
+                    sender.send(S2CLoginEncryptRequestPacket {
                         server_id       : r_options.server_id.clone(),
                         public_key      : Redacted::from(Cow::Owned(unsafe { pkeyder.as_ref() }.clone())),
                         verify_token    : vtoken,
                         mojauth_enabled : r_options.mojauth_enabled
-                    }));
+                    });
 
                     login_flow.exchanging_key = Some(ExchangingKey { rsa, pkeyder, vtoken });
                 },
@@ -170,9 +169,9 @@ pub(in crate::conn) fn handle_login_flow(
                             username : declared_account.username.clone(),
                             props    : Cow::Borrowed(&[])
                         };
-                        ew_packet.write(OutgoingPacketEvent::new(event.peer(), S2CLoginFinishPacket { profile : profile.clone() }));
+                        sender.send(S2CLoginFinishPacket { profile : profile.clone() });
                         login_flow.profile = Some(profile);
-                        state.login_finish();
+                        unsafe { state.login_finish(); }
                     }
 
                 },
@@ -185,7 +184,7 @@ pub(in crate::conn) fn handle_login_flow(
                     let mut ecmds = cmds.entity(entity);
                     ecmds.remove::<ConnPeerLoginFlow>();
                     ecmds.insert(profile);
-                    state.login_finish_acknowledged();
+                    unsafe { state.login_finish_acknowledged(); }
                     // TODO: Begin config
                 }
 
@@ -197,19 +196,18 @@ pub(in crate::conn) fn handle_login_flow(
 
 
 pub(in crate::conn) fn poll_mojauths_tasks(
-    mut q_peers   : Query<(Entity, &mut ConnPeerLoginFlow, &mut ConnPeerState)>,
-    mut ew_packet : EventWriter<OutgoingPacketEvent>,
+    mut q_peers : Query<(&mut ConnPeerSender, &mut ConnPeerState, &mut ConnPeerLoginFlow,)>,
 ) {
-    for (entity, mut login_flow, mut state,) in &mut q_peers {
+    for (mut sender, mut state, mut login_flow,) in &mut q_peers {
         if let Some(mojauth_task) = &mut login_flow.mojauth_task
             && let Some(response) = futures::check_ready(mojauth_task)
         {
             login_flow.mojauth_task = None;
             match (response) {
                 Ok(profile) => {
-                    ew_packet.write(OutgoingPacketEvent::new(entity, S2CLoginFinishPacket { profile : profile.clone() }));
+                    sender.send(S2CLoginFinishPacket { profile : profile.clone() });
                     login_flow.profile = Some(profile);
-                    state.login_finish();
+                    unsafe { state.login_finish(); }
                 },
                 Err(err) => panic!("{err:?}") // TODO: Error handler.
             }

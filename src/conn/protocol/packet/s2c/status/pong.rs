@@ -40,12 +40,12 @@ unsafe impl PacketEncode for S2CStatusPongPacket {
 
 }
 
-impl From<S2CStatusPongPacket> for S2CPackets {
+impl From<S2CStatusPongPacket> for S2CPackets<'_> {
     #[inline(always)]
     fn from(value : S2CStatusPongPacket) -> Self { Self::Status(value.into()) }
 }
 
-impl From<S2CStatusPongPacket> for S2CStatusPackets {
+impl From<S2CStatusPongPacket> for S2CStatusPackets<'_> {
     #[inline(always)]
     fn from(value : S2CStatusPongPacket) -> Self { Self::Pong(value) }
 }

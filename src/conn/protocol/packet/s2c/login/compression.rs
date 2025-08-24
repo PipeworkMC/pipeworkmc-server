@@ -41,12 +41,12 @@ unsafe impl PacketEncode for S2CLoginCompressionPacket {
 
 }
 
-impl From<S2CLoginCompressionPacket> for S2CPackets {
+impl From<S2CLoginCompressionPacket> for S2CPackets<'_> {
     #[inline(always)]
     fn from(value : S2CLoginCompressionPacket) -> Self { Self::Login(value.into()) }
 }
 
-impl From<S2CLoginCompressionPacket> for S2CLoginPackets {
+impl From<S2CLoginCompressionPacket> for S2CLoginPackets<'_> {
     #[inline(always)]
     fn from(value : S2CLoginCompressionPacket) -> Self { Self::Compression(value) }
 }

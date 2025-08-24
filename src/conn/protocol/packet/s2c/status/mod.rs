@@ -12,12 +12,12 @@ pub mod pong;
 
 
 #[derive(Debug)]
-pub enum S2CStatusPackets {
-    Response (response ::S2CStatusResponsePacket),
+pub enum S2CStatusPackets<'l> {
+    Response (response ::S2CStatusResponsePacket<'l>),
     Pong     (pong     ::S2CStatusPongPacket)
 }
 
-unsafe impl PrefixedPacketEncode for S2CStatusPackets {
+unsafe impl PrefixedPacketEncode for S2CStatusPackets<'_> {
 
     fn encode_prefixed_len(&self) -> usize { match (self) {
         Self::Response (packet) => packet.encode_prefixed_len(),
@@ -31,7 +31,7 @@ unsafe impl PrefixedPacketEncode for S2CStatusPackets {
 
 }
 
-impl From<S2CStatusPackets> for S2CPackets {
+impl<'l> From<S2CStatusPackets<'l>> for S2CPackets<'l> {
     #[inline(always)]
-    fn from(value : S2CStatusPackets) -> Self { Self::Status(value) }
+    fn from(value : S2CStatusPackets<'l>) -> Self { Self::Status(value) }
 }

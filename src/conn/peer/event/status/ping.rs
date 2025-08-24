@@ -1,8 +1,10 @@
 use crate::conn::{
-    peer::event::{
-        IncomingPacketEvent,
-        status::IncomingStatusPacketEvent,
-        OutgoingPacketEvent
+    peer::{
+        ConnPeerSender,
+        event::{
+            IncomingPacketEvent,
+            status::IncomingStatusPacketEvent
+        }
     },
     protocol::packet::{
         c2s::status::{
@@ -12,19 +14,21 @@ use crate::conn::{
         s2c::status::pong::S2CStatusPongPacket
     }
 };
-use crate::util::par_eventwriter::ParallelEventWriter;
-use bevy_ecs::event::EventReader;
+use bevy_ecs::{
+    event::EventReader,
+    system::Query
+};
 
 
 pub(in crate::conn) fn respond_to_pings(
-    mut er_status : EventReader<IncomingStatusPacketEvent>,
-        ew_packet : ParallelEventWriter<OutgoingPacketEvent>
+    mut q_peers   : Query<(&mut ConnPeerSender,)>,
+    mut er_status : EventReader<IncomingStatusPacketEvent>
 ) {
-    er_status.par_read().for_each(|event| {
-        if let C2SStatusPackets::Ping(C2SStatusPingPacket { timestamp }) = event.packet() {
-            ew_packet.write(OutgoingPacketEvent::new(event.peer(),
-                S2CStatusPongPacket { timestamp : *timestamp }
-            ));
+    for event in er_status.read() {
+        if let C2SStatusPackets::Ping(C2SStatusPingPacket { timestamp }) = event.packet()
+            && let Ok((mut sender,)) = q_peers.get_mut(event.peer())
+        {
+            sender.send(S2CStatusPongPacket { timestamp : *timestamp });
         }
-    });
+    }
 }

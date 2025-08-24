@@ -9,9 +9,6 @@ use bevy_ecs::{
 };
 
 
-mod request;
-pub use request::*;
-
 mod ping;
 pub(in crate::conn) use ping::*;
 

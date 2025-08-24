@@ -25,7 +25,7 @@ use peer::{
     ConnPeerIncoming,
     ConnPeerDecoder,
     ConnPeerWriter,
-    ConnPeerOutgoing,
+    ConnPeerSender,
     ConnPeerState,
     event::login::ConnPeerLoginFlow
 };
@@ -85,9 +85,7 @@ impl Plugin for ConnListenerPlugin {
         _ = IoTaskPool::get_or_init(TaskPool::new);
         app .add_event::<peer::event::handshake::IncomingHandshakePacketEvent>()
             .add_event::<peer::event::status::IncomingStatusPacketEvent>()
-            .add_event::<peer::event::status::StatusRequestEvent>()
             .add_event::<peer::event::login::IncomingLoginPacketEvent>()
-            .add_event::<peer::event::OutgoingPacketEvent>()
             .insert_resource(ConnListener::new(&*self.listen_addrs).unwrap()) // TODO: Error handler.
             .insert_resource(ConnOptions {
                 server_id          : self.server_id.clone(),
@@ -97,13 +95,11 @@ impl Plugin for ConnListenerPlugin {
             .add_systems(Update, accept_conn_peers)
             .add_systems(Update, peer::read_conn_peer_incoming)
             .add_systems(Update, peer::decode_conn_peer_incoming)
-            .add_systems(Update, peer::encode_conn_peer_outgoing)
             .add_systems(Update, peer::write_conn_peer_outgoing)
-            .add_systems(Update, peer::event::handshake::handle_intention.before(peer::decode_conn_peer_incoming).after(peer::encode_conn_peer_outgoing))
-            .add_systems(Update, peer::event::status::respond_to_requests)
+            .add_systems(Update, peer::event::handshake::handle_intention.before(peer::decode_conn_peer_incoming))
             .add_systems(Update, peer::event::status::respond_to_pings)
-            .add_systems(Update, peer::event::login::handle_login_flow.before(peer::decode_conn_peer_incoming).after(peer::encode_conn_peer_outgoing))
-            .add_systems(Update, peer::event::login::poll_mojauths_tasks.after(peer::encode_conn_peer_outgoing))
+            .add_systems(Update, peer::event::login::handle_login_flow.before(peer::decode_conn_peer_incoming))
+            .add_systems(Update, peer::event::login::poll_mojauths_tasks)
         ;
     }
 }
@@ -149,7 +145,7 @@ fn accept_conn_peers(
                 incoming   : ConnPeerIncoming::default(),
                 decoder    : ConnPeerDecoder::default(),
                 writer     : ConnPeerWriter::from(write_stream),
-                outgoing   : ConnPeerOutgoing::default(),
+                sender     : ConnPeerSender::default(),
                 state      : ConnPeerState::handshake(),
                 login_flow : ConnPeerLoginFlow::default()
             });

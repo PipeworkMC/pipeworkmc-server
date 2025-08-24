@@ -19,7 +19,9 @@ pub mod finish_acknowledged;
 pub enum C2SLoginPackets {
     Start              (start               ::C2SLoginStartPacket),
     EncryptResponse    (encrypt_response    ::C2SLoginEncryptResponsePacket),
+    // TODO: QueryResponse
     FinishAcknowledged (finish_acknowledged ::C2SLoginFinishAcknowledgedPacket)
+    // TODO: Cookie response
 }
 
 impl PrefixedPacketDecode for C2SLoginPackets {

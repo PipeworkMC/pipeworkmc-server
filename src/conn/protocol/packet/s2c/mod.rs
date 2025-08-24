@@ -9,14 +9,14 @@ pub mod login;
 
 
 #[derive(Debug)]
-pub enum S2CPackets {
-    Status(status::S2CStatusPackets),
-    Login(login::S2CLoginPackets)
+pub enum S2CPackets<'l> {
+    Status(status::S2CStatusPackets<'l>),
+    Login(login::S2CLoginPackets<'l>)
     // TODO: Config
     // TODO: Play
 }
 
-unsafe impl PrefixedPacketEncode for S2CPackets {
+unsafe impl PrefixedPacketEncode for S2CPackets<'_> {
 
     fn encode_prefixed_len(&self) -> usize { match (self) {
         S2CPackets::Status (packet) => packet.encode_prefixed_len(),

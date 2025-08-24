@@ -28,7 +28,6 @@ pub mod prelude {
 
     pub use crate::conn::{
         ConnListenerPlugin,
-        peer::event::IncomingPacketEvent as _,
         protocol::Protocol
     };
 
@@ -43,9 +42,14 @@ pub mod prelude {
 
     pub mod packet {
         pub use crate::conn::{
-            peer::event::{
-                status::StatusRequestEvent,
-                OutgoingPacketEvent
+            peer::{
+                ConnPeerSender,
+                event::{
+                    IncomingPacketEvent as _,
+                    handshake::IncomingHandshakePacketEvent,
+                    status::IncomingStatusPacketEvent,
+                    login::IncomingLoginPacketEvent
+                }
             },
             protocol::packet::{
                 c2s::{
