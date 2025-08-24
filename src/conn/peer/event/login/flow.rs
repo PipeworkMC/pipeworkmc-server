@@ -15,11 +15,11 @@ use crate::conn::{
                 C2SLoginPackets,
                 start::C2SLoginStartPacket,
                 encrypt_response::C2SLoginEncryptResponsePacket,
-                finish::C2SLoginFinishPacket
+                finish_acknowledged::C2SLoginFinishAcknowledgedPacket
             },
             s2c::login::{
                 encrypt_request::S2CLoginEncryptRequestPacket,
-                success::S2CLoginSuccessPacket
+                finish::S2CLoginFinishPacket
             }
         },
         value::{
@@ -65,7 +65,6 @@ pub(in crate::conn) struct ConnPeerLoginFlow {
 
 #[derive(Debug)]
 struct DeclaredAccount {
-    uuid     : Uuid,
     username : BoundedString<16>
 }
 
@@ -89,10 +88,9 @@ pub(in crate::conn) fn handle_login_flow(
             match (event.packet()) {
 
 
-                C2SLoginPackets::Start(C2SLoginStartPacket { username, uuid }) => {
+                C2SLoginPackets::Start(C2SLoginStartPacket { username, uuid : _ }) => {
                     assert!(login_flow.declared_account.is_none(), "Username already declared"); // TODO: Error handler.
                     login_flow.declared_account = Some(DeclaredAccount {
-                        uuid     : *uuid,
                         username : username.clone()
                     });
 
@@ -120,11 +118,11 @@ pub(in crate::conn) fn handle_login_flow(
                     // Check verify token.
                     let mut decrypted_vtoken = [0u8; 256];
                     let     vtoken_size      = unsafe { rsa.as_ref() }.private_decrypt(
-                        &encrypted_vtoken,
+                        encrypted_vtoken,
                         &mut decrypted_vtoken,
                         Padding::PKCS1
                     ).unwrap(); // TODO: Error handler.
-                    if (vtoken != &decrypted_vtoken[0..vtoken_size]) {
+                    if (vtoken != decrypted_vtoken[0..vtoken_size]) {
                         panic!("Verify token does not match"); // TODO: Error handler.
                     }
 
@@ -172,20 +170,23 @@ pub(in crate::conn) fn handle_login_flow(
                             username : declared_account.username.clone(),
                             props    : Cow::Borrowed(&[])
                         };
-                        ew_packet.write(OutgoingPacketEvent::new(event.peer(), S2CLoginSuccessPacket { profile : profile.clone() }));
+                        ew_packet.write(OutgoingPacketEvent::new(event.peer(), S2CLoginFinishPacket { profile : profile.clone() }));
                         login_flow.profile = Some(profile);
-                        state.login_success();
+                        state.login_finish();
                     }
 
                 },
 
 
-                C2SLoginPackets::Finish(C2SLoginFinishPacket {}) => {
+                C2SLoginPackets::FinishAcknowledged(C2SLoginFinishAcknowledgedPacket {}) => {
                     let Some(profile) = login_flow.profile.take()
                         else { panic!("Login not finished yet") }; // TODO: Error handler.
-                    cmds.entity(entity).remove::<ConnPeerLoginFlow>();
-                    state.login_finish();
-                    println!("Logged in as {:?}", profile);
+                    println!("Logged in as {profile:?}");
+                    let mut ecmds = cmds.entity(entity);
+                    ecmds.remove::<ConnPeerLoginFlow>();
+                    ecmds.insert(profile);
+                    state.login_finish_acknowledged();
+                    // TODO: Begin config
                 }
 
 
@@ -200,17 +201,17 @@ pub(in crate::conn) fn poll_mojauths_tasks(
     mut ew_packet : EventWriter<OutgoingPacketEvent>,
 ) {
     for (entity, mut login_flow, mut state,) in &mut q_peers {
-        if let Some(mojauth_task) = &mut login_flow.mojauth_task {
-            if let Some(response) = futures::check_ready(mojauth_task) {
-                login_flow.mojauth_task = None;
-                match (response) {
-                    Ok(profile) => {
-                        ew_packet.write(OutgoingPacketEvent::new(entity, S2CLoginSuccessPacket { profile : profile.clone() }));
-                        login_flow.profile = Some(profile);
-                        state.login_success();
-                    },
-                    Err(err) => panic!("{:?}", err) // TODO: Error handler.
-                }
+        if let Some(mojauth_task) = &mut login_flow.mojauth_task
+            && let Some(response) = futures::check_ready(mojauth_task)
+        {
+            login_flow.mojauth_task = None;
+            match (response) {
+                Ok(profile) => {
+                    ew_packet.write(OutgoingPacketEvent::new(entity, S2CLoginFinishPacket { profile : profile.clone() }));
+                    login_flow.profile = Some(profile);
+                    state.login_finish();
+                },
+                Err(err) => panic!("{err:?}") // TODO: Error handler.
             }
         }
     }

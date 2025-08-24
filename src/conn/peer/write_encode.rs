@@ -46,7 +46,7 @@ pub(in crate::conn) struct ConnPeerOutgoing {
 
 pub(in crate::conn) fn encode_conn_peer_outgoing(
     mut q_peers   : Query<(&mut ConnPeerOutgoing,)>,
-    mut er_packet : EventReader<OutgoingPacketEvent>
+    mut er_packet : EventReader<OutgoingPacketEvent> // TODO: Switch state if needed.
 ) {
     for event in er_packet.read() {
         if let Ok((mut outgoing,)) = q_peers.get_mut(event.peer()) {

@@ -12,14 +12,14 @@ use core::hint::unreachable_unchecked;
 
 pub mod start;
 pub mod encrypt_response;
-pub mod finish;
+pub mod finish_acknowledged;
 
 
 #[derive(Debug)]
 pub enum C2SLoginPackets {
-    Start           (start            ::C2SLoginStartPacket),
-    EncryptResponse (encrypt_response ::C2SLoginEncryptResponsePacket),
-    Finish          (finish           ::C2SLoginFinishPacket)
+    Start              (start               ::C2SLoginStartPacket),
+    EncryptResponse    (encrypt_response    ::C2SLoginEncryptResponsePacket),
+    FinishAcknowledged (finish_acknowledged ::C2SLoginFinishAcknowledgedPacket)
 }
 
 impl PrefixedPacketDecode for C2SLoginPackets {
@@ -29,9 +29,9 @@ impl PrefixedPacketDecode for C2SLoginPackets {
         -> Result<Self, Self::Error>
     {
         Ok(match (buf.read()?) {
-            start            ::C2SLoginStartPacket           ::PREFIX => Self::Start           (start            ::C2SLoginStartPacket           ::decode(buf)?),
-            encrypt_response ::C2SLoginEncryptResponsePacket ::PREFIX => Self::EncryptResponse (encrypt_response ::C2SLoginEncryptResponsePacket ::decode(buf)?),
-            finish           ::C2SLoginFinishPacket          ::PREFIX => Self::Finish          (finish           ::C2SLoginFinishPacket          ::decode(buf)?),
+            start               ::C2SLoginStartPacket              ::PREFIX => Self::Start              (start               ::C2SLoginStartPacket              ::decode(buf)?),
+            encrypt_response    ::C2SLoginEncryptResponsePacket    ::PREFIX => Self::EncryptResponse    (encrypt_response    ::C2SLoginEncryptResponsePacket    ::decode(buf)?),
+            finish_acknowledged ::C2SLoginFinishAcknowledgedPacket ::PREFIX => Self::FinishAcknowledged (finish_acknowledged ::C2SLoginFinishAcknowledgedPacket ::decode(buf)?),
 
             v => { return Err(C2SLoginDecodeError::UnknownPrefix(v)); }
         })

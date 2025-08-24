@@ -6,11 +6,12 @@ use crate::conn::protocol::{
     value::bounded_string::BoundedString
 };
 use std::borrow::Cow;
+use bevy_ecs::component::Component;
 use serde::Deserialize as Deser;
 use uuid::Uuid;
 
 
-#[derive(Clone, Deser, Debug)]
+#[derive(Clone, Component, Deser, Debug)]
 pub struct Profile {
     #[serde(rename = "id")]
     pub uuid     : Uuid,

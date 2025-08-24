@@ -82,7 +82,7 @@ impl Default for ConnListenerPlugin {
 
 impl Plugin for ConnListenerPlugin {
     fn build(&self, app : &mut App) {
-        _ = IoTaskPool::get_or_init(|| TaskPool::default());
+        _ = IoTaskPool::get_or_init(TaskPool::new);
         app .add_event::<peer::event::handshake::IncomingHandshakePacketEvent>()
             .add_event::<peer::event::status::IncomingStatusPacketEvent>()
             .add_event::<peer::event::status::StatusRequestEvent>()

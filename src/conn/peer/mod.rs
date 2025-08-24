@@ -47,10 +47,10 @@ impl From<SocketAddr> for ConnPeer {
 
 
 #[derive(Component)]
-pub struct ConnPeerState { // TODO: Timeout handshake/status/login
+pub struct ConnPeerState {
     incoming_state : PacketState,
     outgoing_state : PacketState,
-    expires        : Option<Instant>
+    expires        : Option<Instant> // TODO: Kick on timeout
 }
 impl ConnPeerState {
 
@@ -65,19 +65,35 @@ impl ConnPeerState {
         self.outgoing_state = PacketState::Status;
         self.expires        = Some(Instant::now() + Duration::from_millis(500));
     }
-
     pub fn switch_to_login(&mut self) {
         self.incoming_state = PacketState::Login;
         self.outgoing_state = PacketState::Login;
         self.expires        = Some(Instant::now() + Duration::from_millis(2500));
     }
 
-    pub fn login_success(&mut self) {
+    pub fn login_finish(&mut self) {
         self.outgoing_state = PacketState::Config;
         self.expires        = Some(Instant::now() + Duration::from_millis(250));
     }
+    pub fn login_finish_acknowledged(&mut self) {
+        self.incoming_state = PacketState::Config;
+        self.expires        = None;
+    }
 
-    pub fn login_finish(&mut self) {
+    pub fn config_finish(&mut self) {
+        self.outgoing_state = PacketState::Play;
+        self.expires        = Some(Instant::now() + Duration::from_millis(250));
+    }
+    pub fn config_finish_acknowledged(&mut self) {
+        self.incoming_state = PacketState::Play;
+        self.expires        = None;
+    }
+
+    pub fn config_begin(&mut self) {
+        self.outgoing_state = PacketState::Config;
+        self.expires        = Some(Instant::now() + Duration::from_millis(500));
+    }
+    pub fn config_begin_acknowledged(&mut self) {
         self.incoming_state = PacketState::Config;
         self.expires        = None;
     }
