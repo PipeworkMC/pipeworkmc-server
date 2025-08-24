@@ -7,6 +7,7 @@ use crate::conn::protocol::{
     },
     packet::PacketMeta
 };
+use core::fmt::{ self, Display, Formatter };
 
 
 pub mod intention;
@@ -34,15 +35,22 @@ impl PrefixedPacketDecode for C2SHandshakePackets {
 
 #[derive(Debug)]
 pub enum C2SHandshakeDecodeError {
-    Incomplete,
+    Incomplete(IncompleteDecodeError),
     Intention(intention::C2SHandshakeIntentionDecodeError),
     UnknownPrefix(u8)
 }
 impl From<IncompleteDecodeError> for C2SHandshakeDecodeError {
     #[inline(always)]
-    fn from(_ : IncompleteDecodeError) -> Self { Self::Incomplete }
+    fn from(err : IncompleteDecodeError) -> Self { Self::Incomplete(err) }
 }
 impl From<intention::C2SHandshakeIntentionDecodeError> for C2SHandshakeDecodeError {
     #[inline(always)]
-    fn from(value : intention::C2SHandshakeIntentionDecodeError) -> Self { Self::Intention(value) }
+    fn from(err : intention::C2SHandshakeIntentionDecodeError) -> Self { Self::Intention(err) }
+}
+impl Display for C2SHandshakeDecodeError {
+    fn fmt(&self, f : &mut Formatter<'_>) -> fmt::Result { match (self) {
+        Self::Incomplete(err)   => err.fmt(f),
+        Self::Intention(err)    => write!(f, "intention {err}"),
+        Self::UnknownPrefix (b) => write!(f, "unknown prefix `{b:0>2b}`"),
+    } }
 }

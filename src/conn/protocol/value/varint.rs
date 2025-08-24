@@ -9,7 +9,10 @@ use crate::conn::protocol::codec::{
         EncodeBuf
     }
 };
-use core::ops::Deref;
+use core::{
+    fmt::{ self, Display, Formatter },
+    ops::Deref
+};
 
 
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
@@ -60,7 +63,7 @@ macro impl_varinttype_for_signed_int($unsigned_ty:ty => $signed_ty:ty) {
             let mut shift    = 0;
             let mut consumed = 0;
             loop {
-                let byte = iter.next().ok_or(VarIntDecodeError::Incomplete)?;
+                let byte = iter.next().ok_or(IncompleteDecodeError)?;
                 consumed += 1;
                 value |= ((byte & SEGMENT_BITS) as $signed_ty) << shift;
                 if ((byte & CONTINUE_BIT) == 0) { break; }
@@ -168,13 +171,16 @@ where
 
 #[derive(Debug)]
 pub enum VarIntDecodeError {
-    Incomplete,
+    Incomplete(IncompleteDecodeError),
     TooLong
 }
-
 impl From<IncompleteDecodeError> for VarIntDecodeError {
     #[inline(always)]
-    fn from(_ : IncompleteDecodeError) -> Self {
-        Self::Incomplete
-    }
+    fn from(err : IncompleteDecodeError) -> Self { Self::Incomplete(err) }
+}
+impl Display for VarIntDecodeError {
+    fn fmt(&self, f : &mut Formatter<'_>) -> fmt::Result { match (self) {
+        Self::Incomplete(err) => err.fmt(f),
+        Self::TooLong         => write!(f, "too long")
+    } }
 }

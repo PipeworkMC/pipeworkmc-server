@@ -7,7 +7,10 @@ use crate::conn::protocol::{
     },
     packet::PacketMeta
 };
-use core::hint::unreachable_unchecked;
+use core::{
+    fmt::{ self, Display, Formatter },
+    hint::unreachable_unchecked
+};
 
 
 pub mod start;
@@ -43,7 +46,7 @@ impl PrefixedPacketDecode for C2SLoginPackets {
 
 #[derive(Debug)]
 pub enum C2SLoginDecodeError {
-    Incomplete,
+    Incomplete(IncompleteDecodeError),
     Start(start::C2SLoginStartDecodeError),
     EncryptResponse(encrypt_response::C2SLoginEncryptResponseDecodeError),
     UnknownPrefix(u8)
@@ -54,7 +57,7 @@ impl From<!> for C2SLoginDecodeError {
 }
 impl From<IncompleteDecodeError> for C2SLoginDecodeError {
     #[inline(always)]
-    fn from(_ : IncompleteDecodeError) -> Self { Self::Incomplete }
+    fn from(err : IncompleteDecodeError) -> Self { Self::Incomplete(err) }
 }
 impl From<start::C2SLoginStartDecodeError> for C2SLoginDecodeError {
     #[inline(always)]
@@ -63,4 +66,12 @@ impl From<start::C2SLoginStartDecodeError> for C2SLoginDecodeError {
 impl From<encrypt_response::C2SLoginEncryptResponseDecodeError> for C2SLoginDecodeError {
     #[inline(always)]
     fn from(value : encrypt_response::C2SLoginEncryptResponseDecodeError) -> Self { Self::EncryptResponse(value) }
+}
+impl Display for C2SLoginDecodeError {
+    fn fmt(&self, f : &mut Formatter<'_>) -> fmt::Result { match (self) {
+        Self::Incomplete(err)      => err.fmt(f),
+        Self::Start(err)           => write!(f, "start {err}"),
+        Self::EncryptResponse(err) => write!(f, "encrypt response {err}"),
+        Self::UnknownPrefix (b)    => write!(f, "unknown prefix `{b:0>2b}`"),
+    } }
 }

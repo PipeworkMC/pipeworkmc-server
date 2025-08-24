@@ -14,6 +14,7 @@ use crate::conn::protocol::{
         BoundedStringDecodeError
     }
 };
+use core::fmt::{ self, Display, Formatter };
 use uuid::Uuid;
 
 
@@ -46,4 +47,10 @@ impl PacketDecode for C2SLoginStartPacket {
 pub enum C2SLoginStartDecodeError {
     Username(BoundedStringDecodeError),
     Uuid(IncompleteDecodeError)
+}
+impl Display for C2SLoginStartDecodeError {
+    fn fmt(&self, f : &mut Formatter<'_>) -> fmt::Result { match (self) {
+        Self::Username(err) => write!(f, "username {err}"),
+        Self::Uuid(err)     => write!(f, "uuid {err}")
+    } }
 }

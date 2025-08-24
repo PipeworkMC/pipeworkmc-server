@@ -8,6 +8,7 @@ use crate::conn::protocol::{
         VarIntDecodeError
     }
 };
+use core::fmt::{ self, Display, Formatter };
 
 
 impl<T> PacketDecode for Vec<T>
@@ -36,4 +37,13 @@ pub enum VecDecodeError<E> {
         index : usize,
         err   : E
     }
+}
+impl<E> Display for VecDecodeError<E>
+where
+    E : Display
+{
+    fn fmt(&self, f : &mut Formatter<'_>) -> fmt::Result { match (self) {
+        Self::Length(err)          => write!(f, "length {err}"),
+        Self::Entry { index, err } => write!(f, "item {index} {err}")
+    } }
 }

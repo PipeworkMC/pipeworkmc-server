@@ -1,3 +1,6 @@
+use atomic_enum::atomic_enum;
+
+
 pub mod c2s;
 pub mod s2c;
 
@@ -8,7 +11,8 @@ pub trait PacketMeta {
     const PREFIX : u8;
 }
 
-#[derive(Clone, Copy, PartialEq, Eq, Hash, Default, Debug)]
+#[atomic_enum]
+#[derive(PartialEq, Eq, Hash, Default)]
 pub enum PacketState {
     #[default]
     Handshake,

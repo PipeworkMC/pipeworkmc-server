@@ -133,13 +133,21 @@ impl<const MAX_LEN : usize> Display for BoundedString<MAX_LEN> {
 #[derive(Debug)]
 pub enum BoundedStringDecodeError {
     Length(VarIntDecodeError),
-    Incomplete,
+    Incomplete(IncompleteDecodeError),
     TooLong(TooLong),
     Utf8(Utf8Error)
 }
 impl From<IncompleteDecodeError> for BoundedStringDecodeError {
     #[inline(always)]
-    fn from(_ : IncompleteDecodeError) -> Self { Self::Incomplete }
+    fn from(err : IncompleteDecodeError) -> Self { Self::Incomplete(err) }
+}
+impl Display for BoundedStringDecodeError {
+    fn fmt(&self, f : &mut Formatter<'_>) -> fmt::Result { match (self) {
+        Self::Length(err)     => write!(f, "length {err}"),
+        Self::Incomplete(err) => Display::fmt(err, f),
+        Self::TooLong(err)    => write!(f, "length of {} exceeds maximum of {}", err.len, err.max),
+        Self::Utf8(_)         => write!(f, "invalid utf8")
+    } }
 }
 
 

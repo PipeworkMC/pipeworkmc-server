@@ -1,5 +1,6 @@
 use crate::conn::{
     peer::{
+        ConnPeerSender,
         ConnPeerState,
         event::{
             handshake::IncomingHandshakePacketEvent,
@@ -71,12 +72,13 @@ pub(in crate::conn) struct ConnPeerDecoder {
 
 
 pub(in crate::conn) fn read_conn_peer_incoming(
-    mut q_peers : Query<(&mut ConnPeerReader, &mut ConnPeerIncoming,)>
+    mut q_peers : Query<(&mut ConnPeerReader, &mut ConnPeerIncoming, &mut ConnPeerSender,)>
 ) {
-    q_peers.par_iter_mut().for_each(|(mut reader, mut incoming,)| {
+    q_peers.par_iter_mut().for_each(|(mut reader, mut incoming, mut sender,)| {
+        if (sender.is_disconnecting()) { return; }
         let mut buf = [0u8; READ_BYTES_PER_CYCLE];
         match (reader.stream.read(&mut buf)) { // TODO: Ratelimit
-            Ok(0) => { }, // TODO: Disconnected
+            Ok(0) => { sender.kick_end_of_stream(); },
             Ok(count) => {
                 let mut incoming_slice = &buf[0..count];
 
@@ -96,12 +98,13 @@ pub(in crate::conn) fn read_conn_peer_incoming(
 
 
 pub(in crate::conn) fn decode_conn_peer_incoming(
-    mut q_peers      : Query<(Entity, &mut ConnPeerIncoming, &mut ConnPeerDecoder, &ConnPeerState)>,
+    mut q_peers      : Query<(Entity, &mut ConnPeerIncoming, &mut ConnPeerDecoder, &mut ConnPeerSender, &ConnPeerState)>,
         ew_handshake : ParallelEventWriter<IncomingHandshakePacketEvent>,
         ew_status    : ParallelEventWriter<IncomingStatusPacketEvent>,
         ew_login     : ParallelEventWriter<IncomingLoginPacketEvent>
 ) {
-    q_peers.par_iter_mut().for_each(|(peer, mut incoming, mut decoder, state)| {
+    q_peers.par_iter_mut().for_each(|(peer, mut incoming, mut decoder, mut sender, state)| {
+        if (sender.is_disconnecting()) { return; }
 
         // Get or try to decode next packet size.
         let packet_size = decoder.next_size.get_or_maybe_insert_with(|| {
@@ -110,8 +113,8 @@ pub(in crate::conn) fn decode_conn_peer_incoming(
                     incoming.queue.pop_many_front(consumed);
                     Some(next_size as usize)
                 },
-                Err(VarIntDecodeError::Incomplete) => None,
-                Err(VarIntDecodeError::TooLong)    => panic!("{:?}", VarIntDecodeError::TooLong), // TODO: Error handler.
+                Err(VarIntDecodeError::Incomplete(_)) => None,
+                Err(VarIntDecodeError::TooLong)       => panic!("{:?}", VarIntDecodeError::TooLong), // TODO: Error handler.
             }
         });
 
@@ -126,18 +129,18 @@ pub(in crate::conn) fn decode_conn_peer_incoming(
             let mut buf = DecodeBuf::from(&*buf);
             // TODO: Decompress
             match (state.incoming_state) {
-                PacketState::Handshake => {
-                    let packet = C2SHandshakePackets::decode_prefixed(&mut buf).unwrap(); // TODO: Error handler.
-                    ew_handshake.write(IncomingHandshakePacketEvent::new(peer, packet));
-                },
-                PacketState::Status => {
-                    let packet = C2SStatusPackets::decode_prefixed(&mut buf).unwrap(); // TODO: Error handler.
-                    ew_status.write(IncomingStatusPacketEvent::new(peer, packet));
-                },
-                PacketState::Login  => {
-                    let packet = C2SLoginPackets::decode_prefixed(&mut buf).unwrap(); // TODO: Error handler.
-                    ew_login.write(IncomingLoginPacketEvent::new(peer, packet));
-                },
+                PacketState::Handshake => { match (C2SHandshakePackets::decode_prefixed(&mut buf)) {
+                    Ok(packet) => { ew_handshake.write(IncomingHandshakePacketEvent::new(peer, packet)); },
+                    Err(err)   => { sender.kick_packet_error(format!("handshake {err}")); }
+                } },
+                PacketState::Status => { match (C2SStatusPackets::decode_prefixed(&mut buf)) {
+                    Ok(packet) => { ew_status.write(IncomingStatusPacketEvent::new(peer, packet)); },
+                    Err(err)   => { sender.kick_packet_error(format!("status {err}")); }
+                } },
+                PacketState::Login => { match (C2SLoginPackets::decode_prefixed(&mut buf)) {
+                    Ok(packet) => { ew_login.write(IncomingLoginPacketEvent::new(peer, packet)); },
+                    Err(err)   => { sender.kick_packet_error(format!("login {err}")); }
+                } },
                 PacketState::Config => todo!(),
                 PacketState::Play   => todo!()
             };

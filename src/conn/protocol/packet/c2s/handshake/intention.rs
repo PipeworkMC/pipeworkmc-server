@@ -15,6 +15,7 @@ use crate::conn::protocol::{
         VarIntDecodeError
     }
 };
+use core::fmt::{ self, Display, Formatter };
 
 
 #[derive(Debug)]
@@ -66,4 +67,13 @@ pub enum C2SHandshakeIntentionDecodeError {
     Port(IncompleteDecodeError),
     Intent(VarIntDecodeError),
     UnknownIntention(u32)
+}
+impl Display for C2SHandshakeIntentionDecodeError {
+    fn fmt(&self, f : &mut Formatter<'_>) -> fmt::Result { match (self) {
+        Self::Protocol(err)               => write!(f, "protocol version {err}"),
+        Self::Address(err)                => write!(f, "connection address {err}"),
+        Self::Port(err)                   => write!(f, "connection port {err}"),
+        Self::Intent(err)                 => write!(f, "intention {err}"),
+        Self::UnknownIntention(intention) => write!(f, "unknown intention {intention}")
+    } }
 }

@@ -1,12 +1,15 @@
 use crate::conn::{
     peer::event::login::ConnPeerLoginFlow,
-    protocol::packet::PacketState
+    protocol::packet::{ AtomicPacketState, PacketState }
 };
 use core::{
     net::SocketAddr,
     time::Duration
 };
-use std::time::Instant;
+use std::{
+    sync::{ Arc, atomic::Ordering as AtomicOrdering },
+    time::Instant
+};
 use bevy_ecs::{
     bundle::Bundle,
     component::Component
@@ -49,7 +52,7 @@ impl From<SocketAddr> for ConnPeer {
 #[derive(Component)]
 pub struct ConnPeerState {
     incoming_state : PacketState,
-    outgoing_state : PacketState,
+    outgoing_state : Arc<AtomicPacketState>,
     expires        : Option<Instant> // TODO: Kick on timeout
 }
 
@@ -59,7 +62,10 @@ impl ConnPeerState {
     pub fn incoming_state(&self) -> PacketState { self.incoming_state }
 
     #[inline(always)]
-    pub fn outgoing_state(&self) -> PacketState { self.outgoing_state }
+    pub fn outgoing_state(&self) -> PacketState { self.outgoing_state.load(AtomicOrdering::SeqCst) }
+
+    #[inline(always)]
+    pub(in crate::conn) fn outgoing_state_arc(&self) -> &Arc<AtomicPacketState> { &self.outgoing_state }
 
     #[inline(always)]
     pub fn expires(&self) -> Option<Instant> { self.expires }
@@ -70,24 +76,24 @@ impl ConnPeerState {
 
     pub fn handshake() -> Self { Self {
         incoming_state : PacketState::Handshake,
-        outgoing_state : PacketState::Handshake,
+        outgoing_state : Arc::new(AtomicPacketState::new(PacketState::Handshake)),
         expires        : Some(Instant::now() + Duration::from_millis(250))
     } }
 
     pub unsafe fn switch_to_status(&mut self) {
         self.incoming_state = PacketState::Status;
-        self.outgoing_state = PacketState::Status;
+        self.outgoing_state.store(PacketState::Status, AtomicOrdering::SeqCst);
         self.expires        = Some(Instant::now() + Duration::from_millis(500));
     }
     pub unsafe fn switch_to_login(&mut self) {
         self.incoming_state = PacketState::Login;
-        self.outgoing_state = PacketState::Login;
+        self.outgoing_state.store(PacketState::Login, AtomicOrdering::SeqCst);
         self.expires        = Some(Instant::now() + Duration::from_millis(2500));
     }
 
     pub unsafe fn login_finish(&mut self) {
-        self.outgoing_state = PacketState::Config;
-        self.expires        = Some(Instant::now() + Duration::from_millis(250));
+        self.outgoing_state.store(PacketState::Config, AtomicOrdering::SeqCst);
+        self.expires = Some(Instant::now() + Duration::from_millis(250));
     }
     pub unsafe fn login_finish_acknowledged(&mut self) {
         self.incoming_state = PacketState::Config;
@@ -95,8 +101,8 @@ impl ConnPeerState {
     }
 
     pub unsafe fn config_finish(&mut self) {
-        self.outgoing_state = PacketState::Play;
-        self.expires        = Some(Instant::now() + Duration::from_millis(250));
+        self.outgoing_state.store(PacketState::Play, AtomicOrdering::SeqCst);
+        self.expires = Some(Instant::now() + Duration::from_millis(250));
     }
     pub unsafe fn config_finish_acknowledged(&mut self) {
         self.incoming_state = PacketState::Play;
@@ -104,8 +110,8 @@ impl ConnPeerState {
     }
 
     pub unsafe fn config_begin(&mut self) {
-        self.outgoing_state = PacketState::Config;
-        self.expires        = Some(Instant::now() + Duration::from_millis(500));
+        self.outgoing_state.store(PacketState::Config, AtomicOrdering::SeqCst);
+        self.expires = Some(Instant::now() + Duration::from_millis(500));
     }
     pub unsafe fn config_begin_acknowledged(&mut self) {
         self.incoming_state = PacketState::Config;

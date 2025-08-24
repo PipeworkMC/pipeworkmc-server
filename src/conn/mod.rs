@@ -6,7 +6,8 @@ use core::net::{
 use std::{
     borrow::Cow,
     io,
-    net::{ TcpListener, ToSocketAddrs }
+    net::{ TcpListener, ToSocketAddrs },
+    sync::Arc
 };
 use bevy_app::{ App, Plugin, Update };
 use bevy_ecs::{
@@ -139,14 +140,15 @@ fn accept_conn_peers(
             write_stream.set_nodelay(true).unwrap(); // TODO: Error handler.
             write_stream.set_nonblocking(true).unwrap(); // TODO: Error handler.
             let read_stream = write_stream.try_clone().unwrap(); // TODO: Error handler.
+            let state = ConnPeerState::handshake();
             cmds.spawn(ConnPeerBundle {
                 peer       : ConnPeer::from(addr),
                 reader     : ConnPeerReader::from(read_stream),
                 incoming   : ConnPeerIncoming::default(),
                 decoder    : ConnPeerDecoder::default(),
                 writer     : ConnPeerWriter::from(write_stream),
-                sender     : ConnPeerSender::default(),
-                state      : ConnPeerState::handshake(),
+                sender     : ConnPeerSender::from(Arc::clone(state.outgoing_state_arc())),
+                state,
                 login_flow : ConnPeerLoginFlow::default()
             });
         },

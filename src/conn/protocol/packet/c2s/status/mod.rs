@@ -7,7 +7,10 @@ use crate::conn::protocol::{
     },
     packet::PacketMeta
 };
-use core::hint::unreachable_unchecked;
+use core::{
+    fmt::{ self, Display, Formatter },
+    hint::unreachable_unchecked
+};
 
 
 pub mod request;
@@ -38,7 +41,7 @@ impl PrefixedPacketDecode for C2SStatusPackets {
 
 #[derive(Debug)]
 pub enum C2SStatusDecodeError {
-    Incomplete,
+    Incomplete(IncompleteDecodeError),
     UnknownPrefix(u8)
 }
 impl From<!> for C2SStatusDecodeError {
@@ -47,5 +50,11 @@ impl From<!> for C2SStatusDecodeError {
 }
 impl From<IncompleteDecodeError> for C2SStatusDecodeError {
     #[inline(always)]
-    fn from(_ : IncompleteDecodeError) -> Self { Self::Incomplete }
+    fn from(err : IncompleteDecodeError) -> Self { Self::Incomplete(err) }
+}
+impl Display for C2SStatusDecodeError {
+    fn fmt(&self, f : &mut Formatter<'_>) -> fmt::Result { match (self) {
+        Self::Incomplete(err)   => err.fmt(f),
+        Self::UnknownPrefix (b) => write!(f, "unknown prefix `{b:0>2b}`"),
+    } }
 }

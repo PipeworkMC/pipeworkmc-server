@@ -11,6 +11,7 @@ use crate::conn::protocol::{
     }
 };
 use crate::util::redacted::Redacted;
+use core::fmt::{ self, Display, Formatter };
 
 
 #[derive(Debug)]
@@ -42,4 +43,10 @@ impl PacketDecode for C2SLoginEncryptResponsePacket {
 pub enum C2SLoginEncryptResponseDecodeError {
     SecretKey(VecDecodeError<<u8 as PacketDecode>::Error>),
     VerifyToken(VecDecodeError<<u8 as PacketDecode>::Error>)
+}
+impl Display for C2SLoginEncryptResponseDecodeError {
+    fn fmt(&self, f : &mut Formatter<'_>) -> fmt::Result { match (self) {
+        Self::SecretKey(err)   => write!(f, "secret key {err}"),
+        Self::VerifyToken(err) => write!(f, "verify token {err}")
+    } }
 }

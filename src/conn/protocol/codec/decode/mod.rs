@@ -1,5 +1,8 @@
 use crate::conn::protocol::packet::PacketMeta;
-use core::ptr;
+use core::{
+    ptr,
+    fmt::{ self, Display, Formatter }
+};
 
 
 pub mod array;
@@ -129,6 +132,11 @@ where
 
 #[derive(Debug)]
 pub struct IncompleteDecodeError;
+
+impl Display for IncompleteDecodeError {
+    #[inline(always)]
+    fn fmt(&self, f : &mut Formatter<'_>) -> fmt::Result { write!(f, "missing bytes") }
+}
 
 
 #[derive(Debug)]

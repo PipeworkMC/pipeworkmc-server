@@ -1,6 +1,9 @@
-use crate::conn::protocol::codec::encode::{
-    PrefixedPacketEncode,
-    EncodeBuf
+use crate::conn::protocol::{
+    codec::encode::{
+        PrefixedPacketEncode,
+        EncodeBuf
+    },
+    packet::PacketState
 };
 
 
@@ -14,6 +17,15 @@ pub enum S2CPackets<'l> {
     Login(login::S2CLoginPackets<'l>)
     // TODO: Config
     // TODO: Play
+}
+
+impl S2CPackets<'_> {
+
+    pub fn meta(&self) -> (PacketState, u8,) { match (self) {
+        Self::Status (packet) => (PacketState::Status, packet.prefix(),),
+        Self::Login  (packet) => (PacketState::Login,  packet.prefix(),)
+    } }
+
 }
 
 unsafe impl PrefixedPacketEncode for S2CPackets<'_> {

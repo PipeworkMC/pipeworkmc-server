@@ -9,6 +9,7 @@ use crate::conn::protocol::{
         VarIntDecodeError
     }
 };
+use core::fmt::{ self, Display, Formatter };
 use std::string::FromUtf8Error;
 
 
@@ -29,10 +30,17 @@ impl PacketDecode for String {
 #[derive(Debug)]
 pub enum StringDecodeError {
     Length(VarIntDecodeError),
-    Incomplete,
+    Incomplete(IncompleteDecodeError),
     Utf8(FromUtf8Error)
 }
 impl From<IncompleteDecodeError> for StringDecodeError {
     #[inline(always)]
-    fn from(_ : IncompleteDecodeError) -> Self { Self::Incomplete }
+    fn from(err : IncompleteDecodeError) -> Self { Self::Incomplete(err) }
+}
+impl Display for StringDecodeError {
+    fn fmt(&self, f : &mut Formatter<'_>) -> fmt::Result { match (self) {
+        Self::Length(err)     => write!(f, "length {err}"),
+        Self::Incomplete(err) => err.fmt(f),
+        Self::Utf8(_)         => write!(f, "invalid utf8")
+    } }
 }

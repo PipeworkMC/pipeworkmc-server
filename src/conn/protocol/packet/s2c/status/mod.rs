@@ -3,7 +3,10 @@ use crate::conn::protocol::{
         PrefixedPacketEncode,
         EncodeBuf
     },
-    packet::s2c::S2CPackets
+    packet::{
+        PacketMeta,
+        s2c::S2CPackets
+    }
 };
 
 
@@ -15,6 +18,15 @@ pub mod pong;
 pub enum S2CStatusPackets<'l> {
     Response (response ::S2CStatusResponsePacket<'l>),
     Pong     (pong     ::S2CStatusPongPacket)
+}
+
+impl S2CStatusPackets<'_> {
+
+    pub fn prefix(&self) -> u8 { match (self) {
+        Self::Response (_) => response ::S2CStatusResponsePacket ::PREFIX,
+        Self::Pong     (_) => pong     ::S2CStatusPongPacket     ::PREFIX
+    } }
+
 }
 
 unsafe impl PrefixedPacketEncode for S2CStatusPackets<'_> {

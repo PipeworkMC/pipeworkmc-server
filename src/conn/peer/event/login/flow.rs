@@ -88,7 +88,10 @@ pub(in crate::conn) fn handle_login_flow(
 
 
                 C2SLoginPackets::Start(C2SLoginStartPacket { username, uuid : _ }) => {
-                    assert!(login_flow.declared_account.is_none(), "Username already declared"); // TODO: Error handler.
+                    if (login_flow.declared_account.is_some()) {
+                        sender.kick_login_failed("Client-side profile already declared");
+                        continue;
+                    }
                     login_flow.declared_account = Some(DeclaredAccount {
                         username : username.clone()
                     });
@@ -109,43 +112,46 @@ pub(in crate::conn) fn handle_login_flow(
 
 
                 C2SLoginPackets::EncryptResponse(C2SLoginEncryptResponsePacket { encrypted_secret_key, encrypted_vtoken }) => {
-                    let Some(ExchangingKey { rsa, pkeyder, vtoken }) = login_flow.exchanging_key.take()
-                        else { panic!("Not currently exchanging key") }; // TODO: Error handler.
+                    let Some(ExchangingKey { rsa, pkeyder, vtoken }) = login_flow.exchanging_key.take() else {
+                        sender.kick_login_failed("Invalid public key exchange");
+                        continue;
+                    };
                     let Some(declared_account) = &login_flow.declared_account
                         else { unsafe { unreachable_unchecked() } };
 
                     // Check verify token.
                     let mut decrypted_vtoken = [0u8; 256];
-                    let     vtoken_size      = unsafe { rsa.as_ref() }.private_decrypt(
-                        encrypted_vtoken,
-                        &mut decrypted_vtoken,
-                        Padding::PKCS1
-                    ).unwrap(); // TODO: Error handler.
+                    let Ok(vtoken_size) = unsafe { rsa.as_ref() }.private_decrypt(encrypted_vtoken, &mut decrypted_vtoken, Padding::PKCS1) else {
+                        sender.kick_login_failed("Public key exchange failed");
+                        continue;
+                    };
                     if (vtoken != decrypted_vtoken[0..vtoken_size]) {
-                        panic!("Verify token does not match"); // TODO: Error handler.
+                        sender.kick_login_failed("Public key exchange verification failed");
+                        continue;
                     }
 
                     // Decrypt secret key.
                     let mut decrypted_secret_key = Redacted::from([0u8; 256]);
-                    let     secret_key_size      = unsafe { rsa.as_ref() }.private_decrypt(
-                        unsafe { encrypted_secret_key.as_ref() },
-                        unsafe { decrypted_secret_key.as_mut() },
-                        Padding::PKCS1
-                    ).unwrap(); // TODO: Error handler.
-                    let     decrypted_secret_key = Redacted::from(&unsafe { decrypted_secret_key.as_ref() }[0..secret_key_size]);
+                    let Ok(secret_key_size) = unsafe { rsa.as_ref() }.private_decrypt(unsafe { encrypted_secret_key.as_ref() }, unsafe { decrypted_secret_key.as_mut() }, Padding::PKCS1) else {
+                        sender.kick_login_failed("Secret key exchange failed");
+                        continue;
+                    };
+                    let decrypted_secret_key = Redacted::from(&unsafe { decrypted_secret_key.as_ref() }[0..secret_key_size]);
 
                     // Enable encryption.
-                    let cipher       = Cipher::aes_128_cfb8();
-                    reader.decrypter = Some(Redacted::from(Crypter::new(cipher,
-                        CrypterMode::Decrypt,
-                        unsafe { decrypted_secret_key.as_ref() },
-                        Some(unsafe { decrypted_secret_key.as_ref() })
-                    ).unwrap())); // TODO: Error handler.
-                    writer.encrypter = Some(Redacted::from(Crypter::new(cipher,
-                        CrypterMode::Encrypt,
-                        unsafe { decrypted_secret_key.as_ref() },
-                        Some(unsafe { decrypted_secret_key.as_ref() })
-                    ).unwrap())); // TODO: Error handler.
+                    let cipher = Cipher::aes_128_cfb8();
+
+                    let Ok(decrypter) = Crypter::new(cipher, CrypterMode::Decrypt, unsafe { decrypted_secret_key.as_ref() }, Some(unsafe { decrypted_secret_key.as_ref() }) ) else {
+                        sender.kick_login_failed("Invalid secret key received");
+                        continue;
+                    };
+                    reader.decrypter = Some(Redacted::from(decrypter));
+
+                    let Ok(encrypter) = Crypter::new(cipher, CrypterMode::Encrypt, unsafe { decrypted_secret_key.as_ref() }, Some(unsafe { decrypted_secret_key.as_ref() }) ) else {
+                        sender.kick_login_failed("Invalid secret key received");
+                        continue;
+                    };
+                    writer.encrypter = Some(Redacted::from(encrypter));
 
                     if (r_options.mojauth_enabled) { // Fetch account information.
 
@@ -178,8 +184,10 @@ pub(in crate::conn) fn handle_login_flow(
 
 
                 C2SLoginPackets::FinishAcknowledged(C2SLoginFinishAcknowledgedPacket {}) => {
-                    let Some(profile) = login_flow.profile.take()
-                        else { panic!("Login not finished yet") }; // TODO: Error handler.
+                    let Some(profile) = login_flow.profile.take() else {
+                        sender.kick_login_failed("Profile not verified yet");
+                        continue;
+                    };
                     println!("Logged in as {profile:?}");
                     let mut ecmds = cmds.entity(entity);
                     ecmds.remove::<ConnPeerLoginFlow>();
