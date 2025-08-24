@@ -1,8 +1,14 @@
 use crate::conn::protocol::{
-    codec::decode::{
-        PacketDecode,
-        DecodeBuf,
-        IncompleteDecodeError
+    codec::{
+        decode::{
+            PacketDecode,
+            DecodeBuf,
+            IncompleteDecodeError
+        },
+        encode::{
+            PacketEncode,
+            EncodeBuf
+        }
     },
     value::varint::{
         VarInt,
@@ -11,11 +17,18 @@ use crate::conn::protocol::{
 };
 use core::{
     fmt::{ self, Debug, Display, Formatter },
-    ops::Deref
+    ops::Deref,
+    ptr
 };
 use std::str::Utf8Error;
+use serde::de::{
+    Deserialize as Deser,
+    Deserializer as Deserer,
+    Error as _
+};
 
 
+#[derive(Clone)]
 pub struct BoundedString<const MAX_LEN : usize> {
     data : [u8; MAX_LEN],
     len  : usize
@@ -27,9 +40,9 @@ impl<const MAX_LEN : usize> PacketDecode for BoundedString<MAX_LEN> {
     fn decode(buf : &mut DecodeBuf<'_>)
         -> Result<Self, Self::Error>
     {
-        let length = *buf.read_decode::<VarInt<u32>>().map_err(BoundedStringDecodeError::Length)? as usize;
+        let length = *VarInt::<u32>::decode(buf).map_err(BoundedStringDecodeError::Length)? as usize;
         if (length > MAX_LEN) {
-            return Err(BoundedStringDecodeError::TooLong { len : length, max : MAX_LEN });
+            return Err(BoundedStringDecodeError::TooLong(TooLong { len : length, max : MAX_LEN }));
         }
         let mut bytes     = [0u8; MAX_LEN];
         let     bytes_buf = &mut bytes[0..length];
@@ -39,10 +52,65 @@ impl<const MAX_LEN : usize> PacketDecode for BoundedString<MAX_LEN> {
     }
 }
 
+unsafe impl<const MAX_LEN : usize> PacketEncode for BoundedString<MAX_LEN> {
+
+    #[inline]
+    fn encode_len(&self) -> usize {
+        let s = unsafe { str::from_utf8_unchecked(&self.data[0..self.len]) };
+        s.encode_len()
+    }
+
+    #[inline]
+    unsafe fn encode(&self, buf : &mut EncodeBuf) { unsafe {
+        let s = str::from_utf8_unchecked(&self.data[0..self.len]);
+        s.encode(buf);
+    } }
+
+}
+
+
+impl<const MAX_LEN : usize> TryFrom<&str> for BoundedString<MAX_LEN> {
+    type Error = TooLong;
+
+    fn try_from(value : &str) -> Result<Self, Self::Error> {
+        if (value.len() > MAX_LEN) {
+            Err(TooLong {
+                len : value.len(),
+                max : MAX_LEN
+            })
+        } else {
+            let mut bytes = [0u8; MAX_LEN];
+            unsafe { ptr::copy_nonoverlapping(
+                value.as_ptr(),
+                bytes.as_mut_ptr(),
+                value.len()
+            ); }
+            Ok(Self {
+                data : bytes,
+                len  : value.len()
+            })
+        }
+    }
+}
+
+
+impl<'de, const MAX_LEN : usize> Deser<'de> for BoundedString<MAX_LEN> {
+    fn deserialize<D>(deserer : D) -> Result<Self, D::Error>
+    where
+        D : Deserer<'de>
+    {
+        match (Self::try_from(<&str>::deserialize(deserer)?)) {
+            Ok(s)                     => Ok(s),
+            Err(TooLong { len, max }) => Err(D::Error::custom(format!("BoundedString max length of {max} exceeded: {len}")))
+        }
+    }
+}
+
 
 impl<const MAX_LEN : usize> Deref for BoundedString<MAX_LEN> {
     type Target = str;
 
+    #[inline]
     fn deref(&self) -> &Self::Target {
         unsafe { str::from_utf8_unchecked(&self.data[0..self.len]) }
     }
@@ -66,13 +134,17 @@ impl<const MAX_LEN : usize> Display for BoundedString<MAX_LEN> {
 pub enum BoundedStringDecodeError {
     Length(VarIntDecodeError),
     Incomplete,
-    TooLong {
-        len : usize,
-        max : usize
-    },
+    TooLong(TooLong),
     Utf8(Utf8Error)
 }
 impl From<IncompleteDecodeError> for BoundedStringDecodeError {
     #[inline(always)]
     fn from(_ : IncompleteDecodeError) -> Self { Self::Incomplete }
+}
+
+
+#[derive(Debug)]
+pub struct TooLong {
+    pub len : usize,
+    pub max : usize
 }

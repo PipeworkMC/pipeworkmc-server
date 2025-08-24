@@ -29,5 +29,5 @@ impl PacketDecode for C2SStatusPingPacket {
     #[inline]
     fn decode(buf : &mut DecodeBuf<'_>)
         -> Result<Self, Self::Error>
-    { Ok(Self { timestamp : buf.read_decode()? }) }
+    { Ok(Self { timestamp : <_>::decode(buf)? }) }
 }

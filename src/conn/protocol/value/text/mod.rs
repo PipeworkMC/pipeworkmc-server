@@ -409,7 +409,7 @@ where
 {
     fn add_assign(&mut self, rhs : T) {
         let mut components = mem::replace(&mut self.components, Cow::Borrowed(&[])).into_owned();
-        components.extend_from_slice(&*rhs.into().components);
+        components.extend_from_slice(&rhs.into().components);
         self.components = Cow::Owned(components);
     }
 }

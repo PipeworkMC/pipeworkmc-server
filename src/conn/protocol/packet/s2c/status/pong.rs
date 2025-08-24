@@ -35,7 +35,7 @@ unsafe impl PacketEncode for S2CStatusPongPacket {
 
     #[inline(always)]
     unsafe fn encode(&self, buf : &mut EncodeBuf) { unsafe {
-        buf.encode_write(&self.timestamp);
+        self.timestamp.encode(buf);
     } }
 
 }

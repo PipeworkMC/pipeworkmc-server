@@ -2,8 +2,10 @@ use crate::conn::protocol::packet::PacketMeta;
 use core::ptr;
 
 
+pub mod array;
 mod num;
 pub mod string;
+pub mod vec;
 
 
 pub struct DecodeBuf<'l> {
@@ -59,11 +61,6 @@ impl<'l> DecodeBuf<'l> {
         ); }
         Ok(())
     }
-
-    pub fn read_decode<P>(&mut self) -> Result<P, P::Error>
-    where
-        P : PacketDecode
-    { P::decode(self) }
 
     pub fn skip(&mut self, count : usize) -> Result<(), IncompleteDecodeError> {
         let next_head = self.head + count;

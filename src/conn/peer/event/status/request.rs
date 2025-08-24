@@ -60,7 +60,7 @@ pub(in crate::conn) fn respond_to_requests(
 ) {
 
     er_status.par_read().for_each(|event| {
-        if let C2SStatusPackets::Request(C2SStatusRequestPacket) = event.packet() {
+        if let C2SStatusPackets::Request(C2SStatusRequestPacket {}) = event.packet() {
             ew_request.write(StatusRequestEvent {
                 peer      : event.peer(),
                 timestamp : event.timestamp(),

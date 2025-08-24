@@ -37,10 +37,10 @@ impl PacketDecode for C2SHandshakeIntentionPacket {
     fn decode(buf : &mut DecodeBuf<'_>)
         -> Result<Self, Self::Error>
     { Ok(Self {
-        protocol       : buf.read_decode().map_err(C2SHandshakeIntentionDecodeError::Protocol)?,
-        server_address : buf.read_decode().map_err(C2SHandshakeIntentionDecodeError::Address)?,
-        server_port    : buf.read_decode().map_err(C2SHandshakeIntentionDecodeError::Port)?,
-        intent         : match (*buf.read_decode::<VarInt<u32>>().map_err(C2SHandshakeIntentionDecodeError::Intent)?) {
+        protocol       : <_>::decode(buf).map_err(C2SHandshakeIntentionDecodeError::Protocol)?,
+        server_address : <_>::decode(buf).map_err(C2SHandshakeIntentionDecodeError::Address)?,
+        server_port    : <_>::decode(buf).map_err(C2SHandshakeIntentionDecodeError::Port)?,
+        intent         : match (*VarInt::<u32>::decode(buf).map_err(C2SHandshakeIntentionDecodeError::Intent)?) {
             1 => Intention::Status,
             2 => Intention::Login { is_transfer : false },
             3 => Intention::Login { is_transfer : true },

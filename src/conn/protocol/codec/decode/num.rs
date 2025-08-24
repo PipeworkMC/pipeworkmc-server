@@ -45,5 +45,5 @@ impl PacketDecode for Uuid {
     #[inline(always)]
     fn decode(buf : &mut DecodeBuf<'_>)
         -> Result<Self, Self::Error>
-    { Ok(Uuid::from_u128(buf.read_decode::<u128>()?)) }
+    { Ok(Uuid::from_u128(<_>::decode(buf)?)) }
 }

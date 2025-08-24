@@ -26,10 +26,10 @@ where
 {
 
     #[inline(always)]
-    pub fn sender(&self) -> &mpmc::Sender<T> { &self.sender }
+    pub fn sender(&self) -> &mpmc::Sender<T> { self.sender }
 
     #[inline(always)]
-    pub fn receiver(&self) -> &mpmc::Receiver<T> { &self.receiver }
+    pub fn receiver(&self) -> &mpmc::Receiver<T> { self.receiver }
 
 }
 

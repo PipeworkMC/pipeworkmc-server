@@ -8,7 +8,10 @@ use crate::conn::{
         value::varint::VarIntType
     }
 };
-use crate::util::ext::VecDequeExt;
+use crate::util::{
+    ext::VecDequeExt,
+    redacted::Redacted
+};
 use std::{
     collections::VecDeque,
     io::{ self, Write },
@@ -19,11 +22,20 @@ use bevy_ecs::{
     event::EventReader,
     system::Query
 };
+use openssl::symm::Crypter;
+
+
+const WRITE_BYTES_PER_CYCLE : usize = 256;
 
 
 #[derive(Component)]
 pub(in crate::conn) struct ConnPeerWriter {
-    pub(in crate::conn) stream : TcpStream
+    pub(in crate::conn) stream    : TcpStream,
+    pub(in crate::conn) encrypter : Option<Redacted<Crypter>>
+}
+impl From<TcpStream> for ConnPeerWriter {
+    #[inline(always)]
+    fn from(stream : TcpStream) -> Self { Self { stream, encrypter : None } }
 }
 
 #[derive(Component, Default)]
@@ -55,12 +67,21 @@ pub(in crate::conn) fn write_conn_peer_outgoing(
 ) {
     q_peers.par_iter_mut().for_each(|(mut writer, mut outgoing,)| {
         let (slice0, slice1,) = outgoing.queue.as_slices();
-        let outgoing_slice = (
+        let mut outgoing_slice = (
             if (! slice0.is_empty()) { slice0 }
             else if (! slice1.is_empty()) { slice1 }
             else { return; }
         );
-        // TODO: Encryption
+        if (outgoing_slice.len() > WRITE_BYTES_PER_CYCLE) {
+            outgoing_slice = &outgoing_slice[0..WRITE_BYTES_PER_CYCLE];
+        }
+
+        let mut encrypted_buf = [0u8; WRITE_BYTES_PER_CYCLE + 1];
+        if let Some(encrypter) = &mut writer.encrypter {
+            let count = unsafe { encrypter.as_mut().update_unchecked(outgoing_slice, &mut encrypted_buf) }.unwrap(); // TODO: Error handler.
+            outgoing_slice = &encrypted_buf[0..count];
+        }
+
         match (writer.stream.write(outgoing_slice)) {
             Ok(count) => {
                 outgoing.queue.pop_many_front(count);

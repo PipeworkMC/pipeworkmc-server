@@ -30,7 +30,7 @@ use uuid::Uuid;
 
 #[derive(Debug)]
 pub struct S2CStatusResponsePacket {
-    status_json : String
+    status_json : Cow<'static, str>
 }
 
 impl PacketMeta for S2CStatusResponsePacket {
@@ -48,7 +48,7 @@ unsafe impl PacketEncode for S2CStatusResponsePacket {
 
     #[inline(always)]
     unsafe fn encode(&self, buf : &mut EncodeBuf) { unsafe {
-        buf.encode_write(&self.status_json);
+        self.status_json.encode(buf);
     } }
 
 }
@@ -80,7 +80,7 @@ pub struct Status {
 }
 fn add_png_b64_header<S : Serer>(png_b64 : &Option<Cow<'static, str>>, ser : S) -> Result<S::Ok, S::Error> {
     if let Some(png_b64) = png_b64 {
-        ser.serialize_str(&format!("data:image/png;base64,{}", png_b64))
+        ser.serialize_str(&format!("data:image/png;base64,{png_b64}"))
     } else {
         ser.serialize_none()
     }
@@ -134,12 +134,12 @@ impl Default for StatusVersion {
 impl From<&Status> for S2CStatusResponsePacket {
     #[inline]
     fn from(value : &Status) -> Self {
-        Self { status_json : to_json_string(&value).unwrap() }
+        Self { status_json : Cow::Owned(to_json_string(&value).unwrap()) }
     }
 }
 impl From<Status> for S2CStatusResponsePacket {
     #[inline]
     fn from(value : Status) -> Self {
-        Self { status_json : to_json_string(&value).unwrap() }
+        Self { status_json : Cow::Owned(to_json_string(&value).unwrap()) }
     }
 }

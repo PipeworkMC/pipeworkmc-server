@@ -73,10 +73,12 @@ pub mod prelude {
     pub mod bevy {
         pub use bevy_app as app;
         pub use bevy_ecs as ecs;
+        pub use bevy_tasks as tasks;
         pub mod prelude {
             pub use crate::util::par_eventwriter::ParallelEventWriter;
             pub use bevy_app::prelude::*;
             pub use bevy_ecs::prelude::*;
+            pub use bevy_tasks::prelude::*;
         }
     }
 

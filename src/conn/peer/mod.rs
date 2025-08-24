@@ -1,4 +1,7 @@
-use crate::conn::protocol::packet::PacketState;
+use crate::conn::{
+    peer::event::login::ConnPeerLoginFlow,
+    protocol::packet::PacketState
+};
 use core::{
     net::SocketAddr,
     time::Duration
@@ -20,13 +23,14 @@ pub mod event;
 
 #[derive(Bundle)]
 pub(in crate::conn) struct ConnPeerBundle {
-    pub(in crate::conn) peer     : ConnPeer,
-    pub(in crate::conn) reader   : ConnPeerReader,
-    pub(in crate::conn) incoming : ConnPeerIncoming,
-    pub(in crate::conn) decoder  : ConnPeerDecoder,
-    pub(in crate::conn) writer   : ConnPeerWriter,
-    pub(in crate::conn) outgoing : ConnPeerOutgoing,
-    pub(in crate::conn) state    : ConnPeerState
+    pub(in crate::conn) peer       : ConnPeer,
+    pub(in crate::conn) reader     : ConnPeerReader,
+    pub(in crate::conn) incoming   : ConnPeerIncoming,
+    pub(in crate::conn) decoder    : ConnPeerDecoder,
+    pub(in crate::conn) writer     : ConnPeerWriter,
+    pub(in crate::conn) outgoing   : ConnPeerOutgoing,
+    pub(in crate::conn) state      : ConnPeerState,
+    pub(in crate::conn) login_flow : ConnPeerLoginFlow
 }
 
 
@@ -53,7 +57,7 @@ impl ConnPeerState {
     pub fn handshake() -> Self { Self {
         incoming_state : PacketState::Handshake,
         outgoing_state : PacketState::Handshake,
-        expires        : Some(Instant::now() + Duration::from_millis(500))
+        expires        : Some(Instant::now() + Duration::from_millis(250))
     } }
 
     pub fn switch_to_status(&mut self) {
@@ -66,6 +70,16 @@ impl ConnPeerState {
         self.incoming_state = PacketState::Login;
         self.outgoing_state = PacketState::Login;
         self.expires        = Some(Instant::now() + Duration::from_millis(2500));
+    }
+
+    pub fn login_success(&mut self) {
+        self.outgoing_state = PacketState::Config;
+        self.expires        = Some(Instant::now() + Duration::from_millis(250));
+    }
+
+    pub fn login_finish(&mut self) {
+        self.incoming_state = PacketState::Config;
+        self.expires        = None;
     }
 
 }

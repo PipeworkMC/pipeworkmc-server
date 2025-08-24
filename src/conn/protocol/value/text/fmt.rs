@@ -12,7 +12,7 @@ use core::fmt::{ self,
 // TODO: No colour env/setting.
 
 
-const ESC : &'static str = "\x1b";
+const ESC : &str = "\x1b";
 
 impl Display for Text {
     fn fmt(&self, f : &mut Formatter<'_>) -> fmt::Result {
@@ -55,9 +55,9 @@ impl TextComponent {
 impl Display for TextContent {
     fn fmt(&self, f : &mut Formatter<'_>) -> fmt::Result {
         match (self) {
-            TextContent::Literal   { text    } => write!(f, "{}", text),
-            TextContent::Translate { key, .. } => write!(f, "{}", key),
-            TextContent::Keybind   { id      } => write!(f, "{}", id)
+            TextContent::Literal   { text    } => write!(f, "{text}"),
+            TextContent::Translate { key, .. } => write!(f, "{key}"),
+            TextContent::Keybind   { id      } => write!(f, "{id}")
         }
     }
 }

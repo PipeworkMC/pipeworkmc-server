@@ -51,9 +51,9 @@ unsafe impl PacketEncode for Uuid {
     #[inline(always)]
     fn encode_len(&self) -> usize { size_of::<u128>() }
 
-    #[inline]
+    #[inline(always)]
     unsafe fn encode(&self, buf : &mut EncodeBuf) { unsafe {
-        buf.encode_write(&self.as_u128())
+        self.as_u128().encode(buf);
     } }
 
 }

@@ -8,7 +8,6 @@ use crate::conn::protocol::{
 
 
 pub mod response;
-
 pub mod pong;
 
 
@@ -21,13 +20,13 @@ pub enum S2CStatusPackets {
 unsafe impl PrefixedPacketEncode for S2CStatusPackets {
 
     fn encode_prefixed_len(&self) -> usize { match (self) {
-        S2CStatusPackets::Response (packet) => packet.encode_prefixed_len(),
-        S2CStatusPackets::Pong     (packet) => packet.encode_prefixed_len()
+        Self::Response (packet) => packet.encode_prefixed_len(),
+        Self::Pong     (packet) => packet.encode_prefixed_len()
     } }
 
     unsafe fn encode_prefixed(&self, buf : &mut EncodeBuf) { unsafe { match (self) {
-        S2CStatusPackets::Response (packet) => packet.encode_prefixed(buf),
-        S2CStatusPackets::Pong     (packet) => packet.encode_prefixed(buf)
+        Self::Response (packet) => packet.encode_prefixed(buf),
+        Self::Pong     (packet) => packet.encode_prefixed(buf)
     } } }
 
 }

@@ -14,6 +14,7 @@ use bevy_ecs::{
     schedule::IntoScheduleConfigs,
     system::{ Commands, Res }
 };
+use bevy_tasks::{ IoTaskPool, TaskPool };
 
 
 pub mod peer;
@@ -25,10 +26,12 @@ use peer::{
     ConnPeerDecoder,
     ConnPeerWriter,
     ConnPeerOutgoing,
-    ConnPeerState
+    ConnPeerState,
+    event::login::ConnPeerLoginFlow
 };
 
 pub mod protocol;
+use protocol::value::bounded_string::BoundedString;
 
 
 /// Enables the connection listener on install.
@@ -39,6 +42,8 @@ pub struct ConnListenerPlugin {
     ///
     /// The default port the game uses is `25565`.
     pub listen_addrs       : Cow<'static, [SocketAddr]>,
+
+    pub server_id          : BoundedString<20>,
 
     /// How large packets need to be before being compressed.
     ///
@@ -58,7 +63,6 @@ pub struct ConnListenerPlugin {
 
 impl ConnListenerPlugin {
     const DEFAULT_LISTEN_ADDRS : &[SocketAddr] = &[
-        SocketAddr::V4(SocketAddrV4::new(Ipv4Addr::new(127, 0, 0, 1), 25565)),
         SocketAddr::V4(SocketAddrV4::new(Ipv4Addr::new(0, 0, 0, 0), 25565))
     ];
 }
@@ -68,6 +72,7 @@ impl Default for ConnListenerPlugin {
     fn default() -> Self {
         Self {
             listen_addrs       : Cow::Borrowed(Self::DEFAULT_LISTEN_ADDRS),
+            server_id          : BoundedString::try_from("PipeworkMC").unwrap(),
             compress_threshold : Some(64),
             mojauth_enabled    : true
         }
@@ -77,22 +82,28 @@ impl Default for ConnListenerPlugin {
 
 impl Plugin for ConnListenerPlugin {
     fn build(&self, app : &mut App) {
+        _ = IoTaskPool::get_or_init(|| TaskPool::default());
         app .add_event::<peer::event::handshake::IncomingHandshakePacketEvent>()
             .add_event::<peer::event::status::IncomingStatusPacketEvent>()
             .add_event::<peer::event::status::StatusRequestEvent>()
             .add_event::<peer::event::login::IncomingLoginPacketEvent>()
             .add_event::<peer::event::OutgoingPacketEvent>()
             .insert_resource(ConnListener::new(&*self.listen_addrs).unwrap()) // TODO: Error handler.
-            .insert_resource(ConnCompressThreshold(self.compress_threshold))
-            .insert_resource(ConnMojauthEnabled(self.mojauth_enabled))
+            .insert_resource(ConnOptions {
+                server_id          : self.server_id.clone(),
+                compress_threshold : self.compress_threshold,
+                mojauth_enabled    : self.mojauth_enabled
+            })
             .add_systems(Update, accept_conn_peers)
             .add_systems(Update, peer::read_conn_peer_incoming)
             .add_systems(Update, peer::decode_conn_peer_incoming)
             .add_systems(Update, peer::encode_conn_peer_outgoing)
             .add_systems(Update, peer::write_conn_peer_outgoing)
-            .add_systems(Update, peer::event::handshake::handle_intention.before(peer::decode_conn_peer_incoming))
+            .add_systems(Update, peer::event::handshake::handle_intention.before(peer::decode_conn_peer_incoming).after(peer::encode_conn_peer_outgoing))
             .add_systems(Update, peer::event::status::respond_to_requests)
             .add_systems(Update, peer::event::status::respond_to_pings)
+            .add_systems(Update, peer::event::login::handle_login_flow.before(peer::decode_conn_peer_incoming).after(peer::encode_conn_peer_outgoing))
+            .add_systems(Update, peer::event::login::poll_mojauths_tasks.after(peer::encode_conn_peer_outgoing))
         ;
     }
 }
@@ -100,10 +111,11 @@ impl Plugin for ConnListenerPlugin {
 
 
 #[derive(Resource)]
-struct ConnCompressThreshold(#[expect(dead_code)] Option<u32>);
-
-#[derive(Resource)]
-struct ConnMojauthEnabled(#[expect(dead_code)] bool);
+pub struct ConnOptions {
+    pub server_id          : BoundedString<20>,
+    pub compress_threshold : Option<u32>,
+    pub mojauth_enabled    : bool
+}
 
 
 
@@ -132,13 +144,14 @@ fn accept_conn_peers(
             write_stream.set_nonblocking(true).unwrap(); // TODO: Error handler.
             let read_stream = write_stream.try_clone().unwrap(); // TODO: Error handler.
             cmds.spawn(ConnPeerBundle {
-                peer     : ConnPeer::from(addr),
-                reader   : ConnPeerReader { stream : read_stream },
-                incoming : ConnPeerIncoming::default(),
-                decoder  : ConnPeerDecoder::default(),
-                writer   : ConnPeerWriter { stream : write_stream },
-                outgoing : ConnPeerOutgoing::default(),
-                state    : ConnPeerState::handshake()
+                peer       : ConnPeer::from(addr),
+                reader     : ConnPeerReader::from(read_stream),
+                incoming   : ConnPeerIncoming::default(),
+                decoder    : ConnPeerDecoder::default(),
+                writer     : ConnPeerWriter::from(write_stream),
+                outgoing   : ConnPeerOutgoing::default(),
+                state      : ConnPeerState::handshake(),
+                login_flow : ConnPeerLoginFlow::default()
             });
         },
         Err(err) if (err.kind() == io::ErrorKind::WouldBlock) => { },

@@ -3,6 +3,9 @@ use core::{ mem::{ self, MaybeUninit }, ptr };
 
 
 mod num;
+mod refs;
+mod option;
+mod slice;
 mod str;
 
 
@@ -52,11 +55,6 @@ impl EncodeBuf {
         ); }
         self.head += slice.len();
     }
-
-    pub unsafe fn encode_write<P>(&mut self, p : &P)
-    where
-        P : PacketEncode
-    { unsafe { P::encode(p, self) } }
 
 }
 

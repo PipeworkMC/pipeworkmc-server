@@ -31,7 +31,8 @@ use crate::util::{
         OptionExt,
         VecDequeExt
     },
-    par_eventwriter::ParallelEventWriter
+    par_eventwriter::ParallelEventWriter,
+    redacted::Redacted
 };
 use std::{
     collections::VecDeque,
@@ -43,6 +44,7 @@ use bevy_ecs::{
     entity::Entity,
     system::Query
 };
+use openssl::symm::Crypter;
 
 
 const READ_BYTES_PER_CYCLE : usize = 256;
@@ -50,7 +52,12 @@ const READ_BYTES_PER_CYCLE : usize = 256;
 
 #[derive(Component)]
 pub(in crate::conn) struct ConnPeerReader {
-    pub(in crate::conn) stream : TcpStream
+    pub(in crate::conn)       stream    : TcpStream,
+    pub(in crate::conn::peer) decrypter : Option<Redacted<Crypter>>
+}
+impl From<TcpStream> for ConnPeerReader {
+    #[inline(always)]
+    fn from(stream : TcpStream) -> Self { Self { stream, decrypter : None } }
 }
 
 #[derive(Component, Default)]
@@ -68,11 +75,18 @@ pub(in crate::conn) fn read_conn_peer_incoming(
 ) {
     q_peers.par_iter_mut().for_each(|(mut reader, mut incoming,)| {
         let mut buf = [0u8; READ_BYTES_PER_CYCLE];
-        match (reader.stream.read(&mut buf)) {
+        match (reader.stream.read(&mut buf)) { // TODO: Ratelimit
             Ok(0) => { }, // TODO: Disconnected
             Ok(count) => {
-                // TODO: Decrypt
-                incoming.queue.extend(&buf[0..count]);
+                let mut incoming_slice = &buf[0..count];
+
+                let mut decrypted_buf = [0u8; READ_BYTES_PER_CYCLE + 1];
+                if let Some(decrypter) = &mut reader.decrypter {
+                    let count = unsafe { decrypter.as_mut().update_unchecked(incoming_slice, &mut decrypted_buf) }.unwrap(); // TODO: Error handler.
+                    incoming_slice = &decrypted_buf[0..count];
+                }
+
+                incoming.queue.extend(incoming_slice);
             },
             Err(err) if (err.kind() == io::ErrorKind::WouldBlock) => { },
             Err(err) => panic!("{err}") // TODO: Error handler.
@@ -100,6 +114,8 @@ pub(in crate::conn) fn decode_conn_peer_incoming(
                 Err(VarIntDecodeError::TooLong)    => panic!("{:?}", VarIntDecodeError::TooLong), // TODO: Error handler.
             }
         });
+
+        // TODO: Cap packet length.
 
         // If enough bytes are present, decode a packet.
         if let Some(&mut packet_size) = packet_size
