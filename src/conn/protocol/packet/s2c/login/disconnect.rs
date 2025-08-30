@@ -14,22 +14,21 @@ use crate::conn::protocol::{
     },
     value::text::Text
 };
-use std::borrow::Cow;
 use serde_json::to_string as to_json_string;
 
 
 #[derive(Debug)]
-pub struct S2CLoginDisconnectPacket<'l> {
-    reason_json : Cow<'l, str>
+pub struct S2CLoginDisconnectPacket {
+    reason_json : String
 }
 
-impl PacketMeta for S2CLoginDisconnectPacket<'_> {
+impl PacketMeta for S2CLoginDisconnectPacket {
     const STATE  : PacketState = PacketState::Login;
     const BOUND  : PacketBound = PacketBound::C2S;
     const PREFIX : u8          = 0x00; // TODO: Check against current datagen.
 }
 
-unsafe impl PacketEncode for S2CLoginDisconnectPacket<'_> {
+unsafe impl PacketEncode for S2CLoginDisconnectPacket {
 
     #[inline(always)]
     fn encode_len(&self) -> usize {
@@ -43,23 +42,23 @@ unsafe impl PacketEncode for S2CLoginDisconnectPacket<'_> {
 
 }
 
-impl<'l> From<S2CLoginDisconnectPacket<'l>> for S2CPackets<'l> {
+impl<'l> From<S2CLoginDisconnectPacket> for S2CPackets<'l> {
     #[inline(always)]
-    fn from(value : S2CLoginDisconnectPacket<'l>) -> Self { Self::Login(value.into()) }
+    fn from(value : S2CLoginDisconnectPacket) -> Self { Self::Login(value.into()) }
 }
 
-impl<'l> From<S2CLoginDisconnectPacket<'l>> for S2CLoginPackets<'l> {
+impl<'l> From<S2CLoginDisconnectPacket> for S2CLoginPackets<'l> {
     #[inline(always)]
-    fn from(value : S2CLoginDisconnectPacket<'l>) -> Self { Self::Disconnect(value) }
+    fn from(value : S2CLoginDisconnectPacket) -> Self { Self::Disconnect(value) }
 }
 
 
-impl<S> From<S> for S2CLoginDisconnectPacket<'_>
+impl<S> From<S> for S2CLoginDisconnectPacket
 where
     S : Into<Text>
 {
     #[inline]
     fn from(value : S) -> Self {
-        Self { reason_json : Cow::Owned(to_json_string(&value.into()).unwrap()) }
+        Self { reason_json : to_json_string(&value.into()).unwrap() }
     }
 }

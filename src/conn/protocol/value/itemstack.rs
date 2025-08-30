@@ -6,7 +6,7 @@ use serde::ser::{
 };
 
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct ItemStack {
     pub id    : Ident,
     pub count : u32,

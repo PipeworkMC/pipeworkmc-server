@@ -2,8 +2,12 @@ use crate::conn::protocol::{
     codec::encode::{ EncodeBuf, PrefixedPacketEncode },
     packet::{
         s2c::{
-            login::disconnect::S2CLoginDisconnectPacket, S2CPackets
-        }, AtomicPacketState, PacketMeta, PacketState
+            S2CPackets,
+            login::disconnect::S2CLoginDisconnectPacket,
+            config::disconnect::S2CConfigDisconnectPacket
+        },
+        PacketMeta,
+        AtomicPacketState, PacketState
     },
     value::{
         text::{ Text, TextComponent, TextContent },
@@ -71,8 +75,10 @@ impl ConnPeerSender {
         let packet = packet.into();
 
         match (packet.meta()) {
-            (PacketState::Login, S2CLoginDisconnectPacket::PREFIX,) => { self.disconnecting = true; },
-            // TODO: Config & play
+            (PacketState::Login,  S2CLoginDisconnectPacket::PREFIX,)
+            | (PacketState::Config, S2CConfigDisconnectPacket::PREFIX,)
+            => { self.disconnecting = true; },
+            // TODO: Play
             _ => { }
         }
 
@@ -92,7 +98,7 @@ impl ConnPeerSender {
         PacketState::Handshake
         | PacketState::Status  => { self.disconnecting = true; },
         PacketState::Login     => { self.send(S2CLoginDisconnectPacket::from(reason)); },
-        PacketState::Config    => todo!(),
+        PacketState::Config    => { self.send(S2CConfigDisconnectPacket::from(reason)) },
         PacketState::Play      => todo!()
     } }
 
@@ -132,6 +138,13 @@ impl ConnPeerSender {
     {
         self.kick(Text { components : Cow::Owned(vec![ TextComponent { content : TextContent::Translate {
             key : Cow::Borrowed("disconnect.loginFailedInfo"), fallback : None, with : Cow::Owned(vec![message.into()])
+        }, ..TextComponent::EMPTY } ]) })
+    }
+
+    #[inline]
+    pub fn kick_timeout(&mut self) {
+        self.kick(Text { components : Cow::Borrowed(&[ TextComponent { content : TextContent::Translate {
+            key : Cow::Borrowed("disconnect.timeout"), fallback : None, with : Cow::Borrowed(&[])
         }, ..TextComponent::EMPTY } ]) })
     }
 

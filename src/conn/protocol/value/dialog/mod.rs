@@ -8,7 +8,7 @@ use std::borrow::Cow;
 use serde::Serialize as Ser;
 
 
-#[derive(Clone, Ser)]
+#[derive(Clone, Ser, Debug)]
 pub struct Dialog {
     #[serde(flatten)]
     pub kind      : DialogKind,
@@ -24,7 +24,7 @@ pub struct Dialog {
     pub after     : DialogAfterAction
 }
 
-#[derive(Clone, Ser)]
+#[derive(Clone, Ser, Debug)]
 #[serde(tag = "type")]
 pub enum DialogKind {
     #[serde(rename = "minecraft:notice")]
@@ -66,7 +66,7 @@ pub enum DialogKind {
     }
 }
 
-#[derive(Clone, Ser)]
+#[derive(Clone, Ser, Debug)]
 pub struct DialogButton {
     pub label   : Text,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -76,7 +76,7 @@ pub struct DialogButton {
     pub action  : Action
 }
 
-#[derive(Clone, Ser)]
+#[derive(Clone, Ser, Debug)]
 #[serde(tag = "type")]
 pub enum DialogBody {
     #[serde(rename = "minecraft:plain_message")]
@@ -100,14 +100,14 @@ pub enum DialogBody {
     }
 }
 
-#[derive(Clone, Ser)]
+#[derive(Clone, Ser, Debug)]
 pub struct DialogItemBodyDesc {
     pub contents : Text,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub width    : Option<u32>
 }
 
-#[derive(Clone, Ser)]
+#[derive(Clone, Ser, Debug)]
 pub struct DialogInput {
     #[serde(flatten)]
     pub kind  : DialogInputKind,
@@ -115,7 +115,7 @@ pub struct DialogInput {
     pub label : Text
 }
 
-#[derive(Clone, Ser)]
+#[derive(Clone, Ser, Debug)]
 #[serde(tag = "type")]
 pub enum DialogInputKind {
     #[serde(rename = "minecraft:text")]
@@ -156,7 +156,7 @@ pub enum DialogInputKind {
     }
 }
 
-#[derive(Clone, Ser)]
+#[derive(Clone, Ser, Debug)]
 pub struct DialogTextInputMultiline {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub max_lines : Option<u32>,
@@ -164,14 +164,14 @@ pub struct DialogTextInputMultiline {
     pub height    : Option<u32>
 }
 
-#[derive(Clone, Ser)]
+#[derive(Clone, Ser, Debug)]
 pub struct DialogInputOption {
     pub id      : String,
     pub display : Text,
     pub initial : bool
 }
 
-#[derive(Clone, Ser)]
+#[derive(Clone, Ser, Debug)]
 pub enum DialogAfterAction {
     #[serde(rename = "close")]
     Close,

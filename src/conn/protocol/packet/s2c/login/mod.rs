@@ -18,7 +18,7 @@ pub mod compression;
 
 #[derive(Debug)]
 pub enum S2CLoginPackets<'l> {
-    Disconnect     (disconnect      ::S2CLoginDisconnectPacket<'l>),
+    Disconnect     (disconnect      ::S2CLoginDisconnectPacket),
     EncryptRequest (encrypt_request ::S2CLoginEncryptRequestPacket<'l>),
     Finish         (finish          ::S2CLoginFinishPacket<'l>),
     Compression    (compression     ::S2CLoginCompressionPacket)

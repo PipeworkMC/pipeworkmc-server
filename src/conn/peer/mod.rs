@@ -1,6 +1,6 @@
 use crate::conn::{
     peer::event::login::ConnPeerLoginFlow,
-    protocol::packet::{ AtomicPacketState, PacketState }
+    protocol::{packet::{ AtomicPacketState, PacketState }, value::text::TextFormatted}
 };
 use core::{
     net::SocketAddr,
@@ -12,7 +12,8 @@ use std::{
 };
 use bevy_ecs::{
     bundle::Bundle,
-    component::Component
+    component::Component,
+    system::Query
 };
 
 
@@ -53,7 +54,7 @@ impl From<SocketAddr> for ConnPeer {
 pub struct ConnPeerState {
     incoming_state : PacketState,
     outgoing_state : Arc<AtomicPacketState>,
-    expires        : Option<Instant> // TODO: Kick on timeout
+    expires        : Instant // TODO: Kick on timeout
 }
 
 impl ConnPeerState {
@@ -68,54 +69,67 @@ impl ConnPeerState {
     pub(in crate::conn) fn outgoing_state_arc(&self) -> &Arc<AtomicPacketState> { &self.outgoing_state }
 
     #[inline(always)]
-    pub fn expires(&self) -> Option<Instant> { self.expires }
+    pub fn expires(&self) -> Instant { self.expires }
 
 }
+
+const KEEPALIVE_TIMEOUT : Duration = Duration::from_secs(5);
 
 impl ConnPeerState {
 
     pub fn handshake() -> Self { Self {
         incoming_state : PacketState::Handshake,
         outgoing_state : Arc::new(AtomicPacketState::new(PacketState::Handshake)),
-        expires        : Some(Instant::now() + Duration::from_millis(250))
+        expires        : Instant::now() + Duration::from_millis(250)
     } }
 
     pub unsafe fn switch_to_status(&mut self) {
         self.incoming_state = PacketState::Status;
         self.outgoing_state.store(PacketState::Status, AtomicOrdering::SeqCst);
-        self.expires        = Some(Instant::now() + Duration::from_millis(500));
+        self.expires        = Instant::now() + Duration::from_millis(500);
     }
     pub unsafe fn switch_to_login(&mut self) {
         self.incoming_state = PacketState::Login;
         self.outgoing_state.store(PacketState::Login, AtomicOrdering::SeqCst);
-        self.expires        = Some(Instant::now() + Duration::from_millis(2500));
+        self.expires        = Instant::now() + Duration::from_millis(2500);
     }
 
     pub unsafe fn login_finish(&mut self) {
         self.outgoing_state.store(PacketState::Config, AtomicOrdering::SeqCst);
-        self.expires = Some(Instant::now() + Duration::from_millis(250));
+        self.expires = Instant::now() + Duration::from_millis(250);
     }
     pub unsafe fn login_finish_acknowledged(&mut self) {
         self.incoming_state = PacketState::Config;
-        self.expires        = None;
+        self.expires        = Instant::now() + KEEPALIVE_TIMEOUT;
     }
 
     pub unsafe fn config_finish(&mut self) {
         self.outgoing_state.store(PacketState::Play, AtomicOrdering::SeqCst);
-        self.expires = Some(Instant::now() + Duration::from_millis(250));
+        self.expires = Instant::now() + Duration::from_millis(250);
     }
     pub unsafe fn config_finish_acknowledged(&mut self) {
         self.incoming_state = PacketState::Play;
-        self.expires        = None;
+        self.expires        = Instant::now() + KEEPALIVE_TIMEOUT;
     }
 
     pub unsafe fn config_begin(&mut self) {
         self.outgoing_state.store(PacketState::Config, AtomicOrdering::SeqCst);
-        self.expires = Some(Instant::now() + Duration::from_millis(500));
+        self.expires = Instant::now() + Duration::from_millis(500);
     }
     pub unsafe fn config_begin_acknowledged(&mut self) {
         self.incoming_state = PacketState::Config;
-        self.expires        = None;
+        self.expires        = Instant::now() + KEEPALIVE_TIMEOUT;
     }
 
+}
+
+
+pub(in crate::conn) fn time_out_conns(
+    mut q_peers : Query<(&mut ConnPeerSender, &ConnPeerState,)>
+) {
+    q_peers.par_iter_mut().for_each(|(mut sender, state,)| {
+        if (Instant::now() > state.expires) {
+            sender.kick_timeout();
+        }
+    });
 }

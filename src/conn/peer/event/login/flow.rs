@@ -57,15 +57,10 @@ const OFFLINE_NAMESPACE : Uuid = Uuid::from_bytes([b'P', b'i', b'p', b'e', b'w',
 
 #[derive(Component, Default, Debug)]
 pub(in crate::conn) struct ConnPeerLoginFlow {
-    declared_account : Option<DeclaredAccount>,
-    exchanging_key   : Option<ExchangingKey>,
-    mojauth_task     : Option<Task<surf::Result<Profile<'static>>>>,
-    profile          : Option<Profile<'static>>
-}
-
-#[derive(Debug)]
-struct DeclaredAccount {
-    username : BoundedString<16>
+    declared_username : Option<BoundedString<16>>,
+    exchanging_key    : Option<ExchangingKey>,
+    mojauth_task      : Option<Task<surf::Result<Profile<'static>>>>,
+    profile           : Option<Profile<'static>>
 }
 
 #[derive(Debug)]
@@ -88,13 +83,11 @@ pub(in crate::conn) fn handle_login_flow(
 
 
                 C2SLoginPackets::Start(C2SLoginStartPacket { username, uuid : _ }) => {
-                    if (login_flow.declared_account.is_some()) {
+                    if (login_flow.declared_username.is_some()) {
                         sender.kick_login_failed("Client-side profile already declared");
                         continue;
                     }
-                    login_flow.declared_account = Some(DeclaredAccount {
-                        username : username.clone()
-                    });
+                    login_flow.declared_username = Some(username.clone());
 
                     let     rsa     = Redacted::from(Rsa::generate(2048).unwrap());
                     let     pkeyder = Redacted::from(unsafe { rsa.as_ref() }.public_key_to_der().unwrap());
@@ -116,7 +109,7 @@ pub(in crate::conn) fn handle_login_flow(
                         sender.kick_login_failed("Invalid public key exchange");
                         continue;
                     };
-                    let Some(declared_account) = &login_flow.declared_account
+                    let Some(declared_username) = &login_flow.declared_username
                         else { unsafe { unreachable_unchecked() } };
 
                     // Check verify token.
@@ -159,7 +152,7 @@ pub(in crate::conn) fn handle_login_flow(
                             &r_options.server_id,
                             &decrypted_secret_key,
                             &pkeyder,
-                            declared_account
+                            declared_username
                         );
                         login_flow.mojauth_task = Some(IoTaskPool::get().spawn(async move {
                             let url = unsafe { str::from_utf8_unchecked(url_buf.get_unchecked(0..url_len)) };
@@ -171,8 +164,8 @@ pub(in crate::conn) fn handle_login_flow(
 
                     } else {
                         let profile = Profile {
-                            uuid     : Uuid::new_v3(&OFFLINE_NAMESPACE, declared_account.username.as_bytes()),
-                            username : declared_account.username.clone(),
+                            uuid     : Uuid::new_v3(&OFFLINE_NAMESPACE, declared_username.as_bytes()),
+                            username : declared_username.clone(),
                             props    : Cow::Borrowed(&[])
                         };
                         sender.send(S2CLoginFinishPacket { profile : profile.clone() });
@@ -193,6 +186,7 @@ pub(in crate::conn) fn handle_login_flow(
                     ecmds.remove::<ConnPeerLoginFlow>();
                     ecmds.insert(profile);
                     unsafe { state.login_finish_acknowledged(); }
+                    sender.kick("Begin config");
                     // TODO: Begin config
                 }
 
@@ -228,7 +222,7 @@ fn build_mojauth_uri(
     server_id            : &str,
     decrypted_secret_key : &Redacted<&[u8]>,
     pkeyder              : &Redacted<Vec<u8>>,
-    declared_account     : &DeclaredAccount
+    declared_username    : &str
 ) -> ([u8; MOJAUTH_URL_PREFIX.len() + 16 + MOJAUTH_URL_SERVERID.len() + 41], usize,) {
     // Build server ID.
     let mut sha = Sha1::new();
@@ -254,14 +248,14 @@ fn build_mojauth_uri(
     // Build mojauth URI.
     let mut url_buf = [0u8; MOJAUTH_URL_PREFIX.len() + 16 + MOJAUTH_URL_SERVERID.len() + 41];
     let mut url_ptr = 0;
-    // SAFETY: url_buf has enough space for `MOJAUTH_URL_PREFIX`, `declared_account.username`, `MOJAUTH_URL_SERVERID`, and `sha_buf`.
+    // SAFETY: url_buf has enough space for `MOJAUTH_URL_PREFIX`, `declared_username`, `MOJAUTH_URL_SERVERID`, and `sha_buf`.
     //         None are written to overlap each other.
-    //         declared_account.username can not be longer than 16 bytes (checked above).
+    //         declared_username can not be longer than 16 bytes (checked above).
     {
         unsafe { ptr::copy_nonoverlapping(MOJAUTH_URL_PREFIX.as_ptr(), url_buf.as_mut_ptr().byte_add(url_ptr), MOJAUTH_URL_PREFIX.len()); }
         url_ptr += MOJAUTH_URL_PREFIX.len();
-        unsafe { ptr::copy_nonoverlapping(declared_account.username.as_ptr(), url_buf.as_mut_ptr().byte_add(url_ptr), declared_account.username.len()); }
-        url_ptr += declared_account.username.len();
+        unsafe { ptr::copy_nonoverlapping(declared_username.as_ptr(), url_buf.as_mut_ptr().byte_add(url_ptr), declared_username.len()); }
+        url_ptr += declared_username.len();
         unsafe { ptr::copy_nonoverlapping(MOJAUTH_URL_SERVERID.as_ptr(), url_buf.as_mut_ptr().byte_add(url_ptr), MOJAUTH_URL_SERVERID.len()); }
         url_ptr += MOJAUTH_URL_SERVERID.len();
         if (sha_in_i256 < 0) {

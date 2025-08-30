@@ -141,8 +141,8 @@ pub(in crate::conn) fn decode_conn_peer_incoming(
                     Ok(packet) => { ew_login.write(IncomingLoginPacketEvent::new(peer, packet)); },
                     Err(err)   => { sender.kick_packet_error(format!("login {err}")); }
                 } },
-                PacketState::Config => todo!(),
-                PacketState::Play   => todo!()
+                PacketState::Config => { /* TODO */ },
+                PacketState::Play   => { /* TODO */ }
             };
         }
 

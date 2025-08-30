@@ -5,7 +5,7 @@ use serde::ser::{
 };
 
 
-#[derive(Clone)]
+#[derive(Clone, Debug)] // TODO: String-like debug formatter
 pub struct Ident {
     namespace : Cow<'static, str>,
     path      : Cow<'static, str>

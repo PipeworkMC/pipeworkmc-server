@@ -14,12 +14,12 @@ mod fmt;
 mod ser;
 
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct Text {
     pub components : Cow<'static, [TextComponent]>
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct TextComponent {
     pub content   : TextContent,
     pub colour    : Rgb,
@@ -35,7 +35,7 @@ pub struct TextComponent {
     pub tooltip   : Option<Text>
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub enum TextContent {
     Literal {
         text : Cow<'static, str>

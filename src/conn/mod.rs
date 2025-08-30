@@ -64,7 +64,7 @@ pub struct ConnListenerPlugin {
 
 impl ConnListenerPlugin {
     const DEFAULT_LISTEN_ADDRS : &[SocketAddr] = &[
-        SocketAddr::V4(SocketAddrV4::new(Ipv4Addr::new(0, 0, 0, 0), 25565))
+        SocketAddr::V4(SocketAddrV4::new(Ipv4Addr::new(127, 0, 0, 1), 25565))
     ];
 }
 
@@ -75,7 +75,7 @@ impl Default for ConnListenerPlugin {
             listen_addrs       : Cow::Borrowed(Self::DEFAULT_LISTEN_ADDRS),
             server_id          : BoundedString::try_from("PipeworkMC").unwrap(),
             compress_threshold : Some(64),
-            mojauth_enabled    : true
+            mojauth_enabled    : false
         }
     }
 }
@@ -97,6 +97,7 @@ impl Plugin for ConnListenerPlugin {
             .add_systems(Update, peer::read_conn_peer_incoming)
             .add_systems(Update, peer::decode_conn_peer_incoming)
             .add_systems(Update, peer::write_conn_peer_outgoing)
+            .add_systems(Update, peer::time_out_conns)
             .add_systems(Update, peer::event::handshake::handle_intention.before(peer::decode_conn_peer_incoming))
             .add_systems(Update, peer::event::status::respond_to_pings)
             .add_systems(Update, peer::event::login::handle_login_flow.before(peer::decode_conn_peer_incoming))

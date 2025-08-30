@@ -10,7 +10,7 @@ use serde::ser::{
 };
 
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub enum Action {
     OpenUrl {
         url : Cow<'static, str>
