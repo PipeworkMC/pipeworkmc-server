@@ -28,12 +28,12 @@ mod tag {
     pub const LONG     : u8 = 4;
     pub const FLOAT    : u8 = 5;
     pub const DOUBLE   : u8 = 6;
-    pub const BARRAY   : u8 = 7;
+    // pub const BARRAY   : u8 = 7;
     pub const STRING   : u8 = 8;
     pub const LIST     : u8 = 9;
     pub const COMPOUND : u8 = 10;
-    pub const IARRAY   : u8 = 11;
-    pub const LARRAY   : u8 = 12;
+    // pub const IARRAY   : u8 = 11;
+    // pub const LARRAY   : u8 = 12;
 }
 
 

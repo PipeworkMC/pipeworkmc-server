@@ -132,7 +132,7 @@ impl Ident {
 
     #[inline(always)]
     const fn is_valid_component_char(ch : u8) -> bool {
-        return (ch >= b'a' && ch <= b'z') || (ch >= b'0' && ch <= b'9') || ch == b'.' || ch == b'-' || ch == b'_';
+        (ch >= b'a' && ch <= b'z') || (ch >= b'0' && ch <= b'9') || ch == b'.' || ch == b'-' || ch == b'_'
     }
 
 }
@@ -178,7 +178,7 @@ impl Ser for Ident {
     fn serialize<S>(&self, serer : S) -> Result<S::Ok, S::Error>
     where
         S : Serer
-    { serer.serialize_str(&self.as_str()) }
+    { serer.serialize_str(self.as_str()) }
 }
 
 

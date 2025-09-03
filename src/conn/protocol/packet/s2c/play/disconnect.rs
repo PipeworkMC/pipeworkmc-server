@@ -44,12 +44,12 @@ unsafe impl PacketEncode for S2CPlayDisconnectPacket {
 
 }
 
-impl<'l> From<S2CPlayDisconnectPacket> for S2CPackets<'l> {
+impl From<S2CPlayDisconnectPacket> for S2CPackets<'_> {
     #[inline(always)]
     fn from(value : S2CPlayDisconnectPacket) -> Self { Self::Play(value.into()) }
 }
 
-impl<'l> From<S2CPlayDisconnectPacket> for S2CPlayPackets {
+impl From<S2CPlayDisconnectPacket> for S2CPlayPackets {
     #[inline(always)]
     fn from(value : S2CPlayDisconnectPacket) -> Self { Self::Disconnect(value) }
 }
