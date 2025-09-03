@@ -1,5 +1,6 @@
 pub mod action;
 pub mod bounded_string;
+pub mod client_info;
 pub mod colour;
 pub mod dialog;
 pub mod ident;

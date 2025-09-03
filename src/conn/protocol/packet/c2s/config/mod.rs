@@ -5,7 +5,8 @@ use crate::conn::protocol::{
         DecodeBuf,
         IncompleteDecodeError
     },
-    packet::PacketMeta
+    packet::PacketMeta,
+    value::client_info::ClientInfoDecodeError
 };
 use core::{
     fmt::{ self, Display, Formatter },
@@ -37,9 +38,9 @@ impl PrefixedPacketDecode for C2SConfigPackets {
     fn decode_prefixed(buf : &mut DecodeBuf<'_>)
         -> Result<Self, Self::Error>
     {
-        Ok(match (buf.read()?) {
-            client_info         ::C2SConfigClientInfoPacket         ::PREFIX => Self::ClientInfo         (client_info         ::C2SConfigClientInfoPacket         ::decode(buf)?),
-            custom_payload      ::C2SConfigCustomPayloadPacket      ::PREFIX => Self::CustomPayload      (custom_payload      ::C2SConfigCustomPayloadPacket      ::decode(buf)?),
+        Ok(match (buf.read().map_err(C2SConfigDecodeError::Incomplete)?) {
+            client_info         ::C2SConfigClientInfoPacket         ::PREFIX => Self::ClientInfo         (client_info         ::C2SConfigClientInfoPacket         ::decode(buf).map_err(C2SConfigDecodeError::ClientInfo)?),
+            custom_payload      ::C2SConfigCustomPayloadPacket      ::PREFIX => Self::CustomPayload      (custom_payload      ::C2SConfigCustomPayloadPacket      ::decode(buf).map_err(C2SConfigDecodeError::CustomPayload)?),
             finish_acknowledged ::C2SConfigFinishAcknowledgedPacket ::PREFIX => Self::FinishAcknowledged (finish_acknowledged ::C2SConfigFinishAcknowledgedPacket ::decode(buf)?),
 
             v => { return Err(C2SConfigDecodeError::UnknownPrefix(v)); }
@@ -51,25 +52,13 @@ impl PrefixedPacketDecode for C2SConfigPackets {
 #[derive(Debug)]
 pub enum C2SConfigDecodeError {
     Incomplete(IncompleteDecodeError),
-    ClientInfo    (client_info    ::C2SConfigClientInfoDecodeError),
-    CustomPayload (custom_payload ::C2SConfigCustomPayloadDecodeError),
+    ClientInfo         (ClientInfoDecodeError),
+    CustomPayload      (custom_payload ::C2SConfigCustomPayloadDecodeError),
     UnknownPrefix(u8)
 }
 impl From<!> for C2SConfigDecodeError {
     #[inline(always)]
     fn from(_ : !) -> Self { unsafe { unreachable_unchecked() } }
-}
-impl From<IncompleteDecodeError> for C2SConfigDecodeError {
-    #[inline(always)]
-    fn from(err : IncompleteDecodeError) -> Self { Self::Incomplete(err) }
-}
-impl From<client_info::C2SConfigClientInfoDecodeError> for C2SConfigDecodeError {
-    #[inline(always)]
-    fn from(err : client_info::C2SConfigClientInfoDecodeError) -> Self { Self::ClientInfo(err) }
-}
-impl From<custom_payload::C2SConfigCustomPayloadDecodeError> for C2SConfigDecodeError {
-    #[inline(always)]
-    fn from(err : custom_payload::C2SConfigCustomPayloadDecodeError) -> Self { Self::CustomPayload(err) }
 }
 impl Display for C2SConfigDecodeError {
     fn fmt(&self, f : &mut Formatter<'_>) -> fmt::Result { match (self) {

@@ -33,9 +33,9 @@ impl PrefixedPacketDecode for C2SLoginPackets {
     fn decode_prefixed(buf : &mut DecodeBuf<'_>)
         -> Result<Self, Self::Error>
     {
-        Ok(match (buf.read()?) {
-            start               ::C2SLoginStartPacket              ::PREFIX => Self::Start              (start               ::C2SLoginStartPacket              ::decode(buf)?),
-            encrypt_response    ::C2SLoginEncryptResponsePacket    ::PREFIX => Self::EncryptResponse    (encrypt_response    ::C2SLoginEncryptResponsePacket    ::decode(buf)?),
+        Ok(match (buf.read().map_err(C2SLoginDecodeError::Incomplete)?) {
+            start               ::C2SLoginStartPacket              ::PREFIX => Self::Start              (start               ::C2SLoginStartPacket              ::decode(buf).map_err(C2SLoginDecodeError::Start)?),
+            encrypt_response    ::C2SLoginEncryptResponsePacket    ::PREFIX => Self::EncryptResponse    (encrypt_response    ::C2SLoginEncryptResponsePacket    ::decode(buf).map_err(C2SLoginDecodeError::EncryptResponse)?),
             finish_acknowledged ::C2SLoginFinishAcknowledgedPacket ::PREFIX => Self::FinishAcknowledged (finish_acknowledged ::C2SLoginFinishAcknowledgedPacket ::decode(buf)?),
 
             v => { return Err(C2SLoginDecodeError::UnknownPrefix(v)); }
@@ -54,18 +54,6 @@ pub enum C2SLoginDecodeError {
 impl From<!> for C2SLoginDecodeError {
     #[inline(always)]
     fn from(_ : !) -> Self { unsafe { unreachable_unchecked() } }
-}
-impl From<IncompleteDecodeError> for C2SLoginDecodeError {
-    #[inline(always)]
-    fn from(err : IncompleteDecodeError) -> Self { Self::Incomplete(err) }
-}
-impl From<start::C2SLoginStartDecodeError> for C2SLoginDecodeError {
-    #[inline(always)]
-    fn from(value : start::C2SLoginStartDecodeError) -> Self { Self::Start(value) }
-}
-impl From<encrypt_response::C2SLoginEncryptResponseDecodeError> for C2SLoginDecodeError {
-    #[inline(always)]
-    fn from(value : encrypt_response::C2SLoginEncryptResponseDecodeError) -> Self { Self::EncryptResponse(value) }
 }
 impl Display for C2SLoginDecodeError {
     fn fmt(&self, f : &mut Formatter<'_>) -> fmt::Result { match (self) {

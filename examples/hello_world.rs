@@ -1,5 +1,6 @@
 use pipeworkmc_server::prelude::*;
 use pipeworkmc_server::prelude::packet::*;
+use packet::c2s::config::client_info::C2SConfigClientInfoPacket;
 use core::time::Duration;
 use bevy::{
     prelude::*,
@@ -10,7 +11,7 @@ use bevy::{
 fn main() -> AppExit {
     App::new()
         .add_plugins(DefaultPlugins
-            .set(ScheduleRunnerPlugin::run_loop(Duration::from_millis(25)))
+            .set(ScheduleRunnerPlugin::run_loop(Duration::from_millis(1)))
         )
         .add_systems(Update, status_response)
         .add_systems(Update, get_info)
@@ -40,7 +41,7 @@ fn get_info(
     mut er_config : EventReader<IncomingConfigPacketEvent>
 ) {
     for e in er_config.read() {
-        if let C2SConfigPackets::ClientInfo(info) = e.packet()
+        if let C2SConfigPackets::ClientInfo(C2SConfigClientInfoPacket { info }) = e.packet()
             && let Ok((profile, mut sender,)) = q_peers.get_mut(e.peer())
         {
             sender.kick(

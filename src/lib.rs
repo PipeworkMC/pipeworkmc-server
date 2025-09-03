@@ -57,14 +57,14 @@ pub mod prelude {
                 }
             },
             protocol::packet::{
-                c2s::{
+                c2s::{ self,
                     C2SPackets,
                     handshake::C2SHandshakePackets,
                     status::C2SStatusPackets,
                     login::C2SLoginPackets,
                     config::C2SConfigPackets
                 },
-                s2c::{
+                s2c::{ self,
                     S2CPackets,
                     status::{
                         S2CStatusPackets,
