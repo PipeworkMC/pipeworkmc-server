@@ -9,6 +9,7 @@ use bevy_ecs::{
 pub mod handshake;
 pub mod status;
 pub mod login;
+pub mod config;
 
 
 pub trait IncomingPacketEvent

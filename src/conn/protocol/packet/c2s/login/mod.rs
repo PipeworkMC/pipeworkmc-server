@@ -72,6 +72,6 @@ impl Display for C2SLoginDecodeError {
         Self::Incomplete(err)      => err.fmt(f),
         Self::Start(err)           => write!(f, "start {err}"),
         Self::EncryptResponse(err) => write!(f, "encrypt response {err}"),
-        Self::UnknownPrefix (b)    => write!(f, "unknown prefix `{b:0>2b}`"),
+        Self::UnknownPrefix (b)    => write!(f, "unknown prefix `0x{b:0>2x}`"),
     } }
 }

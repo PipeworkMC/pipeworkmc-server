@@ -5,7 +5,8 @@ use crate::conn::{
         event::{
             handshake::IncomingHandshakePacketEvent,
             status::IncomingStatusPacketEvent,
-            login::IncomingLoginPacketEvent
+            login::IncomingLoginPacketEvent,
+            config::IncomingConfigPacketEvent
         }
     },
     protocol::{
@@ -18,7 +19,8 @@ use crate::conn::{
             c2s::{
                 handshake::C2SHandshakePackets,
                 status::C2SStatusPackets,
-                login::C2SLoginPackets
+                login::C2SLoginPackets,
+                config::C2SConfigPackets
             }
         },
         value::varint::{
@@ -101,7 +103,8 @@ pub(in crate::conn) fn decode_conn_peer_incoming(
     mut q_peers      : Query<(Entity, &mut ConnPeerIncoming, &mut ConnPeerDecoder, &mut ConnPeerSender, &ConnPeerState)>,
         ew_handshake : ParallelEventWriter<IncomingHandshakePacketEvent>,
         ew_status    : ParallelEventWriter<IncomingStatusPacketEvent>,
-        ew_login     : ParallelEventWriter<IncomingLoginPacketEvent>
+        ew_login     : ParallelEventWriter<IncomingLoginPacketEvent>,
+        ew_config    : ParallelEventWriter<IncomingConfigPacketEvent>
 ) {
     q_peers.par_iter_mut().for_each(|(peer, mut incoming, mut decoder, mut sender, state)| {
         if (sender.is_disconnecting()) { return; }
@@ -141,7 +144,10 @@ pub(in crate::conn) fn decode_conn_peer_incoming(
                     Ok(packet) => { ew_login.write(IncomingLoginPacketEvent::new(peer, packet)); },
                     Err(err)   => { sender.kick_packet_error(format!("login {err}")); }
                 } },
-                PacketState::Config => { /* TODO */ },
+                PacketState::Config => { match (C2SConfigPackets::decode_prefixed(&mut buf)) {
+                    Ok(packet) => { ew_config.write(IncomingConfigPacketEvent::new(peer, packet)); },
+                    Err(err)   => { sender.kick_packet_error(format!("config {err}")); }
+                } },
                 PacketState::Play   => { /* TODO */ }
             };
         }

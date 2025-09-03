@@ -1,6 +1,6 @@
 use crate::conn::{
     peer::event::login::ConnPeerLoginFlow,
-    protocol::{packet::{ AtomicPacketState, PacketState }, value::text::TextFormatted}
+    protocol::packet::{ AtomicPacketState, PacketState }
 };
 use core::{
     net::SocketAddr,

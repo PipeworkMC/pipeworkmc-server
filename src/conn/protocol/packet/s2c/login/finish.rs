@@ -12,23 +12,23 @@ use crate::conn::protocol::{
             login::S2CLoginPackets
         }
     },
-    value::profile::Profile
+    value::profile::AccountProfile
 };
 
 
 #[derive(Debug)]
-pub struct S2CLoginFinishPacket<'l> {
-    pub profile : Profile<'l>
+pub struct S2CLoginFinishPacket {
+    pub profile : AccountProfile
 }
 
 
-impl PacketMeta for S2CLoginFinishPacket<'_> {
+impl PacketMeta for S2CLoginFinishPacket {
     const STATE  : PacketState = PacketState::Login;
     const BOUND  : PacketBound = PacketBound::C2S;
     const PREFIX : u8          = 0x02; // TODO: Check against current datagen.
 }
 
-unsafe impl PacketEncode for S2CLoginFinishPacket<'_> {
+unsafe impl PacketEncode for S2CLoginFinishPacket {
 
     #[inline(always)]
     fn encode_len(&self) -> usize {
@@ -42,12 +42,12 @@ unsafe impl PacketEncode for S2CLoginFinishPacket<'_> {
 
 }
 
-impl<'l> From<S2CLoginFinishPacket<'l>> for S2CPackets<'l> {
+impl<'l> From<S2CLoginFinishPacket> for S2CPackets<'l> {
     #[inline(always)]
-    fn from(value : S2CLoginFinishPacket<'l>) -> Self { Self::Login(value.into()) }
+    fn from(value : S2CLoginFinishPacket) -> Self { Self::Login(value.into()) }
 }
 
-impl<'l> From<S2CLoginFinishPacket<'l>> for S2CLoginPackets<'l> {
+impl<'l> From<S2CLoginFinishPacket> for S2CLoginPackets<'l> {
     #[inline(always)]
-    fn from(value : S2CLoginFinishPacket<'l>) -> Self { Self::Finish(value) }
+    fn from(value : S2CLoginFinishPacket) -> Self { Self::Finish(value) }
 }

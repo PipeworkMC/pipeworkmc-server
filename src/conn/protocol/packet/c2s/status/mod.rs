@@ -55,6 +55,6 @@ impl From<IncompleteDecodeError> for C2SStatusDecodeError {
 impl Display for C2SStatusDecodeError {
     fn fmt(&self, f : &mut Formatter<'_>) -> fmt::Result { match (self) {
         Self::Incomplete(err)   => err.fmt(f),
-        Self::UnknownPrefix (b) => write!(f, "unknown prefix `{b:0>2b}`"),
+        Self::UnknownPrefix (b) => write!(f, "unknown prefix `0x{b:0>2x}`"),
     } }
 }

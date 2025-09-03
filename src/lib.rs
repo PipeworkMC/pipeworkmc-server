@@ -1,6 +1,9 @@
 #![feature(
 
     // Language
+    const_precise_live_drops,
+
+    // Syntax
     decl_macro,
     never_type,
 
@@ -35,6 +38,7 @@ pub mod prelude {
         colour::{ Rgb, Argb },
         ident::Ident,
         itemstack::ItemStack,
+        profile::AccountProfile,
         text::{ Text, TextFormatted as _ },
         varint::VarInt
     };
@@ -48,7 +52,8 @@ pub mod prelude {
                     IncomingPacketEvent as _,
                     handshake::IncomingHandshakePacketEvent,
                     status::IncomingStatusPacketEvent,
-                    login::IncomingLoginPacketEvent
+                    login::IncomingLoginPacketEvent,
+                    config::IncomingConfigPacketEvent
                 }
             },
             protocol::packet::{
@@ -56,7 +61,8 @@ pub mod prelude {
                     C2SPackets,
                     handshake::C2SHandshakePackets,
                     status::C2SStatusPackets,
-                    login::C2SLoginPackets
+                    login::C2SLoginPackets,
+                    config::C2SConfigPackets
                 },
                 s2c::{
                     S2CPackets,

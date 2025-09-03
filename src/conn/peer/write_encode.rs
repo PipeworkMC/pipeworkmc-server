@@ -4,7 +4,8 @@ use crate::conn::protocol::{
         s2c::{
             S2CPackets,
             login::disconnect::S2CLoginDisconnectPacket,
-            config::disconnect::S2CConfigDisconnectPacket
+            config::disconnect::S2CConfigDisconnectPacket,
+            play::disconnect::S2CPlayDisconnectPacket
         },
         PacketMeta,
         AtomicPacketState, PacketState
@@ -98,8 +99,8 @@ impl ConnPeerSender {
         PacketState::Handshake
         | PacketState::Status  => { self.disconnecting = true; },
         PacketState::Login     => { self.send(S2CLoginDisconnectPacket::from(reason)); },
-        PacketState::Config    => { self.send(S2CConfigDisconnectPacket::from(reason)) },
-        PacketState::Play      => todo!()
+        PacketState::Config    => { self.send(S2CConfigDisconnectPacket::from(reason)); },
+        PacketState::Play      => { self.send(S2CPlayDisconnectPacket::from(reason)); }
     } }
 
     #[inline]
@@ -123,7 +124,7 @@ impl ConnPeerSender {
     {
         self.kick(Text { components : Cow::Borrowed(&[
             TextComponent { content : TextContent::Translate {
-                key : Cow::Borrowed("multiplayer.disconnect.packetError"), fallback : None, with : Cow::Borrowed(&[])
+                key : Cow::Borrowed("disconnect.packetError"), fallback : None, with : Cow::Borrowed(&[])
             }, ..TextComponent::EMPTY },
             TextComponent { content : TextContent::Literal {
                 text : Cow::Borrowed(": ")

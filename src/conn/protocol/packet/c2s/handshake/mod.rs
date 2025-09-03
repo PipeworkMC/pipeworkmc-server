@@ -51,6 +51,6 @@ impl Display for C2SHandshakeDecodeError {
     fn fmt(&self, f : &mut Formatter<'_>) -> fmt::Result { match (self) {
         Self::Incomplete(err)   => err.fmt(f),
         Self::Intention(err)    => write!(f, "intention {err}"),
-        Self::UnknownPrefix (b) => write!(f, "unknown prefix `{b:0>2b}`"),
+        Self::UnknownPrefix (b) => write!(f, "unknown prefix `0x{b:0>2x}`"),
     } }
 }

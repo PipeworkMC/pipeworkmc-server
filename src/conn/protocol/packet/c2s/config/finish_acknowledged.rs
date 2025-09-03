@@ -12,15 +12,15 @@ use crate::conn::protocol::{
 
 
 #[derive(Debug)]
-pub struct C2SLoginFinishAcknowledgedPacket;
+pub struct C2SConfigFinishAcknowledgedPacket;
 
-impl PacketMeta for C2SLoginFinishAcknowledgedPacket {
-    const STATE  : PacketState = PacketState::Login;
+impl PacketMeta for C2SConfigFinishAcknowledgedPacket {
+    const STATE  : PacketState = PacketState::Config;
     const BOUND  : PacketBound = PacketBound::C2S;
     const PREFIX : u8          = 0x03; // TODO: Check against current datagen.
 }
 
-impl PacketDecode for C2SLoginFinishAcknowledgedPacket {
+impl PacketDecode for C2SConfigFinishAcknowledgedPacket {
     type Error = !;
 
     #[inline(always)]

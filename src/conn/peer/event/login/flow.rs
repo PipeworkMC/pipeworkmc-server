@@ -24,7 +24,7 @@ use crate::conn::{
         },
         value::{
             bounded_string::BoundedString,
-            profile::Profile
+            profile::AccountProfile
         }
     }, ConnOptions
 };
@@ -59,8 +59,8 @@ const OFFLINE_NAMESPACE : Uuid = Uuid::from_bytes([b'P', b'i', b'p', b'e', b'w',
 pub(in crate::conn) struct ConnPeerLoginFlow {
     declared_username : Option<BoundedString<16>>,
     exchanging_key    : Option<ExchangingKey>,
-    mojauth_task      : Option<Task<surf::Result<Profile<'static>>>>,
-    profile           : Option<Profile<'static>>
+    mojauth_task      : Option<Task<surf::Result<AccountProfile>>>,
+    profile           : Option<AccountProfile>
 }
 
 #[derive(Debug)]
@@ -157,16 +157,16 @@ pub(in crate::conn) fn handle_login_flow(
                         login_flow.mojauth_task = Some(IoTaskPool::get().spawn(async move {
                             let url = unsafe { str::from_utf8_unchecked(url_buf.get_unchecked(0..url_len)) };
                             match (surf::get(url).send().await) {
-                                Ok(mut response) => response.body_json::<Profile>().await,
+                                Ok(mut response) => response.body_json::<AccountProfile>().await,
                                 Err(err)         => Err(err)
                             }
                         }));
 
                     } else {
-                        let profile = Profile {
+                        let profile = AccountProfile {
                             uuid     : Uuid::new_v3(&OFFLINE_NAMESPACE, declared_username.as_bytes()),
                             username : declared_username.clone(),
-                            props    : Cow::Borrowed(&[])
+                            skin     : None
                         };
                         sender.send(S2CLoginFinishPacket { profile : profile.clone() });
                         login_flow.profile = Some(profile);
@@ -186,8 +186,7 @@ pub(in crate::conn) fn handle_login_flow(
                     ecmds.remove::<ConnPeerLoginFlow>();
                     ecmds.insert(profile);
                     unsafe { state.login_finish_acknowledged(); }
-                    sender.kick("Begin config");
-                    // TODO: Begin config
+                    // TODO: Config stage
                 }
 
 

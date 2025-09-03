@@ -20,7 +20,7 @@ pub mod compression;
 pub enum S2CLoginPackets<'l> {
     Disconnect     (disconnect      ::S2CLoginDisconnectPacket),
     EncryptRequest (encrypt_request ::S2CLoginEncryptRequestPacket<'l>),
-    Finish         (finish          ::S2CLoginFinishPacket<'l>),
+    Finish         (finish          ::S2CLoginFinishPacket),
     Compression    (compression     ::S2CLoginCompressionPacket)
     // TODO: QueryRequest
     // TODO: CookieRequest
