@@ -1,6 +1,9 @@
 use crate::conn::{
     peer::event::login::ConnPeerLoginFlow,
-    protocol::packet::{ AtomicPacketState, PacketState }
+    protocol::{
+        packet::{ AtomicPacketState, PacketState },
+        value::client_info::ClientInfo
+    }
 };
 use core::{
     net::SocketAddr,
@@ -34,7 +37,8 @@ pub(in crate::conn) struct ConnPeerBundle {
     pub(in crate::conn) writer     : ConnPeerWriter,
     pub(in crate::conn) sender     : ConnPeerSender,
     pub(in crate::conn) state      : ConnPeerState,
-    pub(in crate::conn) login_flow : ConnPeerLoginFlow
+    pub(in crate::conn) login_flow : ConnPeerLoginFlow,
+    pub(in crate::conn) info       : ClientInfo
 }
 
 
@@ -50,7 +54,7 @@ impl From<SocketAddr> for ConnPeer {
 }
 
 
-#[derive(Component)]
+#[derive(Component, Debug)]
 pub struct ConnPeerState {
     incoming_state : PacketState,
     outgoing_state : Arc<AtomicPacketState>,
@@ -132,4 +136,10 @@ pub(in crate::conn) fn time_out_conns(
             sender.kick_timeout();
         }
     });
+}
+
+
+#[derive(Component)]
+pub struct ConnPeerBrand {
+    pub brand : String
 }

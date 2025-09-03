@@ -1,26 +1,23 @@
 use crate::conn::protocol::{
     codec::decode::{
         PacketDecode,
-        DecodeBuf,
-        vec::VecDecodeError
+        DecodeBuf
     },
     packet::{
         PacketMeta,
         PacketState,
         PacketBound
     },
-    value::ident::{
-        Ident,
-        IdentDecodeError
+    value::channel_data::{
+        ChannelData,
+        ChannelDataDecodeError
     }
 };
-use core::fmt::{ self, Display, Formatter };
 
 
 #[derive(Debug)]
 pub struct C2SConfigCustomPayloadPacket {
-    pub channel : Ident,
-    pub data    : Vec<u8>
+    pub data : ChannelData<'static>
 }
 
 impl PacketMeta for C2SConfigCustomPayloadPacket {
@@ -30,25 +27,11 @@ impl PacketMeta for C2SConfigCustomPayloadPacket {
 }
 
 impl PacketDecode for C2SConfigCustomPayloadPacket {
-    type Error = C2SConfigCustomPayloadDecodeError;
+    type Error = ChannelDataDecodeError;
 
     fn decode(buf : &mut DecodeBuf<'_>)
         -> Result<Self, Self::Error>
     { Ok(Self {
-        channel : <_>::decode(buf).map_err(C2SConfigCustomPayloadDecodeError::Channel)?,
-        data    : <Vec<u8>>::decode(buf).map_err(C2SConfigCustomPayloadDecodeError::Data)?
+        data : <_>::decode(buf)?,
     }) }
-}
-
-
-#[derive(Debug)]
-pub enum C2SConfigCustomPayloadDecodeError {
-    Channel(IdentDecodeError),
-    Data(VecDecodeError<<u8 as PacketDecode>::Error>)
-}
-impl Display for C2SConfigCustomPayloadDecodeError {
-    fn fmt(&self, f : &mut Formatter<'_>) -> fmt::Result { match (self) {
-        Self::Channel(err) => write!(f, "channel {err}"),
-        Self::Data(err)    => write!(f, "data {err}")
-    } }
 }

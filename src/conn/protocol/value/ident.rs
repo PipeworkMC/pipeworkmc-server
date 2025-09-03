@@ -17,7 +17,7 @@ use serde::ser::{
 };
 
 
-#[derive(Clone)]
+#[derive(Clone, PartialEq, Eq, Hash)]
 pub struct Ident {
     joined    : Cow<'static, str>,
     split_idx : usize
@@ -57,6 +57,21 @@ impl Ident {
 
 impl Ident {
 
+    pub unsafe fn new_unchecked<S>(joined : S) -> Self
+    where
+        S : Into<Cow<'static, str>>
+    {
+        let joined = joined.into();
+        let Some(split_idx) = joined.as_bytes().iter().position(|&c| c == b':')
+            else { panic!("Ident missing separator character"); };
+        unsafe { Self::new_unchecked_manual(joined, split_idx) }
+    }
+
+    #[inline(always)]
+    const unsafe fn new_unchecked_manual(joined : Cow<'static, str>, split_idx : usize) -> Self {
+        Self { joined, split_idx }
+    }
+
     #[track_caller]
     #[inline]
     pub const fn new(s : &'static str) -> Self {
@@ -74,7 +89,7 @@ impl Ident {
     #[inline]
     pub const fn new_checked(s : &'static str) -> Result<Self, IdentValidateError> {
         match (Self::validate_joined(s)) {
-            Ok(split_idx) => Ok(Self { joined : Cow::Borrowed(s), split_idx }),
+            Ok(split_idx) => Ok(unsafe { Self::new_unchecked_manual(Cow::Borrowed(s), split_idx) }),
             Err(err)      => Err(err)
         }
     }
@@ -143,7 +158,7 @@ impl TryFrom<Cow<'static, str>> for Ident {
     #[inline]
     fn try_from(s : Cow<'static, str>) -> Result<Self, Self::Error> {
         let split_idx = Self::validate_joined(&s)?;
-        Ok(Self { joined : s, split_idx })
+        Ok(unsafe { Self::new_unchecked_manual(s, split_idx) })
     }
 }
 impl TryFrom<&'static str> for Ident {

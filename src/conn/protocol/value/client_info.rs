@@ -16,9 +16,10 @@ use crate::conn::protocol::{
     }
 };
 use core::fmt::{ self, Debug, Display, Formatter };
+use bevy_ecs::component::Component;
 
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Component, Debug)]
 pub struct ClientInfo {
     pub locale             : BoundedString<16>,
     pub view_dist          : u8,
@@ -29,6 +30,19 @@ pub struct ClientInfo {
     pub text_filtered      : bool,
     pub allow_motd_listing : bool,
     pub particle_status    : ParticleStatus
+}
+impl Default for ClientInfo {
+    fn default() -> Self { Self {
+        locale             : unsafe { BoundedString::new_unchecked("en_us") },
+        view_dist          : 2,
+        chat_mode          : ChatMode::Enabled,
+        chat_colours       : false,
+        skin_layers        : SkinLayers::ALL,
+        left_handed        : false,
+        text_filtered      : false,
+        allow_motd_listing : false,
+        particle_status    : ParticleStatus::All
+    } }
 }
 
 
@@ -45,41 +59,44 @@ pub enum ChatMode {
 pub struct SkinLayers(u8);
 impl SkinLayers {
 
-    #[inline]
-    pub fn as_byte(&self) -> u8 { self.0 }
+    pub const ALL  : Self = Self(0b01111111);
+    pub const NONE : Self = Self(0b00000000);
+
+    #[inline(always)]
+    pub const fn as_byte(&self) -> u8 { self.0 }
 
     pub const CAPE : u8 = 0b00000001;
-    pub fn cape(&self) -> bool { self.get(Self::CAPE) }
-    pub fn set_cape(&mut self, enabled : bool) { self.set(Self::CAPE, enabled); }
+    pub const fn cape(&self) -> bool { self.get(Self::CAPE) }
+    pub const fn set_cape(&mut self, enabled : bool) { self.set(Self::CAPE, enabled); }
 
     pub const JACKET : u8 = 0b00000010;
-    pub fn jacket(&self) -> bool { self.get(Self::JACKET) }
-    pub fn set_jacket(&mut self, enabled : bool) { self.set(Self::JACKET, enabled); }
+    pub const fn jacket(&self) -> bool { self.get(Self::JACKET) }
+    pub const fn set_jacket(&mut self, enabled : bool) { self.set(Self::JACKET, enabled); }
 
     pub const LEFT_SLEEVE : u8 = 0b00000100;
-    pub fn left_sleeve(&self) -> bool { self.get(Self::LEFT_SLEEVE) }
-    pub fn set_left_sleeve(&mut self, enabled : bool) { self.set(Self::LEFT_SLEEVE, enabled); }
+    pub const fn left_sleeve(&self) -> bool { self.get(Self::LEFT_SLEEVE) }
+    pub const fn set_left_sleeve(&mut self, enabled : bool) { self.set(Self::LEFT_SLEEVE, enabled); }
 
     pub const RIGHT_SLEEVE : u8 = 0b00001000;
-    pub fn right_sleeve(&self) -> bool { self.get(Self::RIGHT_SLEEVE) }
-    pub fn set_right_sleeve(&mut self, enabled : bool) { self.set(Self::RIGHT_SLEEVE, enabled); }
+    pub const fn right_sleeve(&self) -> bool { self.get(Self::RIGHT_SLEEVE) }
+    pub const fn set_right_sleeve(&mut self, enabled : bool) { self.set(Self::RIGHT_SLEEVE, enabled); }
 
     pub const LEFT_PANTS_LEG : u8 = 0b00010000;
-    pub fn left_pants_leg(&self) -> bool { self.get(Self::LEFT_PANTS_LEG) }
-    pub fn set_left_pants_leg(&mut self, enabled : bool) { self.set(Self::LEFT_PANTS_LEG, enabled); }
+    pub const fn left_pants_leg(&self) -> bool { self.get(Self::LEFT_PANTS_LEG) }
+    pub const fn set_left_pants_leg(&mut self, enabled : bool) { self.set(Self::LEFT_PANTS_LEG, enabled); }
 
     pub const RIGHT_PANTS_LEG : u8 = 0b00100000;
-    pub fn right_pants_leg(&self) -> bool { self.get(Self::RIGHT_PANTS_LEG) }
-    pub fn set_right_pants_leg(&mut self, enabled : bool) { self.set(Self::RIGHT_PANTS_LEG, enabled); }
+    pub const fn right_pants_leg(&self) -> bool { self.get(Self::RIGHT_PANTS_LEG) }
+    pub const fn set_right_pants_leg(&mut self, enabled : bool) { self.set(Self::RIGHT_PANTS_LEG, enabled); }
 
     pub const HAT : u8 = 0b01000000;
-    pub fn hat(&self) -> bool { self.get(Self::HAT) }
-    pub fn set_hat(&mut self, enabled : bool) { self.set(Self::HAT, enabled); }
+    pub const fn hat(&self) -> bool { self.get(Self::HAT) }
+    pub const fn set_hat(&mut self, enabled : bool) { self.set(Self::HAT, enabled); }
 
     #[inline(always)]
-    fn get(&self, flag : u8) -> bool { (self.0 & flag) != 0 }
+    const fn get(&self, flag : u8) -> bool { (self.0 & flag) != 0 }
     #[inline(always)]
-    fn set(&mut self, flag : u8, enabled : bool) {
+    const fn set(&mut self, flag : u8, enabled : bool) {
         if (enabled) {
             self.0 |= flag;
         } else {

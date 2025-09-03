@@ -78,6 +78,7 @@ impl ConnPeerSender {
         match (packet.meta()) {
             (PacketState::Login,  S2CLoginDisconnectPacket::PREFIX,)
             | (PacketState::Config, S2CConfigDisconnectPacket::PREFIX,)
+            | (PacketState::Play, S2CPlayDisconnectPacket::PREFIX,)
             => { self.disconnecting = true; },
             // TODO: Play
             _ => { }

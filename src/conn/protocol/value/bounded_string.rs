@@ -34,6 +34,14 @@ pub struct BoundedString<const MAX_LEN : usize> {
     len  : usize
 }
 
+impl<const MAX_LEN : usize> BoundedString<MAX_LEN> {
+    pub unsafe fn new_unchecked(s : &str) -> Self {
+        let mut data = [0u8; MAX_LEN];
+        unsafe { ptr::copy_nonoverlapping(s.as_ptr(), data.as_mut_ptr(), s.len()); }
+        Self { data, len : s.len() }
+    }
+}
+
 impl<const MAX_LEN : usize> PacketDecode for BoundedString<MAX_LEN> {
     type Error = BoundedStringDecodeError;
 

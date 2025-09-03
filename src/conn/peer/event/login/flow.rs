@@ -195,7 +195,6 @@ pub(in crate::conn) fn handle_login_flow(
                         username
                     });
                     unsafe { state.login_finish_acknowledged(); }
-                    // TODO: Config stage
                 }
 
 

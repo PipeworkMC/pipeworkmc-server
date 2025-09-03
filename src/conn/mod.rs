@@ -1,3 +1,4 @@
+use crate::conn::protocol::value::client_info::ClientInfo;
 use core::net::{
     SocketAddr,
     SocketAddrV4,
@@ -46,6 +47,8 @@ pub struct ConnListenerPlugin {
 
     pub server_id          : BoundedString<20>,
 
+    pub server_brand       : String,
+
     /// How large packets need to be before being compressed.
     ///
     /// `None` to disable packet compression.
@@ -74,6 +77,7 @@ impl Default for ConnListenerPlugin {
         Self {
             listen_addrs       : Cow::Borrowed(Self::DEFAULT_LISTEN_ADDRS),
             server_id          : BoundedString::try_from("PipeworkMC").unwrap(),
+            server_brand       : String::from("PipeworkMC"),
             compress_threshold : Some(64),
             mojauth_enabled    : false
         }
@@ -92,6 +96,7 @@ impl Plugin for ConnListenerPlugin {
             .insert_resource(ConnListener::new(&*self.listen_addrs).unwrap()) // TODO: Error handler.
             .insert_resource(ConnOptions {
                 server_id          : self.server_id.clone(),
+                server_brand       : self.server_brand.clone(),
                 compress_threshold : self.compress_threshold,
                 mojauth_enabled    : self.mojauth_enabled
             })
@@ -104,6 +109,8 @@ impl Plugin for ConnListenerPlugin {
             .add_systems(Update, peer::event::status::respond_to_pings)
             .add_systems(Update, peer::event::login::handle_login_flow.before(peer::decode_conn_peer_incoming))
             .add_systems(Update, peer::event::login::poll_mojauths_tasks)
+            .add_systems(Update, peer::event::config::send_registries)
+            .add_systems(Update, peer::event::config::handle_config.before(peer::decode_conn_peer_incoming))
         ;
     }
 }
@@ -113,6 +120,7 @@ impl Plugin for ConnListenerPlugin {
 #[derive(Resource)]
 pub struct ConnOptions {
     pub server_id          : BoundedString<20>,
+    pub server_brand       : String,
     pub compress_threshold : Option<u32>,
     pub mojauth_enabled    : bool
 }
@@ -152,7 +160,8 @@ fn accept_conn_peers(
                 writer     : ConnPeerWriter::from(write_stream),
                 sender     : ConnPeerSender::from(Arc::clone(state.outgoing_state_arc())),
                 state,
-                login_flow : ConnPeerLoginFlow::default()
+                login_flow : ConnPeerLoginFlow::default(),
+                info       : ClientInfo::default()
             });
         },
         Err(err) if (err.kind() == io::ErrorKind::WouldBlock) => { },

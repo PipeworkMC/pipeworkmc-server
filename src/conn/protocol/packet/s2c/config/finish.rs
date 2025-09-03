@@ -40,7 +40,7 @@ impl<'l> From<S2CConfigFinishPacket> for S2CPackets<'l> {
     fn from(value : S2CConfigFinishPacket) -> Self { Self::Config(value.into()) }
 }
 
-impl From<S2CConfigFinishPacket> for S2CConfigPackets {
+impl From<S2CConfigFinishPacket> for S2CConfigPackets<'_> {
     #[inline(always)]
     fn from(value : S2CConfigFinishPacket) -> Self { Self::Finish(value) }
 }

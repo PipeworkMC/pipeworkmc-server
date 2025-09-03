@@ -49,7 +49,7 @@ impl From<S2CConfigDisconnectPacket> for S2CPackets<'_> {
     fn from(value : S2CConfigDisconnectPacket) -> Self { Self::Config(value.into()) }
 }
 
-impl From<S2CConfigDisconnectPacket> for S2CConfigPackets {
+impl From<S2CConfigDisconnectPacket> for S2CConfigPackets<'_> {
     #[inline(always)]
     fn from(value : S2CConfigDisconnectPacket) -> Self { Self::Disconnect(value) }
 }

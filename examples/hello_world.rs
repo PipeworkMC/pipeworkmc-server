@@ -1,6 +1,5 @@
 use pipeworkmc_server::prelude::*;
 use pipeworkmc_server::prelude::packet::*;
-use packet::c2s::config::client_info::C2SConfigClientInfoPacket;
 use core::time::Duration;
 use bevy::{
     prelude::*,
@@ -15,7 +14,6 @@ fn main() -> AppExit {
         )
         .add_systems(Update, status_response)
         .add_systems(Update, login)
-        .add_systems(Update, get_info)
         .run()
 }
 
@@ -43,30 +41,4 @@ fn login(
     er_loggedin.par_read().for_each(|e| {
         println!("Player {} logged in as {} ({}).", e.peer(), e.username(), e.uuid());
     });
-}
-
-fn get_info(
-    mut q_peers   : Query<(&AccountProfile, &mut ConnPeerSender,)>,
-    mut er_config : EventReader<IncomingConfigPacketEvent>
-) {
-    for e in er_config.read() {
-        if let C2SConfigPackets::ClientInfo(C2SConfigClientInfoPacket { info }) = e.packet()
-            && let Ok((profile, mut sender,)) = q_peers.get_mut(e.peer())
-        {
-            sender.kick(
-                profile.username.to_string().green().bold()
-                + " " + ("(" + profile.uuid.to_string().yellow() + ")").grey()
-                + "\n"
-                + "\nLocale".white()             + ": ".grey() + info.locale.to_string().orange()
-                + "\nView Distance".white()      + ": ".grey() + info.view_dist.to_string().green()
-                + "\nChat Mode".white()          + ": ".grey() + format!("{:?}", info.chat_mode).red()
-                + "\nChat Colours".white()       + ": ".grey() + info.chat_colours.to_string().cyan()
-                + "\nSkin Layers".white()        + ": ".grey() + format!("{:0>7b}", info.skin_layers.as_byte() & 0b01111111).green()
-                + "\nLeft Handed".white()        + ": ".grey() + info.left_handed.to_string().cyan()
-                + "\nText Filtered".white()      + ": ".grey() + info.text_filtered.to_string().cyan()
-                + "\nAllow MOTD Listing".white() + ": ".grey() + info.allow_motd_listing.to_string().cyan()
-                + "\nParticle Status".white()    + ": ".grey() + format!("{:?}", info.particle_status).red()
-            );
-        }
-    }
 }

@@ -5,18 +5,23 @@ use crate::conn::protocol::{
     },
     value::varint::VarInt
 };
+use core::any::TypeId;
 use std::borrow::Cow;
 
 
 unsafe impl<T> PacketEncode for [T]
 where
-    T : PacketEncode
+    T : PacketEncode + 'static
 {
 
     fn encode_len(&self) -> usize {
         let mut len = VarInt::<u32>(self.len() as u32).encode_len();
-        for item in self {
-            len += item.encode_len();
+        if (TypeId::of::<T>() == TypeId::of::<u8>()) {
+            len += self.len();
+        } else {
+            for item in self {
+                len += item.encode_len();
+            }
         }
         len
     }
@@ -33,7 +38,7 @@ where
 
 unsafe impl<T> PacketEncode for Cow<'_, [T]>
 where
-    T   : PacketEncode,
+    T   : PacketEncode + 'static,
     [T] : ToOwned
 {
 
@@ -50,7 +55,7 @@ where
 
 unsafe impl<T> PacketEncode for Vec<T>
 where
-    T : PacketEncode
+    T : PacketEncode + 'static
 {
 
     #[inline(always)]

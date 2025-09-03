@@ -47,6 +47,12 @@ impl<'l> DecodeBuf<'l> {
         Ok(b.to_vec())
     }
 
+    pub fn read_remaining(&mut self) -> &[u8] {
+        let b = self.buf.get(self.head..).unwrap_or_default();
+        self.head = self.buf.len();
+        b
+    }
+
     #[inline(always)]
     pub fn read_arr<const COUNT : usize>(&mut self) -> Result<[u8; COUNT], IncompleteDecodeError> {
         let mut buf = [0u8; COUNT];

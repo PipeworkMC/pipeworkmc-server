@@ -6,7 +6,10 @@ use crate::conn::protocol::{
         IncompleteDecodeError
     },
     packet::PacketMeta,
-    value::client_info::ClientInfoDecodeError
+    value::{
+        client_info::ClientInfoDecodeError,
+        channel_data::ChannelDataDecodeError
+    }
 };
 use core::{
     fmt::{ self, Display, Formatter },
@@ -53,7 +56,7 @@ impl PrefixedPacketDecode for C2SConfigPackets {
 pub enum C2SConfigDecodeError {
     Incomplete(IncompleteDecodeError),
     ClientInfo         (ClientInfoDecodeError),
-    CustomPayload      (custom_payload ::C2SConfigCustomPayloadDecodeError),
+    CustomPayload      (ChannelDataDecodeError),
     UnknownPrefix(u8)
 }
 impl From<!> for C2SConfigDecodeError {

@@ -1,14 +1,28 @@
 use crate::conn::{
-    peer::event::IncomingPacketEvent,
-    protocol::packet::{
-        c2s::config::C2SConfigPackets
+    peer::{
+        ConnPeerState,
+        ConnPeerBrand,
+        event::IncomingPacketEvent
+    },
+    protocol::{
+        packet::c2s::config::{
+            C2SConfigPackets,
+            client_info::C2SConfigClientInfoPacket,
+            custom_payload::C2SConfigCustomPayloadPacket
+        },
+        value::channel_data::ChannelData
     }
 };
 use std::time::Instant;
 use bevy_ecs::{
     entity::Entity,
-    event::Event
+    event::{ Event, EventReader },
+    system::{ ParallelCommands, Query }
 };
+
+
+mod login_flow;
+pub(in crate::conn) use login_flow::*;
 
 
 #[derive(Event, Debug)]
@@ -39,4 +53,37 @@ impl IncomingPacketEvent for IncomingConfigPacketEvent {
     #[inline(always)]
     fn timestamp(&self) -> Instant { self.timestamp }
 
+}
+
+
+pub(in crate::conn) fn handle_config(
+        pcmds     : ParallelCommands,
+    mut q_peers   : Query<(Entity, &mut ConnPeerState,)>,
+    mut er_config : EventReader<IncomingConfigPacketEvent>
+) {
+    for event in er_config.read() {
+        if let Ok((entity, mut state,)) = q_peers.get_mut(event.peer()) {
+            match (event.packet()) {
+
+
+                C2SConfigPackets::ClientInfo(C2SConfigClientInfoPacket { info }) => {
+                    pcmds.command_scope(|mut cmds| { cmds.entity(entity).insert(info.clone()); });
+                },
+
+
+                C2SConfigPackets::CustomPayload(C2SConfigCustomPayloadPacket { data }) => {
+                    if let ChannelData::Brand { brand } = data {
+                        pcmds.command_scope(|mut cmds| { cmds.entity(entity).insert(ConnPeerBrand { brand : brand.to_string() }); });
+                    }
+                },
+
+
+                C2SConfigPackets::FinishAcknowledged(_) => {
+                    unsafe { state.config_finish_acknowledged(); }
+                }
+
+
+            }
+        }
+    }
 }

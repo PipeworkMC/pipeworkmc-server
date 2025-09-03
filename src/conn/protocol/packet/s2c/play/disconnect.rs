@@ -27,7 +27,7 @@ pub struct S2CPlayDisconnectPacket {
 impl PacketMeta for S2CPlayDisconnectPacket {
     const STATE  : PacketState = PacketState::Play;
     const BOUND  : PacketBound = PacketBound::C2S;
-    const PREFIX : u8          = 0x2C; // TODO: Check against current datagen.
+    const PREFIX : u8          = 0x1C; // TODO: Check against current datagen.
 }
 
 unsafe impl PacketEncode for S2CPlayDisconnectPacket {
