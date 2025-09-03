@@ -31,6 +31,7 @@ pub mod prelude {
 
     pub use crate::conn::{
         ConnListenerPlugin,
+        peer::event::login::LoggedInEvent,
         protocol::Protocol
     };
 

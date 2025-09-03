@@ -2,7 +2,10 @@ use crate::conn::{
     peer::{
         event::{
             IncomingPacketEvent,
-            login::IncomingLoginPacketEvent
+            login::{
+                IncomingLoginPacketEvent,
+                LoggedInEvent
+            }
         },
         ConnPeerReader,
         ConnPeerWriter,
@@ -181,10 +184,16 @@ pub(in crate::conn) fn handle_login_flow(
                         sender.kick_login_failed("Profile not verified yet");
                         continue;
                     };
-                    println!("Logged in as {profile:?}");
                     let mut ecmds = cmds.entity(entity);
                     ecmds.remove::<ConnPeerLoginFlow>();
+                    let uuid     = profile.uuid;
+                    let username = profile.username.clone();
                     ecmds.insert(profile);
+                    cmds.send_event(LoggedInEvent {
+                        peer     : entity,
+                        uuid,
+                        username
+                    });
                     unsafe { state.login_finish_acknowledged(); }
                     // TODO: Config stage
                 }
