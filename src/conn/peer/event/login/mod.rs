@@ -1,9 +1,4 @@
-use crate::conn::{
-    peer::event::IncomingPacketEvent,
-    protocol::packet::{
-        c2s::login::C2SLoginPackets
-    }
-};
+use crate::conn::protocol::packet::c2s::login::C2SLoginPackets;
 use std::time::Instant;
 use bevy_ecs::{
     entity::Entity,
@@ -29,18 +24,17 @@ impl IncomingLoginPacketEvent {
     }
 }
 
-impl IncomingPacketEvent for IncomingLoginPacketEvent {
-    type Packet = C2SLoginPackets;
+impl IncomingLoginPacketEvent {
 
     #[inline(always)]
-    fn peer(&self) -> Entity { self.peer }
+    pub fn peer(&self) -> Entity { self.peer }
 
     #[inline(always)]
-    fn packet(&self) -> &Self::Packet { &self.packet }
+    pub fn packet(&self) -> &C2SLoginPackets { &self.packet }
     #[inline(always)]
-    fn take_packet(self) -> Self::Packet { self.packet }
+    pub fn take_packet(self) -> C2SLoginPackets { self.packet }
 
     #[inline(always)]
-    fn timestamp(&self) -> Instant { self.timestamp }
+    pub fn timestamp(&self) -> Instant { self.timestamp }
 
 }

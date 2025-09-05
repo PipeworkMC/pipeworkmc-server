@@ -1,10 +1,7 @@
 use crate::conn::{
     peer::{
         ConnPeerSender,
-        event::{
-            IncomingPacketEvent,
-            status::IncomingStatusPacketEvent
-        }
+        event::status::IncomingStatusPacketEvent
     },
     protocol::packet::{
         c2s::status::{

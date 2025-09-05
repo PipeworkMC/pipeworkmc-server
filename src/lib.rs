@@ -29,7 +29,8 @@ pub mod prelude {
         #[derive(Debug)]
         pub struct DefaultPlugins {
             bevy_app:::ScheduleRunnerPlugin,
-            crate::conn:::ConnListenerPlugin
+            crate::conn:::ConnListenerPlugin,
+            crate::game::player::login:::AutoApproveLoginsPlugin
         }
     }
 
@@ -38,7 +39,11 @@ pub mod prelude {
         protocol::Protocol
     };
 
-    pub use crate::game::player::LoggedInEvent;
+    pub use crate::game::player::login::{
+        PlayerRequestLoginEvent,
+        PlayerApproveLoginEvent,
+        PlayerLoggedInEvent
+    };
 
     pub use crate::data::{
         block_pos::{ BlockPos, DimBlockPos },
@@ -57,7 +62,6 @@ pub mod prelude {
             peer::{
                 ConnPeerSender,
                 event::{
-                    IncomingPacketEvent as _,
                     handshake::IncomingHandshakePacketEvent,
                     status::IncomingStatusPacketEvent,
                     login::IncomingLoginPacketEvent,

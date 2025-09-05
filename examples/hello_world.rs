@@ -36,7 +36,7 @@ fn status_response(
 }
 
 fn login(
-    mut er_loggedin : EventReader<LoggedInEvent>
+    mut er_loggedin : EventReader<PlayerLoggedInEvent>
 ) {
     er_loggedin.par_read().for_each(|e| {
         println!("Player {} logged in as {} ({}).", e.peer(), e.username(), e.uuid());

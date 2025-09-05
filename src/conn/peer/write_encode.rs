@@ -148,6 +148,20 @@ impl ConnPeerSender {
         }, ..TextComponent::EMPTY } ]) })
     }
 
+    #[inline]
+    pub fn kick_duplicate_login(&mut self) {
+        self.kick(Text { components : Cow::Borrowed(&[ TextComponent { content : TextContent::Translate {
+            key : Cow::Borrowed("multiplayer.disconnect.duplicate_login"), fallback : None, with : Cow::Borrowed(&[])
+        }, ..TextComponent::EMPTY } ]) })
+    }
+
+    #[inline]
+    pub fn kick_name_taken(&mut self) {
+        self.kick(Text { components : Cow::Borrowed(&[ TextComponent { content : TextContent::Translate {
+            key : Cow::Borrowed("multiplayer.disconnect.name_taken"), fallback : None, with : Cow::Borrowed(&[])
+        }, ..TextComponent::EMPTY } ]) })
+    }
+
 }
 
 

@@ -1,7 +1,4 @@
-use crate::conn::{
-    peer::event::IncomingPacketEvent,
-    protocol::packet::c2s::handshake::C2SHandshakePackets
-};
+use crate::conn::protocol::packet::c2s::handshake::C2SHandshakePackets;
 use std::time::Instant;
 use bevy_ecs::{
     entity::Entity,
@@ -27,18 +24,17 @@ impl IncomingHandshakePacketEvent {
     }
 }
 
-impl IncomingPacketEvent for IncomingHandshakePacketEvent {
-    type Packet = C2SHandshakePackets;
+impl IncomingHandshakePacketEvent {
 
     #[inline(always)]
-    fn peer(&self) -> Entity { self.peer }
+    pub fn peer(&self) -> Entity { self.peer }
 
     #[inline(always)]
-    fn packet(&self) -> &Self::Packet { &self.packet }
+    pub fn packet(&self) -> &C2SHandshakePackets { &self.packet }
     #[inline(always)]
-    fn take_packet(self) -> Self::Packet { self.packet }
+    pub fn take_packet(self) -> C2SHandshakePackets { self.packet }
 
     #[inline(always)]
-    fn timestamp(&self) -> Instant { self.timestamp }
+    pub fn timestamp(&self) -> Instant { self.timestamp }
 
 }

@@ -1,10 +1,7 @@
 use crate::conn::{
     ConnOptions,
     peer::{
-        event::{
-            IncomingPacketEvent,
-            login::IncomingLoginPacketEvent
-        },
+        event::login::IncomingLoginPacketEvent,
         ConnPeerReader,
         ConnPeerWriter,
         ConnPeerSender,
@@ -31,7 +28,14 @@ use crate::conn::{
         }
     }
 };
-use crate::game::player::LoggedInEvent;
+use crate::game::player::{
+    login::{
+        PlayerRequestLoginEvent,
+        PlayerApproveLoginEvent,
+        PlayerLoggedInEvent
+    },
+    flags::Hardcore
+};
 use crate::data::{
     bounded_string::BoundedString,
     channel_data::ChannelData,
@@ -71,7 +75,7 @@ pub(in crate::conn) struct ConnPeerLoginFlow {
     declared_username : Option<BoundedString<16>>,
     exchanging_key    : Option<ExchangingKey>,
     mojauth_task      : Option<Task<surf::Result<AccountProfile>>>,
-    profile           : Option<AccountProfile>
+    approved          : bool
 }
 
 #[derive(Debug)]
@@ -83,14 +87,22 @@ struct ExchangingKey {
 
 
 pub(in crate::conn) fn handle_login_flow(
-    mut cmds      : Commands,
-    mut q_peers   : Query<(Entity, &mut ConnPeerReader, &mut ConnPeerWriter, &mut ConnPeerSender, &mut ConnPeerState, &mut ConnPeerLoginFlow,)>,
-    mut er_login  : EventReader<IncomingLoginPacketEvent>,
-        r_options : Res<ConnOptions>,
-    mut r_chid    : ResMut<NextCharacterId>
+    mut cmds          : Commands,
+    mut q_peers       : Query<(
+        Entity,
+        &mut ConnPeerReader,
+        &mut ConnPeerWriter,
+        &mut ConnPeerSender,
+        &mut ConnPeerState,
+        &mut ConnPeerLoginFlow,
+        Option<&AccountProfile>,
+    )>,
+    mut er_login      : EventReader<IncomingLoginPacketEvent>,
+        r_options     : Res<ConnOptions>,
+    mut r_chid        : ResMut<NextCharacterId>
 ) {
     for event in er_login.read() {
-        if let Ok((entity, mut reader, mut writer, mut sender, mut state, mut login_flow,)) = q_peers.get_mut(event.peer()) {
+        if let Ok((entity, mut reader, mut writer, mut sender, mut state, mut login_flow, profile,)) = q_peers.get_mut(event.peer()) {
             if (sender.is_disconnecting()) { continue; }
             match (event.packet()) {
 
@@ -181,30 +193,32 @@ pub(in crate::conn) fn handle_login_flow(
                             username : declared_username.clone(),
                             skin     : None
                         };
-                        sender.send(S2CLoginFinishPacket { profile : profile.clone() });
-                        login_flow.profile = Some(profile);
-                        unsafe { state.login_finish(); }
+
+                        cmds.send_event(PlayerRequestLoginEvent::new(entity, profile.uuid, profile.username.clone()));
+                        let mut ecmds = cmds.entity(entity);
+                        ecmds.insert(profile);
                     }
 
                 },
 
 
                 C2SLoginPackets::FinishAcknowledged(C2SLoginFinishAcknowledgedPacket {}) => {
-                    let Some(profile) = login_flow.profile.take() else {
-                        sender.kick_login_failed("Profile not verified yet");
+                    let Some(profile) = profile else {
+                        sender.kick_login_failed("Profile not yet verified");
                         continue;
                     };
-                    let uuid     = profile.uuid;
-                    let username = profile.username.clone();
+                    if (! login_flow.approved) {
+                        sender.kick_login_failed("Login not yet approved");
+                        continue;
+                    };
 
                     unsafe { state.login_finish_acknowledged(); }
 
+                    let chid = r_chid.next();
+
                     let mut ecmds = cmds.entity(entity);
                     ecmds.remove::<ConnPeerLoginFlow>();
-
-                    let chid = r_chid.next();
                     ecmds.insert((
-                        profile,
                         chid,
                         GameMode::default(),
                     ));
@@ -220,7 +234,7 @@ pub(in crate::conn) fn handle_login_flow(
                     //     hardcore :
                     // });
 
-                    cmds.send_event(LoggedInEvent::new(entity, uuid, username));
+                    cmds.send_event(PlayerLoggedInEvent::new(entity, profile.uuid, profile.username.clone()));
                 }
 
 
@@ -231,21 +245,44 @@ pub(in crate::conn) fn handle_login_flow(
 
 
 pub(in crate::conn) fn poll_mojauths_tasks(
-    mut q_peers : Query<(&mut ConnPeerSender, &mut ConnPeerState, &mut ConnPeerLoginFlow,)>,
+    mut cmds    : Commands,
+    mut q_peers : Query<(Entity, &mut ConnPeerLoginFlow,)>,
 ) {
-    for (mut sender, mut state, mut login_flow,) in &mut q_peers {
+    for (entity, mut login_flow,) in &mut q_peers {
         if let Some(mojauth_task) = &mut login_flow.mojauth_task
             && let Some(response) = futures::check_ready(mojauth_task)
         {
             login_flow.mojauth_task = None;
             match (response) {
                 Ok(profile) => {
-                    sender.send(S2CLoginFinishPacket { profile : profile.clone() });
-                    login_flow.profile = Some(profile);
-                    unsafe { state.login_finish(); }
+                    cmds.send_event(PlayerRequestLoginEvent::new(entity, profile.uuid, profile.username.clone()));
+                    let mut ecmds = cmds.entity(entity);
+                    ecmds.insert(profile);
                 },
                 Err(err) => panic!("{err:?}") // TODO: Error handler.
             }
+        }
+    }
+}
+pub(in crate::conn) fn is_mojauth_enabled(
+    r_options : Res<ConnOptions>
+) -> bool { r_options.mojauth_enabled }
+
+
+pub(in crate::conn) fn approve_logins(
+    mut q_peers    : Query<(
+        &mut ConnPeerSender,
+        &mut ConnPeerState,
+        &mut ConnPeerLoginFlow,
+        &AccountProfile,
+    ),>,
+    mut er_approve : EventReader<PlayerApproveLoginEvent>
+) {
+    for e in er_approve.read() {
+        if let Ok((mut sender, mut state, mut login_flow, profile,)) = q_peers.get_mut(e.peer()) {
+            login_flow.approved = true;
+            sender.send(S2CLoginFinishPacket { profile : profile.clone() });
+            unsafe { state.login_finish(); }
         }
     }
 }

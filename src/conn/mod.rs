@@ -1,4 +1,8 @@
-use crate::game::player::LoggedInEvent;
+use crate::game::player::login::{
+    PlayerRequestLoginEvent,
+    PlayerApproveLoginEvent,
+    PlayerLoggedInEvent
+};
 use crate::data::{
     bounded_string::BoundedString,
     character::NextCharacterId,
@@ -92,12 +96,16 @@ impl Default for ConnListenerPlugin {
 impl Plugin for ConnListenerPlugin {
     fn build(&self, app : &mut App) {
         _ = IoTaskPool::get_or_init(TaskPool::new);
+
         app .add_event::<peer::event::handshake::IncomingHandshakePacketEvent>()
             .add_event::<peer::event::status::IncomingStatusPacketEvent>()
             .add_event::<peer::event::login::IncomingLoginPacketEvent>()
             .add_event::<peer::event::config::IncomingConfigPacketEvent>()
             .add_event::<peer::event::play::IncomingPlayPacketEvent>()
-            .add_event::<LoggedInEvent>()
+            .add_event::<PlayerRequestLoginEvent>()
+            .add_event::<PlayerApproveLoginEvent>()
+            .add_event::<PlayerLoggedInEvent>()
+
             .insert_resource(ConnListener::new(&*self.listen_addrs).unwrap()) // TODO: Error handler.
             .insert_resource(ConnOptions {
                 server_id          : self.server_id.clone(),
@@ -106,16 +114,22 @@ impl Plugin for ConnListenerPlugin {
                 mojauth_enabled    : self.mojauth_enabled
             })
             .insert_resource(NextCharacterId::default())
+
             .add_systems(Update, accept_conn_peers)
             .add_systems(Update, peer::read_conn_peer_incoming)
             .add_systems(Update, peer::decode_conn_peer_incoming)
             .add_systems(Update, peer::write_conn_peer_outgoing)
             .add_systems(Update, peer::time_out_conns)
-            .add_systems(Update, peer::event::handshake::handle_intention.before(peer::decode_conn_peer_incoming))
+            .add_systems(Update, peer::event::handshake::handle_intention
+                .before(peer::decode_conn_peer_incoming))
             .add_systems(Update, peer::event::status::respond_to_pings)
-            .add_systems(Update, peer::event::login::handle_login_flow.before(peer::decode_conn_peer_incoming))
-            .add_systems(Update, peer::event::login::poll_mojauths_tasks)
-            .add_systems(Update, peer::event::config::handle_config.before(peer::decode_conn_peer_incoming))
+            .add_systems(Update, peer::event::login::handle_login_flow
+                .before(peer::decode_conn_peer_incoming))
+            .add_systems(Update, peer::event::login::poll_mojauths_tasks
+                .run_if(peer::event::login::is_mojauth_enabled))
+            .add_systems(Update, peer::event::login::approve_logins)
+            .add_systems(Update, peer::event::config::handle_config
+                .before(peer::decode_conn_peer_incoming))
         ;
     }
 }
