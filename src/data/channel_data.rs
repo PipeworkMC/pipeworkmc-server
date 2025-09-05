@@ -1,19 +1,17 @@
-use crate::conn::protocol::{
-    codec::{
-        decode::{
-            PacketDecode,
-            DecodeBuf,
-            string::StringDecodeError
-        },
-        encode::{
-            PacketEncode,
-            EncodeBuf
-        }
+use crate::conn::protocol::codec::{
+    decode::{
+        PacketDecode,
+        DecodeBuf,
+        string::StringDecodeError
     },
-    value::ident::{
-        Ident,
-        IdentDecodeError
+    encode::{
+        PacketEncode,
+        EncodeBuf
     }
+};
+use crate::data::ident::{
+    Ident,
+    IdentDecodeError
 };
 use core::fmt::{ self, Display, Formatter };
 use std::borrow::Cow;

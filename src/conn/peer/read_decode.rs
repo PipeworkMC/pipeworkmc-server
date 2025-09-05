@@ -6,7 +6,8 @@ use crate::conn::{
             handshake::IncomingHandshakePacketEvent,
             status::IncomingStatusPacketEvent,
             login::IncomingLoginPacketEvent,
-            config::IncomingConfigPacketEvent
+            config::IncomingConfigPacketEvent,
+            play::IncomingPlayPacketEvent
         }
     },
     protocol::{
@@ -20,23 +21,24 @@ use crate::conn::{
                 handshake::C2SHandshakePackets,
                 status::C2SStatusPackets,
                 login::C2SLoginPackets,
-                config::C2SConfigPackets
+                config::C2SConfigPackets,
+                play::C2SPlayPackets
             }
-        },
-        value::varint::{
-            VarIntType,
-            VarIntDecodeError
         }
     }
 };
-use crate::util::{
-    ext::{
-        OptionExt,
-        VecDequeExt
-    },
-    par_eventwriter::ParallelEventWriter,
-    redacted::Redacted
+use crate::data::{
+    redacted::Redacted,
+    varint::{
+        VarIntType,
+        VarIntDecodeError
+    }
 };
+use crate::util::{
+    OptionExt,
+    VecDequeExt
+};
+use crate::ecs::ParallelEventWriter;
 use std::{
     collections::VecDeque,
     io::{ self, Read },
@@ -104,7 +106,8 @@ pub(in crate::conn) fn decode_conn_peer_incoming(
         ew_handshake : ParallelEventWriter<IncomingHandshakePacketEvent>,
         ew_status    : ParallelEventWriter<IncomingStatusPacketEvent>,
         ew_login     : ParallelEventWriter<IncomingLoginPacketEvent>,
-        ew_config    : ParallelEventWriter<IncomingConfigPacketEvent>
+        ew_config    : ParallelEventWriter<IncomingConfigPacketEvent>,
+        ew_play      : ParallelEventWriter<IncomingPlayPacketEvent>
 ) {
     q_peers.par_iter_mut().for_each(|(peer, mut incoming, mut decoder, mut sender, state)| {
         if (sender.is_disconnecting()) { return; }
@@ -148,7 +151,10 @@ pub(in crate::conn) fn decode_conn_peer_incoming(
                     Ok(packet) => { ew_config.write(IncomingConfigPacketEvent::new(peer, packet)); },
                     Err(err)   => { sender.kick_packet_error(format!("config {err}")); }
                 } },
-                PacketState::Play   => { /* TODO */ }
+                PacketState::Play   => { match (C2SPlayPackets::decode_prefixed(&mut buf)) {
+                    Ok(packet) => { ew_play.write(IncomingPlayPacketEvent::new(peer, packet)); },
+                    Err(err)   => { sender.kick_packet_error(format!("play {err}")); }
+                } }
             };
         }
 

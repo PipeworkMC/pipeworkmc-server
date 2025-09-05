@@ -1,4 +1,9 @@
-use crate::conn::protocol::value::client_info::ClientInfo;
+use crate::game::player::LoggedInEvent;
+use crate::data::{
+    bounded_string::BoundedString,
+    character::NextCharacterId,
+    client_info::ClientInfo
+};
 use core::net::{
     SocketAddr,
     SocketAddrV4,
@@ -33,7 +38,6 @@ use peer::{
 };
 
 pub mod protocol;
-use protocol::value::bounded_string::BoundedString;
 
 
 /// Enables the connection listener on install.
@@ -91,8 +95,9 @@ impl Plugin for ConnListenerPlugin {
         app .add_event::<peer::event::handshake::IncomingHandshakePacketEvent>()
             .add_event::<peer::event::status::IncomingStatusPacketEvent>()
             .add_event::<peer::event::login::IncomingLoginPacketEvent>()
-            .add_event::<peer::event::login::LoggedInEvent>()
             .add_event::<peer::event::config::IncomingConfigPacketEvent>()
+            .add_event::<peer::event::play::IncomingPlayPacketEvent>()
+            .add_event::<LoggedInEvent>()
             .insert_resource(ConnListener::new(&*self.listen_addrs).unwrap()) // TODO: Error handler.
             .insert_resource(ConnOptions {
                 server_id          : self.server_id.clone(),
@@ -100,6 +105,7 @@ impl Plugin for ConnListenerPlugin {
                 compress_threshold : self.compress_threshold,
                 mojauth_enabled    : self.mojauth_enabled
             })
+            .insert_resource(NextCharacterId::default())
             .add_systems(Update, accept_conn_peers)
             .add_systems(Update, peer::read_conn_peer_incoming)
             .add_systems(Update, peer::decode_conn_peer_incoming)
@@ -109,7 +115,6 @@ impl Plugin for ConnListenerPlugin {
             .add_systems(Update, peer::event::status::respond_to_pings)
             .add_systems(Update, peer::event::login::handle_login_flow.before(peer::decode_conn_peer_incoming))
             .add_systems(Update, peer::event::login::poll_mojauths_tasks)
-            .add_systems(Update, peer::event::config::send_registries)
             .add_systems(Update, peer::event::config::handle_config.before(peer::decode_conn_peer_incoming))
         ;
     }

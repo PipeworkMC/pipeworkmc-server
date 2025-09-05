@@ -1,12 +1,10 @@
-use crate::conn::protocol::{
-    codec::decode::{
-        PacketDecode,
-        DecodeBuf
-    },
-    value::varint::{
-        VarInt,
-        VarIntDecodeError
-    }
+use crate::conn::protocol::codec::decode::{
+    PacketDecode,
+    DecodeBuf
+};
+use crate::data::varint::{
+    VarInt,
+    VarIntDecodeError
 };
 use core::fmt::{ self, Display, Formatter };
 

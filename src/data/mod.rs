@@ -1,12 +1,16 @@
 pub mod action;
+pub mod block_pos;
 pub mod bounded_string;
 pub mod channel_data;
+pub mod character;
 pub mod client_info;
 pub mod colour;
 pub mod dialog;
+pub mod game_mode;
 pub mod ident;
 pub mod itemstack;
 pub mod nbt;
 pub mod profile;
+pub mod redacted;
 pub mod text;
 pub mod varint;

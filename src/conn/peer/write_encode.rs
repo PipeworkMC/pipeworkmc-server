@@ -9,16 +9,14 @@ use crate::conn::protocol::{
         },
         PacketMeta,
         AtomicPacketState, PacketState
-    },
-    value::{
-        text::{ Text, TextComponent, TextContent },
-        varint::VarIntType
     }
 };
-use crate::util::{
-    ext::VecDequeExt,
-    redacted::Redacted
+use crate::data::{
+    redacted::Redacted,
+    text::{ Text, TextComponent, TextContent },
+    varint::VarIntType
 };
+use crate::util::VecDequeExt;
 use std::{
     borrow::Cow,
     collections::VecDeque,

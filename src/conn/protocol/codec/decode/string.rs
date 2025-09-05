@@ -1,13 +1,11 @@
-use crate::conn::protocol::{
-    codec::decode::{
-        PacketDecode,
-        DecodeBuf,
-        IncompleteDecodeError
-    },
-    value::varint::{
-        VarInt,
-        VarIntDecodeError
-    }
+use crate::conn::protocol::codec::decode::{
+    PacketDecode,
+    DecodeBuf,
+    IncompleteDecodeError
+};
+use crate::data::varint::{
+    VarInt,
+    VarIntDecodeError
 };
 use core::fmt::{ self, Display, Formatter };
 use std::string::FromUtf8Error;

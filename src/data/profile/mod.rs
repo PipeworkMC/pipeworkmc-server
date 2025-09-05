@@ -1,12 +1,10 @@
-use crate::conn::protocol::{
-    codec::encode::{
-        PacketEncode,
-        EncodeBuf
-    },
-    value::{
-        bounded_string::BoundedString,
-        varint::VarInt
-    }
+use crate::conn::protocol::codec::encode::{
+    PacketEncode,
+    EncodeBuf
+};
+use crate::data::{
+    bounded_string::BoundedString,
+    varint::VarInt
 };
 use bevy_ecs::component::Component;
 use serde::Deserialize as Deser;

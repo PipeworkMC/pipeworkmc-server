@@ -11,9 +11,9 @@ use crate::conn::protocol::{
             S2CPackets,
             login::S2CLoginPackets
         }
-    },
-    value::profile::AccountProfile
+    }
 };
+use crate::data::profile::AccountProfile;
 
 
 #[derive(Debug)]

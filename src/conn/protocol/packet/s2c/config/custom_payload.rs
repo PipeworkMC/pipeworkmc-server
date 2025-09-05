@@ -11,9 +11,9 @@ use crate::conn::protocol::{
             S2CPackets,
             config::S2CConfigPackets
         }
-    },
-    value::channel_data::ChannelData
+    }
 };
+use crate::data::channel_data::ChannelData;
 
 
 #[derive(Debug)]

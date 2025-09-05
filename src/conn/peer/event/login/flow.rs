@@ -1,11 +1,9 @@
 use crate::conn::{
+    ConnOptions,
     peer::{
         event::{
             IncomingPacketEvent,
-            login::{
-                IncomingLoginPacketEvent,
-                LoggedInEvent
-            }
+            login::IncomingLoginPacketEvent
         },
         ConnPeerReader,
         ConnPeerWriter,
@@ -20,25 +18,35 @@ use crate::conn::{
                 encrypt_response::C2SLoginEncryptResponsePacket,
                 finish_acknowledged::C2SLoginFinishAcknowledgedPacket
             },
-            s2c::login::{
-                encrypt_request::S2CLoginEncryptRequestPacket,
-                finish::S2CLoginFinishPacket
+            s2c::{
+                login::{
+                    encrypt_request::S2CLoginEncryptRequestPacket,
+                    finish::S2CLoginFinishPacket
+                },
+                config::{
+                    custom_payload::S2CConfigCustomPayloadPacket,
+                    finish::S2CConfigFinishPacket
+                }
             }
-        },
-        value::{
-            bounded_string::BoundedString,
-            profile::AccountProfile
         }
-    }, ConnOptions
+    }
 };
-use crate::util::redacted::Redacted;
+use crate::game::player::LoggedInEvent;
+use crate::data::{
+    bounded_string::BoundedString,
+    channel_data::ChannelData,
+    character::NextCharacterId,
+    game_mode::GameMode,
+    profile::AccountProfile,
+    redacted::Redacted
+};
 use core::{ hint::unreachable_unchecked, ptr };
 use std::borrow::Cow;
 use bevy_ecs::{
     component::Component,
     entity::Entity,
     event::EventReader,
-    system::{ Commands, Query, Res }
+    system::{ Commands, Query, Res, ResMut }
 };
 use bevy_tasks::{ IoTaskPool, Task, futures };
 use openssl::{
@@ -78,10 +86,12 @@ pub(in crate::conn) fn handle_login_flow(
     mut cmds      : Commands,
     mut q_peers   : Query<(Entity, &mut ConnPeerReader, &mut ConnPeerWriter, &mut ConnPeerSender, &mut ConnPeerState, &mut ConnPeerLoginFlow,)>,
     mut er_login  : EventReader<IncomingLoginPacketEvent>,
-        r_options : Res<ConnOptions>
+        r_options : Res<ConnOptions>,
+    mut r_chid    : ResMut<NextCharacterId>
 ) {
     for event in er_login.read() {
         if let Ok((entity, mut reader, mut writer, mut sender, mut state, mut login_flow,)) = q_peers.get_mut(event.peer()) {
+            if (sender.is_disconnecting()) { continue; }
             match (event.packet()) {
 
 
@@ -184,17 +194,33 @@ pub(in crate::conn) fn handle_login_flow(
                         sender.kick_login_failed("Profile not verified yet");
                         continue;
                     };
-                    let mut ecmds = cmds.entity(entity);
-                    ecmds.remove::<ConnPeerLoginFlow>();
                     let uuid     = profile.uuid;
                     let username = profile.username.clone();
-                    ecmds.insert(profile);
-                    cmds.send_event(LoggedInEvent {
-                        peer     : entity,
-                        uuid,
-                        username
-                    });
+
                     unsafe { state.login_finish_acknowledged(); }
+
+                    let mut ecmds = cmds.entity(entity);
+                    ecmds.remove::<ConnPeerLoginFlow>();
+
+                    let chid = r_chid.next();
+                    ecmds.insert((
+                        profile,
+                        chid,
+                        GameMode::default(),
+                    ));
+
+                    sender.send(S2CConfigCustomPayloadPacket { data : ChannelData::Brand {
+                        brand : Cow::Borrowed(&r_options.server_brand)
+                    } });
+
+                    sender.send(S2CConfigFinishPacket);
+                    unsafe { state.config_finish(); }
+                    // sender.send(S2CPlayLoginPacket { // TODO: Finish logging in.
+                    //     eid      : chid,
+                    //     hardcore :
+                    // });
+
+                    cmds.send_event(LoggedInEvent::new(entity, uuid, username));
                 }
 
 

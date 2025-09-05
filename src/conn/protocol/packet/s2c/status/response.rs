@@ -1,4 +1,5 @@
 use crate::conn::protocol::{
+    Protocol,
     codec::encode::{
         PacketEncode,
         EncodeBuf
@@ -11,13 +12,12 @@ use crate::conn::protocol::{
             S2CPackets,
             status::S2CStatusPackets
         }
-    },
-    value::text::{
-        Text,
-        TextComponent,
-        TextContent
-    },
-    Protocol
+    }
+};
+use crate::data::text::{
+    Text,
+    TextComponent,
+    TextContent
 };
 use std::borrow::Cow;
 use serde::{

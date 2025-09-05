@@ -1,4 +1,4 @@
-use crate::conn::protocol::value::{
+use crate::data::{
     action::Action,
     colour::{ Rgb, Argb },
     ident::Ident

@@ -4,25 +4,19 @@ use crate::conn::{
         ConnPeerBrand,
         event::IncomingPacketEvent
     },
-    protocol::{
-        packet::c2s::config::{
-            C2SConfigPackets,
-            client_info::C2SConfigClientInfoPacket,
-            custom_payload::C2SConfigCustomPayloadPacket
-        },
-        value::channel_data::ChannelData
+    protocol::packet::c2s::config::{
+        C2SConfigPackets,
+        client_info::C2SConfigClientInfoPacket,
+        custom_payload::C2SConfigCustomPayloadPacket
     }
 };
+use crate::data::channel_data::ChannelData;
 use std::time::Instant;
 use bevy_ecs::{
     entity::Entity,
     event::{ Event, EventReader },
     system::{ ParallelCommands, Query }
 };
-
-
-mod login_flow;
-pub(in crate::conn) use login_flow::*;
 
 
 #[derive(Event, Debug)]
@@ -66,12 +60,12 @@ pub(in crate::conn) fn handle_config(
             match (event.packet()) {
 
 
-                C2SConfigPackets::ClientInfo(C2SConfigClientInfoPacket { info }) => {
+                C2SConfigPackets::ClientInfo(C2SConfigClientInfoPacket { info }) => { // Handle ClientInfo packet from play state as well.
                     pcmds.command_scope(|mut cmds| { cmds.entity(entity).insert(info.clone()); });
                 },
 
 
-                C2SConfigPackets::CustomPayload(C2SConfigCustomPayloadPacket { data }) => {
+                C2SConfigPackets::CustomPayload(C2SConfigCustomPayloadPacket { data }) => { // Handle CustomPayload packets from all other states as well.
                     if let ChannelData::Brand { brand } = data {
                         pcmds.command_scope(|mut cmds| { cmds.entity(entity).insert(ConnPeerBrand { brand : brand.to_string() }); });
                     }

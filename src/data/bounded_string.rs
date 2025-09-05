@@ -1,19 +1,17 @@
-use crate::conn::protocol::{
-    codec::{
-        decode::{
-            PacketDecode,
-            DecodeBuf,
-            IncompleteDecodeError
-        },
-        encode::{
-            PacketEncode,
-            EncodeBuf
-        }
+use crate::conn::protocol::codec::{
+    decode::{
+        PacketDecode,
+        DecodeBuf,
+        IncompleteDecodeError
     },
-    value::varint::{
-        VarInt,
-        VarIntDecodeError
+    encode::{
+        PacketEncode,
+        EncodeBuf
     }
+};
+use crate::data::varint::{
+    VarInt,
+    VarIntDecodeError
 };
 use core::{
     fmt::{ self, Debug, Display, Formatter },

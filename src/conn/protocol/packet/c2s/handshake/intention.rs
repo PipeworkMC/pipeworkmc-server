@@ -9,11 +9,11 @@ use crate::conn::protocol::{
         PacketMeta,
         PacketState,
         PacketBound
-    },
-    value::varint::{
-        VarInt,
-        VarIntDecodeError
     }
+};
+use crate::data::varint::{
+    VarInt,
+    VarIntDecodeError
 };
 use core::fmt::{ self, Display, Formatter };
 

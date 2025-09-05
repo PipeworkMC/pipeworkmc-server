@@ -7,11 +7,11 @@ use crate::conn::protocol::{
         PacketMeta,
         PacketState,
         PacketBound
-    },
-    value::client_info::{
-        ClientInfo,
-        ClientInfoDecodeError
     }
+};
+use crate::data::client_info::{
+    ClientInfo,
+    ClientInfoDecodeError
 };
 
 

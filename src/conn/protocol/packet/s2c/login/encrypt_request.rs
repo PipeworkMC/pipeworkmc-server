@@ -11,10 +11,12 @@ use crate::conn::protocol::{
             S2CPackets,
             login::S2CLoginPackets
         }
-    },
-    value::bounded_string::BoundedString
+    }
 };
-use crate::util::redacted::Redacted;
+use crate::data::{
+    bounded_string::BoundedString,
+    redacted::Redacted
+};
 use std::borrow::Cow;
 
 

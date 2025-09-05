@@ -11,9 +11,9 @@ use crate::conn::protocol::{
             S2CPackets,
             login::S2CLoginPackets
         }
-    },
-    value::text::Text
+    }
 };
+use crate::data::text::Text;
 use serde_json::to_string as to_json_string;
 
 

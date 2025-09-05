@@ -7,11 +7,11 @@ use crate::conn::protocol::{
         PacketMeta,
         PacketState,
         PacketBound
-    },
-    value::channel_data::{
-        ChannelData,
-        ChannelDataDecodeError
     }
+};
+use crate::data::channel_data::{
+    ChannelData,
+    ChannelDataDecodeError
 };
 
 

@@ -1,8 +1,6 @@
 use crate::conn::{
     peer::event::IncomingPacketEvent,
-    protocol::packet::{
-        c2s::login::C2SLoginPackets
-    }
+    protocol::packet::c2s::play::C2SPlayPackets
 };
 use std::time::Instant;
 use bevy_ecs::{
@@ -11,26 +9,22 @@ use bevy_ecs::{
 };
 
 
-mod flow;
-pub(in crate::conn) use flow::*;
-
-
 #[derive(Event, Debug)]
-pub struct IncomingLoginPacketEvent {
+pub struct IncomingPlayPacketEvent {
     peer      : Entity,
-    packet    : C2SLoginPackets,
+    packet    : C2SPlayPackets,
     timestamp : Instant
 }
 
-impl IncomingLoginPacketEvent {
+impl IncomingPlayPacketEvent {
     #[inline]
-    pub(crate) fn new(peer : Entity, packet : C2SLoginPackets) -> Self {
+    pub(crate) fn new(peer : Entity, packet : C2SPlayPackets) -> Self {
         Self { peer, packet, timestamp : Instant::now() }
     }
 }
 
-impl IncomingPacketEvent for IncomingLoginPacketEvent {
-    type Packet = C2SLoginPackets;
+impl IncomingPacketEvent for IncomingPlayPacketEvent {
+    type Packet = C2SPlayPackets;
 
     #[inline(always)]
     fn peer(&self) -> Entity { self.peer }

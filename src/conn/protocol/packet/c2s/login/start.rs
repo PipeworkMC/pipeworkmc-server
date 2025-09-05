@@ -8,11 +8,11 @@ use crate::conn::protocol::{
         PacketMeta,
         PacketState,
         PacketBound
-    },
-    value::bounded_string::{
-        BoundedString,
-        BoundedStringDecodeError
     }
+};
+use crate::data::bounded_string::{
+    BoundedString,
+    BoundedStringDecodeError
 };
 use core::fmt::{ self, Display, Formatter };
 use uuid::Uuid;

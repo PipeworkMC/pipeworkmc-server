@@ -11,11 +11,11 @@ use crate::conn::protocol::{
             S2CPackets,
             config::S2CConfigPackets
         }
-    },
-    value::{
-        text::Text,
-        nbt::to_network as to_network_nbt
     }
+};
+use crate::data::{
+    text::Text,
+    nbt::to_network as to_network_nbt
 };
 
 

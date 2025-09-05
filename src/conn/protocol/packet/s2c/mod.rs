@@ -18,7 +18,7 @@ pub enum S2CPackets<'l> {
     Status(status::S2CStatusPackets<'l>),
     Login(login::S2CLoginPackets<'l>),
     Config(config::S2CConfigPackets<'l>),
-    Play(play::S2CPlayPackets)
+    Play(play::S2CPlayPackets<'l>)
 }
 
 impl S2CPackets<'_> {

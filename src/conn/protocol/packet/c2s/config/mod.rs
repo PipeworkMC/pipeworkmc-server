@@ -5,11 +5,11 @@ use crate::conn::protocol::{
         DecodeBuf,
         IncompleteDecodeError
     },
-    packet::PacketMeta,
-    value::{
-        client_info::ClientInfoDecodeError,
-        channel_data::ChannelDataDecodeError
-    }
+    packet::PacketMeta
+};
+use crate::data::{
+    client_info::ClientInfoDecodeError,
+    channel_data::ChannelDataDecodeError
 };
 use core::{
     fmt::{ self, Display, Formatter },

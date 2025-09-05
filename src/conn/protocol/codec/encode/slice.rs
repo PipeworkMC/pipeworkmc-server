@@ -1,10 +1,8 @@
-use crate::conn::protocol::{
-    codec::encode::{
-        PacketEncode,
-        EncodeBuf
-    },
-    value::varint::VarInt
+use crate::conn::protocol::codec::encode::{
+    PacketEncode,
+    EncodeBuf
 };
+use crate::data::varint::VarInt;
 use core::any::TypeId;
 use std::borrow::Cow;
 

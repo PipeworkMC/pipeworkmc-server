@@ -10,7 +10,7 @@ use crate::conn::protocol::{
         PacketBound
     }
 };
-use crate::util::redacted::Redacted;
+use crate::data::redacted::Redacted;
 use core::fmt::{ self, Display, Formatter };
 
 

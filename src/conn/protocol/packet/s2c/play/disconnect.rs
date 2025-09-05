@@ -11,11 +11,11 @@ use crate::conn::protocol::{
             S2CPackets,
             play::S2CPlayPackets
         }
-    },
-    value::{
-        text::Text,
-        nbt::to_network as to_network_nbt
     }
+};
+use crate::data::{
+    text::Text,
+    nbt::to_network as to_network_nbt
 };
 
 
@@ -49,7 +49,7 @@ impl From<S2CPlayDisconnectPacket> for S2CPackets<'_> {
     fn from(value : S2CPlayDisconnectPacket) -> Self { Self::Play(value.into()) }
 }
 
-impl From<S2CPlayDisconnectPacket> for S2CPlayPackets {
+impl From<S2CPlayDisconnectPacket> for S2CPlayPackets<'_> {
     #[inline(always)]
     fn from(value : S2CPlayDisconnectPacket) -> Self { Self::Disconnect(value) }
 }

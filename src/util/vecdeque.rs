@@ -1,33 +1,7 @@
 use std::collections::VecDeque;
 
 
-pub trait OptionExt {
-    type Inner;
-
-    fn get_or_maybe_insert_with<F>(&mut self, f : F) -> Option<&mut Self::Inner>
-    where
-        F : FnOnce() -> Option<Self::Inner>;
-
-}
-
-impl<T> OptionExt for Option<T> {
-    type Inner = T;
-
-    fn get_or_maybe_insert_with<F>(&mut self, f : F) -> Option<&mut Self::Inner>
-    where
-        F : FnOnce() -> Option<Self::Inner>
-    { match (self) {
-        Some(inner) => Some(inner),
-        None        => { match (f()) {
-            Some(new_inner) => Some(self.insert(new_inner)),
-            None            => None
-        } },
-    } }
-
-}
-
-
-pub trait VecDequeExt {
+pub(crate) trait VecDequeExt {
     type Inner;
 
     fn pop_many_front(&mut self, count : usize);

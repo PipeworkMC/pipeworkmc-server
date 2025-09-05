@@ -11,9 +11,9 @@ use crate::conn::protocol::{
             S2CPackets,
             login::S2CLoginPackets
         }
-    },
-    value::varint::VarInt
+    }
 };
+use crate::data::varint::VarInt;
 
 
 #[derive(Debug)]

@@ -1,4 +1,4 @@
-use crate::conn::protocol::value::text::{
+use super::{
     Text,
     TextComponent,
     TextContent

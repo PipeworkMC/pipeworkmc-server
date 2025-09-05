@@ -1,10 +1,8 @@
 use crate::conn::{
     peer::event::login::ConnPeerLoginFlow,
-    protocol::{
-        packet::{ AtomicPacketState, PacketState },
-        value::client_info::ClientInfo
-    }
+    protocol::packet::{ AtomicPacketState, PacketState }
 };
+use crate::data::client_info::ClientInfo;
 use core::{
     net::SocketAddr,
     time::Duration
