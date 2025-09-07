@@ -127,7 +127,10 @@ impl Plugin for ConnListenerPlugin {
                 .before(peer::decode_conn_peer_incoming))
             .add_systems(Update, peer::event::login::poll_mojauths_tasks
                 .run_if(peer::event::login::is_mojauth_enabled))
-            .add_systems(Update, peer::event::login::approve_logins)
+            .add_systems(Update, peer::event::login::approve_logins
+                .before(peer::decode_conn_peer_incoming))
+            .add_systems(Update, peer::event::login::finalise_logins
+                .before(peer::decode_conn_peer_incoming))
             .add_systems(Update, peer::event::config::handle_config
                 .before(peer::decode_conn_peer_incoming))
         ;

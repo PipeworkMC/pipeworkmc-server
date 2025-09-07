@@ -11,18 +11,19 @@ use crate::{conn::protocol::{
 pub mod custom_payload;
 pub mod disconnect;
 pub mod finish;
+pub mod registry_data;
 
 
 #[derive(Debug)]
 pub enum S2CConfigPackets<'l> {
     // TODO: CookieRequest
     CustomPayload (custom_payload ::S2CConfigCustomPayloadPacket<'l>),
-    Disconnect    (disconnect ::S2CConfigDisconnectPacket),
-    Finish        (finish     ::S2CConfigFinishPacket),
+    Disconnect    (disconnect     ::S2CConfigDisconnectPacket),
+    Finish        (finish         ::S2CConfigFinishPacket),
     // TODO: Keepalive
     // TODO: Ping
     // TODO: ResetChat
-    // TODO: RegistryData
+    RegistryData  (registry_data  ::S2CConfigRegistryDataPacket)
     // TODO: RemoveResourcePack
     // TODO: AddResourcePack
     // TODO: StoreCookie
@@ -41,7 +42,8 @@ impl S2CConfigPackets<'_> {
     pub fn prefix(&self) -> u8 { match (self) {
         Self::CustomPayload (_) => custom_payload ::S2CConfigCustomPayloadPacket ::PREFIX,
         Self::Disconnect    (_) => disconnect     ::S2CConfigDisconnectPacket    ::PREFIX,
-        Self::Finish        (_) => finish         ::S2CConfigFinishPacket        ::PREFIX
+        Self::Finish        (_) => finish         ::S2CConfigFinishPacket        ::PREFIX,
+        Self::RegistryData  (_) => registry_data  ::S2CConfigRegistryDataPacket  ::PREFIX
     } }
 
 }
@@ -51,13 +53,15 @@ unsafe impl PrefixedPacketEncode for S2CConfigPackets<'_> {
     fn encode_prefixed_len(&self) -> usize { match (self) {
         Self::CustomPayload (packet) => packet.encode_prefixed_len(),
         Self::Disconnect    (packet) => packet.encode_prefixed_len(),
-        Self::Finish        (packet) => packet.encode_prefixed_len()
+        Self::Finish        (packet) => packet.encode_prefixed_len(),
+        Self::RegistryData  (packet) => packet.encode_prefixed_len()
     } }
 
     unsafe fn encode_prefixed(&self, buf : &mut EncodeBuf) { unsafe { match (self) {
         Self::CustomPayload (packet) => packet.encode_prefixed(buf),
         Self::Disconnect    (packet) => packet.encode_prefixed(buf),
-        Self::Finish        (packet) => packet.encode_prefixed(buf)
+        Self::Finish        (packet) => packet.encode_prefixed(buf),
+        Self::RegistryData  (packet) => packet.encode_prefixed(buf)
     } } }
 
 }

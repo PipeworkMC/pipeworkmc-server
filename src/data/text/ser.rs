@@ -1,7 +1,8 @@
 use super::{
     Text,
     TextComponent,
-    TextContent
+    TextContent,
+    TextStyle
 };
 use serde::ser::{
     Serialize as Ser,
@@ -69,39 +70,61 @@ impl Ser for ExtraTextComponent<'_> {
             }
         }
 
+        self.0.style.serialize_map::<S>(&mut map)?;
+
+        map.end()
+    }
+}
+
+
+impl Ser for TextStyle {
+    fn serialize<S>(&self, serer : S) -> Result<S::Ok, S::Error>
+    where
+        S : Serer
+    {
+        let mut map = serer.serialize_map(None)?;
+        self.serialize_map::<S>(&mut map)?;
+        map.end()
+    }
+}
+impl TextStyle {
+    fn serialize_map<S>(&self, map : &mut S::SerializeMap) -> Result<(), S::Error>
+    where
+        S : Serer
+    {
         map.serialize_entry("color", &format!("#{:0>6x}",
-            ((self.0.colour.r as u32) << 16) | ((self.0.colour.g as u32) << 8) | (self.0.colour.b as u32)
+            ((self.colour.r as u32) << 16) | ((self.colour.g as u32) << 8) | (self.colour.b as u32)
         ))?;
 
-        if let Some(font) = &self.0.font {
+        if let Some(font) = &self.font {
             map.serialize_entry("font", font)?;
         }
 
-        if (self.0.bold      ) { map.serialize_entry("bold"          , &true)?; }
-        if (self.0.italic    ) { map.serialize_entry("italic"        , &true)?; }
-        if (self.0.underline ) { map.serialize_entry("underlined"    , &true)?; }
-        if (self.0.strike    ) { map.serialize_entry("strikethrough" , &true)?; }
-        if (self.0.obfuscate ) { map.serialize_entry("obfuscated"    , &true)?; }
+        if (self.bold      ) { map.serialize_entry("bold"          , &true)?; }
+        if (self.italic    ) { map.serialize_entry("italic"        , &true)?; }
+        if (self.underline ) { map.serialize_entry("underlined"    , &true)?; }
+        if (self.strike    ) { map.serialize_entry("strikethrough" , &true)?; }
+        if (self.obfuscate ) { map.serialize_entry("obfuscated"    , &true)?; }
 
-        if let Some(colour) = &self.0.shadow {
+        if let Some(colour) = &self.shadow {
             map.serialize_entry("shadow_color", &(
                 ((colour.a as u32) << 24) | ((colour.r as u32) << 16) | ((colour.g as u32) << 8) | (colour.b as u32)
             ))?;
         }
 
-        if let Some(insertion) = &self.0.insertion {
+        if let Some(insertion) = &self.insertion {
             map.serialize_entry("insertion", insertion)?;
         }
 
-        if let Some(on_click) = &self.0.on_click {
+        if let Some(on_click) = &self.on_click {
             map.serialize_entry("click_event", on_click)?;
         }
 
-        if let Some(tooltip) = &self.0.tooltip {
+        if let Some(tooltip) = &self.tooltip {
             map.serialize_entry("hover_event", &HoverEventTooltip(tooltip))?;
         }
 
-        map.end()
+        Ok(())
     }
 }
 

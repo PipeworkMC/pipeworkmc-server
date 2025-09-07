@@ -4,7 +4,7 @@ use bevy_ecs::{
 };
 
 
-#[derive(Clone, PartialEq, Eq, Hash, Debug, Component)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, Component)]
 pub struct CharacterId(u32);
 
 impl CharacterId {

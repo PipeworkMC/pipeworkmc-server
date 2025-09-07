@@ -3,7 +3,10 @@ use crate::conn::protocol::codec::encode::{
     EncodeBuf
 };
 use crate::data::varint::VarInt;
-use core::any::TypeId;
+use core::{
+    any::TypeId,
+    ops::{ Deref, DerefMut }
+};
 use std::borrow::Cow;
 
 
@@ -12,16 +15,14 @@ where
     T : PacketEncode + 'static
 {
 
+    #[inline]
     fn encode_len(&self) -> usize {
-        let mut len = VarInt::<u32>(self.len() as u32).encode_len();
+        let prefix_len = VarInt::<u32>(self.len() as u32).encode_len();
         if (TypeId::of::<T>() == TypeId::of::<u8>()) {
-            len += self.len();
+            prefix_len + self.len()
         } else {
-            for item in self {
-                len += item.encode_len();
-            }
+            prefix_len + self.iter().map(|item| item.encode_len()).sum::<usize>()
         }
-        len
     }
 
     unsafe fn encode(&self, buf : &mut EncodeBuf) { unsafe {
@@ -62,6 +63,49 @@ where
     #[inline(always)]
     unsafe fn encode(&self, buf : &mut EncodeBuf) { unsafe {
         <[T]>::encode(self, buf)
+    } }
+
+}
+
+
+#[derive(Clone, Debug)]
+pub struct UnprefixedVec<T>(pub Vec<T>);
+
+impl<T> From<Vec<T>> for UnprefixedVec<T> {
+    #[inline(always)]
+    fn from(value : Vec<T>) -> Self { Self(value) }
+}
+
+impl<T> Deref for UnprefixedVec<T> {
+    type Target = Vec<T>;
+
+    #[inline(always)]
+    fn deref(&self) -> &Self::Target { &self.0 }
+}
+
+impl<T> DerefMut for UnprefixedVec<T> {
+    #[inline(always)]
+    fn deref_mut(&mut self) -> &mut Self::Target { &mut self.0 }
+}
+
+unsafe impl<T> PacketEncode for UnprefixedVec<T>
+where
+    T : PacketEncode + 'static
+{
+
+    #[inline]
+    fn encode_len(&self) -> usize {
+        if (TypeId::of::<T>() == TypeId::of::<u8>()) {
+            self.len()
+        } else {
+            self.iter().map(|item| item.encode_len()).sum()
+        }
+    }
+
+    unsafe fn encode(&self, buf : &mut EncodeBuf) { unsafe {
+        for item in &**self {
+            item.encode(buf);
+        }
     } }
 
 }

@@ -40,7 +40,6 @@ mod tag {
 #[derive(Debug)]
 pub enum NbtSerError {
     Io(io::Error),
-    UnknownSeqLen,
     Custom(String)
 }
 impl From<io::Error> for NbtSerError {
@@ -52,9 +51,8 @@ impl From<io::Error> for NbtSerError {
 
 impl Display for NbtSerError {
     fn fmt(&self, f : &mut Formatter<'_>) -> fmt::Result { match (self) {
-        Self::Io(err)       => write!(f, "{err}"),
-        Self::UnknownSeqLen => write!(f, "unknown sequence length"),
-        Self::Custom(err)   => write!(f, "{err}")
+        Self::Io(err)     => write!(f, "{err}"),
+        Self::Custom(err) => write!(f, "{err}")
     } }
 }
 impl StdError for NbtSerError { }

@@ -22,8 +22,10 @@ use crate::conn::{
                 },
                 config::{
                     custom_payload::S2CConfigCustomPayloadPacket,
-                    finish::S2CConfigFinishPacket
-                }
+                    finish::S2CConfigFinishPacket,
+                    registry_data::S2CConfigRegistryDataPacket
+                },
+                play::login::S2CPlayLoginPacket
             }
         }
     }
@@ -34,22 +36,53 @@ use crate::game::player::{
         PlayerApproveLoginEvent,
         PlayerLoggedInEvent
     },
-    flags::Hardcore
+    data::{
+        dimension::Dimension,
+        IsHardcore,
+        ViewDistance,
+        ReducedDebugInfo,
+        NoRespawnScreen
+    }
 };
 use crate::data::{
     bounded_string::BoundedString,
     channel_data::ChannelData,
     character::NextCharacterId,
     game_mode::GameMode,
+    ident::Ident,
     profile::AccountProfile,
-    redacted::Redacted
+    redacted::Redacted,
+    registry_entry::{
+        cat_variant::CatVariantRegistryEntry,
+        chicken_variant::ChickenVariantRegistryEntry,
+        cow_variant::CowVariantRegistryEntry,
+        damage_type::{
+            DamageTypeRegistryEntry,
+            DamageTypeScaling,
+            DamageTypeEffects,
+            DamageTypeDeathMessage
+        },
+        frog_variant::FrogVariantRegistryEntry,
+        painting_variant::PaintingVariantRegistryEntry,
+        pig_variant::PigVariantRegistryEntry,
+        wolf_variant::{
+            WolfVariantRegistryEntry,
+            WolfVariantAssets
+        },
+        wolf_sound_variant::WolfSoundVariantRegistryEntry
+    }
 };
-use core::{ hint::unreachable_unchecked, ptr };
+use core::{
+    hint::unreachable_unchecked,
+    num::NonZeroU32,
+    ptr
+};
 use std::borrow::Cow;
 use bevy_ecs::{
     component::Component,
     entity::Entity,
     event::EventReader,
+    query::Has,
     system::{ Commands, Query, Res, ResMut }
 };
 use bevy_tasks::{ IoTaskPool, Task, futures };
@@ -87,22 +120,25 @@ struct ExchangingKey {
 
 
 pub(in crate::conn) fn handle_login_flow(
-    mut cmds          : Commands,
-    mut q_peers       : Query<(
+    mut cmds      : Commands,
+    mut q_peers   : Query<(
         Entity,
         &mut ConnPeerReader,
         &mut ConnPeerWriter,
         &mut ConnPeerSender,
-        &mut ConnPeerState,
         &mut ConnPeerLoginFlow,
-        Option<&AccountProfile>,
     )>,
-    mut er_login      : EventReader<IncomingLoginPacketEvent>,
-        r_options     : Res<ConnOptions>,
-    mut r_chid        : ResMut<NextCharacterId>
+    mut er_login  : EventReader<IncomingLoginPacketEvent>,
+        r_options : Res<ConnOptions>
 ) {
     for event in er_login.read() {
-        if let Ok((entity, mut reader, mut writer, mut sender, mut state, mut login_flow, profile,)) = q_peers.get_mut(event.peer()) {
+        if let Ok((
+            entity,
+            mut reader,
+            mut writer,
+            mut sender,
+            mut login_flow,
+        )) = q_peers.get_mut(event.peer()) {
             if (sender.is_disconnecting()) { continue; }
             match (event.packet()) {
 
@@ -196,46 +232,18 @@ pub(in crate::conn) fn handle_login_flow(
 
                         cmds.send_event(PlayerRequestLoginEvent::new(entity, profile.uuid, profile.username.clone()));
                         let mut ecmds = cmds.entity(entity);
-                        ecmds.insert(profile);
+                        ecmds.insert((
+                            profile,
+                            Dimension::default(),
+                            ViewDistance::default(),
+                            GameMode::Adventure
+                        ));
                     }
 
                 },
 
 
-                C2SLoginPackets::FinishAcknowledged(C2SLoginFinishAcknowledgedPacket {}) => {
-                    let Some(profile) = profile else {
-                        sender.kick_login_failed("Profile not yet verified");
-                        continue;
-                    };
-                    if (! login_flow.approved) {
-                        sender.kick_login_failed("Login not yet approved");
-                        continue;
-                    };
-
-                    unsafe { state.login_finish_acknowledged(); }
-
-                    let chid = r_chid.next();
-
-                    let mut ecmds = cmds.entity(entity);
-                    ecmds.remove::<ConnPeerLoginFlow>();
-                    ecmds.insert((
-                        chid,
-                        GameMode::default(),
-                    ));
-
-                    sender.send(S2CConfigCustomPayloadPacket { data : ChannelData::Brand {
-                        brand : Cow::Borrowed(&r_options.server_brand)
-                    } });
-
-                    sender.send(S2CConfigFinishPacket);
-                    unsafe { state.config_finish(); }
-                    // sender.send(S2CPlayLoginPacket { // TODO: Finish logging in.
-                    //     eid      : chid,
-                    //     hardcore :
-                    // });
-
-                    cmds.send_event(PlayerLoggedInEvent::new(entity, profile.uuid, profile.username.clone()));
-                }
+                C2SLoginPackets::FinishAcknowledged(C2SLoginFinishAcknowledgedPacket {}) => { }
 
 
             }
@@ -280,9 +288,169 @@ pub(in crate::conn) fn approve_logins(
 ) {
     for e in er_approve.read() {
         if let Ok((mut sender, mut state, mut login_flow, profile,)) = q_peers.get_mut(e.peer()) {
+            if (sender.is_disconnecting()) { continue; }
             login_flow.approved = true;
             sender.send(S2CLoginFinishPacket { profile : profile.clone() });
             unsafe { state.login_finish(); }
+        }
+    }
+}
+
+
+pub(in crate::conn) fn finalise_logins(
+    mut cmds      : Commands,
+    mut q_peers   : Query<(
+        Entity,
+        &mut ConnPeerSender,
+        &mut ConnPeerState,
+        &ConnPeerLoginFlow,
+        &AccountProfile,
+        Has<IsHardcore>,
+        &Dimension,
+        &ViewDistance,
+        Has<ReducedDebugInfo>,
+        Has<NoRespawnScreen>,
+        &GameMode
+    )>,
+    mut er_login  : EventReader<IncomingLoginPacketEvent>,
+        r_options : Res<ConnOptions>,
+    mut r_chid    : ResMut<NextCharacterId>
+) {
+    for event in er_login.read() {
+        if let C2SLoginPackets::FinishAcknowledged(_) = event.packet() {
+            println!("\x1b[1m{:?} DONE\x1b[0m", event.peer());
+            if let Ok((
+                    entity,
+                mut sender,
+                mut state,
+                    login_flow,
+                    profile,
+                    is_hardcore,
+                    dimension,
+                    view_dist,
+                    reduced_debug_info,
+                    no_respawn_screen,
+                    game_mode,
+            )) = q_peers.get_mut(event.peer()) {
+                println!("  as {} ({}).", profile.username, profile.uuid);
+                if (sender.is_disconnecting()) { continue; }
+                if (! login_flow.approved) {
+                    sender.kick_login_failed("Login not yet approved");
+                    continue;
+                };
+
+                unsafe { state.login_finish_acknowledged(); }
+
+                let chid = r_chid.next();
+
+                let mut ecmds = cmds.entity(entity);
+                ecmds.remove::<ConnPeerLoginFlow>();
+                ecmds.insert((
+                    chid,
+                    GameMode::default(),
+                ));
+
+                // TODO: Generate and use vanilla registries.
+                sender.send(S2CConfigCustomPayloadPacket { data : ChannelData::Brand {
+                    brand : Cow::Borrowed(&r_options.server_brand)
+                } });
+
+                sender.send(S2CConfigRegistryDataPacket::from(
+                    [(const { Ident::new("minecraft:empty") }, &CatVariantRegistryEntry {
+                        texture_asset : const { Ident::new("minecraft:empty") }
+                    },)]
+                ));
+                sender.send(S2CConfigRegistryDataPacket::from(
+                    [(const { Ident::new("minecraft:empty") }, &ChickenVariantRegistryEntry {
+                        texture_asset : const { Ident::new("minecraft:empty") }
+                    },)]
+                ));
+                sender.send(S2CConfigRegistryDataPacket::from(
+                    [(const { Ident::new("minecraft:empty") }, &CowVariantRegistryEntry {
+                        texture_asset : const { Ident::new("minecraft:empty") }
+                    },)]
+                ));
+                sender.send(S2CConfigRegistryDataPacket::from(
+                    [(const { Ident::new("minecraft:in_fire") }, &DamageTypeRegistryEntry {
+                        message_id    : Cow::Borrowed("inFire"),
+                        scaling       : DamageTypeScaling::WhenByEnemy,
+                        exhaustion    : 0.1,
+                        effects       : DamageTypeEffects::Burning,
+                        death_message : DamageTypeDeathMessage::Default
+                    },)]
+                ));
+                sender.send(S2CConfigRegistryDataPacket::from(
+                    [(const { Ident::new("minecraft:empty") }, &FrogVariantRegistryEntry {
+                        texture_asset : const { Ident::new("minecraft:empty") }
+                    },)]
+                ));
+                sender.send(S2CConfigRegistryDataPacket::from(
+                    [(const { Ident::new("minecraft:empty") }, &PaintingVariantRegistryEntry {
+                        texture_asset : const { Ident::new("minecraft:empty") },
+                        width         : unsafe { NonZeroU32::new_unchecked(1) },
+                        height        : unsafe { NonZeroU32::new_unchecked(1) },
+                        title         : None,
+                        author        : None
+                    },)]
+                ));
+                sender.send(S2CConfigRegistryDataPacket::from(
+                    [(const { Ident::new("minecraft:empty") }, &PigVariantRegistryEntry {
+                        texture_asset : const { Ident::new("minecraft:empty") }
+                    },)]
+                ));
+                sender.send(S2CConfigRegistryDataPacket::from(
+                    [(const { Ident::new("minecraft:empty") }, &WolfVariantRegistryEntry {
+                        assets : WolfVariantAssets {
+                            wild  : const { Ident::new("minecraft:empty") },
+                            tame  : const { Ident::new("minecraft:empty") },
+                            angry : const { Ident::new("minecraft:empty") }
+                        },
+                        biomes : Cow::Borrowed(&[])
+                    },)]
+                ));
+                sender.send(S2CConfigRegistryDataPacket::from(
+                    [(const { Ident::new("minecraft:empty") }, &WolfSoundVariantRegistryEntry {
+                        hurt_sound    : const { Ident::new("minecraft:entity.wolf.hurt") },
+                        pant_sound    : const { Ident::new("minecraft:entity.wolf.pant") },
+                        whine_sound   : const { Ident::new("minecraft:entity.wolf.whine") },
+                        ambient_sound : const { Ident::new("minecraft:entity.wolf.ambient") },
+                        death_sound   : const { Ident::new("minecraft:entity.wolf.death") },
+                        growl_sound   : const { Ident::new("minecraft:entity.wolf.growl") }
+                    },)]
+                ));
+
+                sender.send(S2CConfigRegistryDataPacket::from(
+                    [(dimension.id.clone(), &dimension.dim_type,)]
+                ));
+
+                sender.send(S2CConfigFinishPacket);
+                unsafe { state.config_finish(); }
+                sender.send(S2CPlayLoginPacket { // TODO: Finish logging in.
+                    eid                  : chid,
+                    hardcore             : is_hardcore,
+                    all_dim_ids          : Cow::Owned(vec![dimension.id.clone()]),
+                    max_players          : 0,
+                    view_dist            : view_dist.as_u8() as u32,
+                    sim_dist             : 32,
+                    reduced_debug_info,
+                    respawn_screen       : ! no_respawn_screen,
+                    limited_crafting     : true,
+                    dim_type             : 0,
+                    dim_id               : dimension.id.clone(),
+                    hashed_seed          : dimension.hashed_seed,
+                    game_mode            : *game_mode,
+                    prev_game_mode       : None,
+                    is_debug_world       : dimension.is_debug,
+                    is_flat_world        : dimension.is_flat,
+                    death_location       : None,
+                    portal_cooldown      : 0,
+                    sea_level            : dimension.sea_level,
+                    enforces_secure_chat : false
+                });
+
+                cmds.send_event(PlayerLoggedInEvent::new(entity, profile.uuid, profile.username.clone()));
+
+            }
         }
     }
 }

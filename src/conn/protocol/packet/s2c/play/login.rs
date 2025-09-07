@@ -31,7 +31,7 @@ pub struct S2CPlayLoginPacket<'l> {
     pub max_players          : u32,
     pub view_dist            : u32,
     pub sim_dist             : u32,
-    pub debug_info           : bool,
+    pub reduced_debug_info   : bool,
     pub respawn_screen       : bool,
     pub limited_crafting     : bool,
     pub dim_type             : u32,
@@ -62,7 +62,7 @@ unsafe impl PacketEncode for S2CPlayLoginPacket<'_> {
         + VarInt::<u32>(self.max_players).encode_len()
         + VarInt::<u32>(self.view_dist).encode_len()
         + VarInt::<u32>(self.sim_dist).encode_len()
-        + (! self.debug_info).encode_len()
+        + self.reduced_debug_info.encode_len()
         + self.respawn_screen.encode_len()
         + self.limited_crafting.encode_len()
         + VarInt::<u32>(self.dim_type).encode_len()
@@ -85,7 +85,7 @@ unsafe impl PacketEncode for S2CPlayLoginPacket<'_> {
         VarInt::<u32>(self.max_players).encode(buf);
         VarInt::<u32>(self.view_dist).encode(buf);
         VarInt::<u32>(self.sim_dist).encode(buf);
-        (! self.debug_info).encode(buf);
+        self.reduced_debug_info.encode(buf);
         self.respawn_screen.encode(buf);
         self.limited_crafting.encode(buf);
         VarInt::<u32>(self.dim_type).encode(buf);

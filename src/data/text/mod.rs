@@ -21,7 +21,12 @@ pub struct Text {
 
 #[derive(Clone, Debug)]
 pub struct TextComponent {
-    pub content   : TextContent,
+    pub content : TextContent,
+    pub style   : TextStyle
+}
+
+#[derive(Clone, Debug)]
+pub struct TextStyle {
     pub colour    : Rgb,
     pub font      : Option<Ident>,
     pub bold      : bool,
@@ -133,29 +138,15 @@ impl Text {
 
 
 impl TextComponent {
-
     pub const EMPTY : Self = Self {
-        content   : TextContent::Literal { text : Cow::Borrowed("") },
-        colour    : Rgb::WHITE,
-        font      : None,
-        bold      : false,
-        italic    : false,
-        underline : false,
-        strike    : false,
-        obfuscate : false,
-        shadow    : None,
-        insertion : None,
-        on_click  : None,
-        tooltip   : None
+        content : TextContent::Literal { text : Cow::Borrowed("") },
+        style   : TextStyle::EMPTY
     };
-
 }
-
 impl Default for TextComponent {
     #[inline(always)]
     fn default() -> Self { Self::EMPTY }
 }
-
 impl From<&'static str> for TextComponent {
     fn from(value : &'static str) -> Self { Self {
         content : TextContent::Literal { text : Cow::Borrowed(value) },
@@ -180,6 +171,27 @@ impl From<TextContent> for TextComponent {
         ..Self::EMPTY
     } }
 }
+
+impl TextStyle {
+    pub const EMPTY : Self = Self {
+        colour    : Rgb::WHITE,
+        font      : None,
+        bold      : false,
+        italic    : false,
+        underline : false,
+        strike    : false,
+        obfuscate : false,
+        shadow    : None,
+        insertion : None,
+        on_click  : None,
+        tooltip   : None
+    };
+}
+impl Default for TextStyle {
+    #[inline(always)]
+    fn default() -> Self { Self::EMPTY }
+}
+
 
 impl<T> From<T> for Text
 where
@@ -243,92 +255,92 @@ impl TextFormatted for Text {
     fn colour<C>(self, colour : C) -> Text
     where C : Into<Rgb> {
         let colour = colour.into();
-        self.apply(|component| { component.colour = colour; })
+        self.apply(|component| { component.style.colour = colour; })
     }
     fn font<R>(self, resource : R) -> Text
     where R : Into<Ident> {
         let resource = resource.into();
-        self.apply(|component| { component.font = Some(resource.clone()); })
+        self.apply(|component| { component.style.font = Some(resource.clone()); })
     }
     fn no_font(self) -> Text {
-        self.apply(|component| { component.font = None; })
+        self.apply(|component| { component.style.font = None; })
     }
     fn bold(self) -> Text {
-        self.apply(|component| { component.bold = true; })
+        self.apply(|component| { component.style.bold = true; })
     }
     fn no_bold(self) -> Text {
-        self.apply(|component| { component.bold = false; })
+        self.apply(|component| { component.style.bold = false; })
     }
     fn italic(self) -> Text {
-        self.apply(|component| { component.italic = true; })
+        self.apply(|component| { component.style.italic = true; })
     }
     fn no_italic(self) -> Text {
-        self.apply(|component| { component.italic = true; })
+        self.apply(|component| { component.style.italic = true; })
     }
     fn underline(self) -> Text {
-        self.apply(|component| { component.underline = true; })
+        self.apply(|component| { component.style.underline = true; })
     }
     fn no_underline(self) -> Text {
-        self.apply(|component| { component.underline = true; })
+        self.apply(|component| { component.style.underline = true; })
     }
     fn strike(self) -> Text {
-        self.apply(|component| { component.strike = true; })
+        self.apply(|component| { component.style.strike = true; })
     }
     fn no_strike(self) -> Text {
-        self.apply(|component| { component.strike = true; })
+        self.apply(|component| { component.style.strike = true; })
     }
     fn obfuscate(self) -> Text {
-        self.apply(|component| { component.obfuscate = true; })
+        self.apply(|component| { component.style.obfuscate = true; })
     }
     fn no_obfuscate(self) -> Text {
-        self.apply(|component| { component.obfuscate = true; })
+        self.apply(|component| { component.style.obfuscate = true; })
     }
     fn shadow<C>(self, colour : C) -> Text
     where C : Into<Argb> {
         let colour = colour.into();
-        self.apply(|component| { component.shadow = Some(colour); })
+        self.apply(|component| { component.style.shadow = Some(colour); })
     }
     fn no_shadow(self) -> Text {
-        self.apply(|component| { component.shadow = Some(Argb::TRANSPARENT); })
+        self.apply(|component| { component.style.shadow = Some(Argb::TRANSPARENT); })
     }
     fn default_shadow(self) -> Text {
-        self.apply(|component| { component.shadow = None; })
+        self.apply(|component| { component.style.shadow = None; })
     }
     fn insertion<S>(self, text : S) -> Text
     where S : Into<Cow<'static, str>> {
         let text = text.into();
-        self.apply(|component| { component.insertion = Some(text.clone()); })
+        self.apply(|component| { component.style.insertion = Some(text.clone()); })
     }
     fn no_insertion(self) -> Text {
-        self.apply(|component| { component.insertion = None; })
+        self.apply(|component| { component.style.insertion = None; })
     }
     fn on_click(self, action : Action) -> Text {
-        self.apply(|component| { component.on_click = Some(action.clone()); })
+        self.apply(|component| { component.style.on_click = Some(action.clone()); })
     }
     fn no_on_click(self) -> Text {
-        self.apply(|component| { component.on_click = None; })
+        self.apply(|component| { component.style.on_click = None; })
     }
     fn tooltip<S>(self, text : S) -> Text
     where S : Into<Text> {
         let text = text.into();
-        self.apply(|component| { component.tooltip = Some(text.clone()); })
+        self.apply(|component| { component.style.tooltip = Some(text.clone()); })
     }
     fn no_tooltip(self) -> Text {
-        self.apply(|component| { component.tooltip = None; })
+        self.apply(|component| { component.style.tooltip = None; })
     }
     fn reset(self) -> Text {
         self.apply(|component| {
-            component.colour    = Rgb::WHITE;
-            component.font      = None;
-            component.bold      = false;
-            component.italic    = false;
-            component.underline = false;
-            component.strike    = false;
-            component.obfuscate = false;
-            component.shadow    = None;
-            component.insertion = None;
-            component.on_click  = None;
-            component.tooltip   = None;
+            component.style.colour    = Rgb::WHITE;
+            component.style.font      = None;
+            component.style.bold      = false;
+            component.style.italic    = false;
+            component.style.underline = false;
+            component.style.strike    = false;
+            component.style.obfuscate = false;
+            component.style.shadow    = None;
+            component.style.insertion = None;
+            component.style.on_click  = None;
+            component.style.tooltip   = None;
         })
     }
 }

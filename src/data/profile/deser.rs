@@ -10,7 +10,8 @@ use serde::{
     de::{ self,
         MapAccess,
         SeqAccess,
-        Visitor
+        Visitor,
+        IgnoredAny
     }
 };
 
@@ -71,7 +72,7 @@ impl<'de> Visitor<'de> for AccountProfileVisitor {
                 properties = Some(map.next_value()?);
             },
             _ => {
-                return Err(de::Error::unknown_field(k, PROFILE_FIELDS))
+                map.next_value::<IgnoredAny>()?;
             }
         } }
         let properties = properties.unwrap_or_default();
@@ -131,6 +132,7 @@ impl<'de> Visitor<'de> for AccountPropertiesVisitor {
 
 #[derive(Deser)]
 struct KeyedAccountProperty {
+    #[serde(rename = "name")]
     key      : AccountPropertyKey,
     #[serde(flatten)]
     property : AccountProperty

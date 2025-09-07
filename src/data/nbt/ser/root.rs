@@ -13,20 +13,20 @@ use serde::ser::{
 };
 
 
-pub(super) struct NbtRootSerer<'l, W>
+pub(super) struct NbtRootSerer<'l, 'k, W>
 where
     W : Write
 {
     writer    : &'l mut W,
-    tag_write : TagWrite
+    tag_write : TagWrite<'k>
 }
 
-impl<'l, W> NbtRootSerer<'l, W>
+impl<'l, 'k, W> NbtRootSerer<'l, 'k, W>
 where
     W : Write
 {
 
-    pub(super) fn new(writer : &'l mut W, tag_write : TagWrite) -> Self { Self {
+    pub(super) fn new(writer : &'l mut W, tag_write : TagWrite<'k>) -> Self { Self {
         writer, tag_write
     } }
 
@@ -53,15 +53,15 @@ where
 }
 
 
-pub(super) enum TagWrite {
+pub(super) enum TagWrite<'l> {
     None,
     Tag,
     TagAndU32(u32),
-    TagAndString(String)
+    TagAndString(&'l str)
 }
 
 
-impl<'l, W> Serer for NbtRootSerer<'l, W>
+impl<'l, W> Serer for NbtRootSerer<'l, '_, W>
 where
     W : Write
 {
@@ -73,7 +73,7 @@ where
     type SerializeTupleStruct   = Never;
     type SerializeTupleVariant  = Never;
     type SerializeMap           = NbtMapSerer<'l, W>;
-    type SerializeStruct        = Never;
+    type SerializeStruct        = NbtMapSerer<'l, W>;
     type SerializeStructVariant = Never;
 
     #[inline]
@@ -160,19 +160,20 @@ where
         todo!()
     }
 
+    #[inline(always)]
     fn serialize_unit_variant(
         self,
-        _name: &'static str,
-        _variant_index: u32,
-        _variant: &'static str,
+        _name          : &'static str,
+        _variant_index : u32,
+        variant        : &'static str,
     ) -> Result<Self::Ok, Self::Error> {
-        todo!()
+        variant.serialize(self)
     }
 
     fn serialize_newtype_struct<T>(
         self,
-        _name: &'static str,
-        _value: &T,
+        _name  : &'static str,
+        _value : &T,
     ) -> Result<Self::Ok, Self::Error>
     where
         T: ?Sized + Ser {
@@ -181,10 +182,10 @@ where
 
     fn serialize_newtype_variant<T>(
         self,
-        _name: &'static str,
-        _variant_index: u32,
-        _variant: &'static str,
-        _value: &T,
+        _name          : &'static str,
+        _variant_index : u32,
+        _variant       : &'static str,
+        _value         : &T,
     ) -> Result<Self::Ok, Self::Error>
     where
         T: ?Sized + Ser {
@@ -203,18 +204,18 @@ where
 
     fn serialize_tuple_struct(
         self,
-        _name: &'static str,
-        _len: usize,
+        _name : &'static str,
+        _len  : usize,
     ) -> Result<Self::SerializeTupleStruct, Self::Error> {
         todo!()
     }
 
     fn serialize_tuple_variant(
         self,
-        _name: &'static str,
-        _variant_index: u32,
-        _variant: &'static str,
-        _len: usize,
+        _name          : &'static str,
+        _variant_index : u32,
+        _variant       : &'static str,
+        _len           : usize,
     ) -> Result<Self::SerializeTupleVariant, Self::Error> {
         todo!()
     }
@@ -225,19 +226,20 @@ where
     }
 
     fn serialize_struct(
-        self,
-        _name: &'static str,
-        _len: usize,
+        mut self,
+        _name : &'static str,
+        _len  : usize,
     ) -> Result<Self::SerializeStruct, Self::Error> {
-        todo!()
+        (&mut self).handle_tag_write(tag::COMPOUND)?;
+        Ok(NbtMapSerer::from(&mut*self.writer))
     }
 
     fn serialize_struct_variant(
         self,
-        _name: &'static str,
-        _variant_index: u32,
-        _variant: &'static str,
-        _len: usize,
+        _name          : &'static str,
+        _variant_index : u32,
+        _variant       : &'static str,
+        _len           : usize,
     ) -> Result<Self::SerializeStructVariant, Self::Error> {
         todo!()
     }

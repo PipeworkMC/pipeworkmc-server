@@ -1,3 +1,3 @@
 pub mod login;
 
-pub mod flags;
+pub mod data;

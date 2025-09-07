@@ -1,3 +1,9 @@
+use serde::ser::{
+    Serialize as Ser,
+    Serializer as Serer
+};
+
+
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
 pub struct Rgb {
     pub r : u8,
@@ -48,6 +54,18 @@ impl Rgb {
         Argb { a : 255, r : self.r, g : self.g, b : self.b }
     }
 
+    #[inline]
+    pub fn to_u32(self) -> u32 {
+        ((self.r as u32) << 16) | ((self.g as u32) << 8) | (self.b as u32)
+    }
+
+}
+
+impl Ser for Rgb {
+    fn serialize<S>(&self, serer : S) -> Result<S::Ok, S::Error>
+    where
+        S : Serer
+    { self.to_u32().serialize(serer) }
 }
 
 

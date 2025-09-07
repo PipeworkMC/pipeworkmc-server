@@ -37,13 +37,13 @@ impl Display for TextComponent {
 }
 impl TextComponent {
     fn fmt_unwrapped(&self, f : &mut Formatter<'_>) -> fmt::Result {
-        write!(f, "{ESC}[38;2;{};{};{}m", self.colour.r, self.colour.g, self.colour.b)?;
-        if (self.bold) { write!(f, "{ESC}[1m")?; }
-        if (self.italic) { write!(f, "{ESC}[3m")?; }
-        if (self.underline) { write!(f, "{ESC}[4m")?; }
-        if (self.strike) { write!(f, "{ESC}[9m")?; }
-        if (self.obfuscate) { write!(f, "{ESC}[5m")?; }
-        if let Some(colour) = &self.shadow {
+        write!(f, "{ESC}[38;2;{};{};{}m", self.style.colour.r, self.style.colour.g, self.style.colour.b)?;
+        if (self.style.bold) { write!(f, "{ESC}[1m")?; }
+        if (self.style.italic) { write!(f, "{ESC}[3m")?; }
+        if (self.style.underline) { write!(f, "{ESC}[4m")?; }
+        if (self.style.strike) { write!(f, "{ESC}[9m")?; }
+        if (self.style.obfuscate) { write!(f, "{ESC}[5m")?; }
+        if let Some(colour) = &self.style.shadow {
             write!(f, "{ESC}[48;2;{};{};{}m", colour.r, colour.g, colour.b)?;
         }
         write!(f, "{}", self.content)?;

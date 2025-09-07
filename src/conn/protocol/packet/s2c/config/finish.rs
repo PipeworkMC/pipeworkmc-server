@@ -35,7 +35,7 @@ unsafe impl PacketEncode for S2CConfigFinishPacket {
 
 }
 
-impl<'l> From<S2CConfigFinishPacket> for S2CPackets<'l> {
+impl From<S2CConfigFinishPacket> for S2CPackets<'_> {
     #[inline(always)]
     fn from(value : S2CConfigFinishPacket) -> Self { Self::Config(value.into()) }
 }

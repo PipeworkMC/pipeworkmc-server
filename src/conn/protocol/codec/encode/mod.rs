@@ -5,8 +5,9 @@ use core::{ mem::{ self, MaybeUninit }, ptr };
 mod num;
 mod refs;
 mod option;
-mod slice;
+pub mod slice;
 mod str;
+mod tuple;
 
 
 pub struct EncodeBuf {
