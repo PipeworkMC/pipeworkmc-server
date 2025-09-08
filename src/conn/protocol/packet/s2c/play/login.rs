@@ -1,16 +1,18 @@
 use crate::conn::protocol::{
-    codec::encode::{
-        PacketEncode,
-        EncodeBuf
-    },
-    packet::{
-        PacketMeta,
-        PacketState,
-        PacketBound,
-        s2c::{
-            S2CPackets,
-            play::S2CPlayPackets
+    codec::{
+        encode::{
+            PacketEncode,
+            EncodeBuf
+        },
+        meta::{
+            PacketMeta,
+            PacketState,
+            PacketBound
         }
+    },
+    packet::s2c::{
+        S2CPackets,
+        play::S2CPlayPackets
     }
 };
 use crate::data::{

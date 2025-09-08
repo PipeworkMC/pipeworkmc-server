@@ -1,5 +1,5 @@
 mod version;
 pub use version::Protocol;
 
-pub mod codec;
+pub use pipeworkmc_codec as codec;
 pub mod packet;

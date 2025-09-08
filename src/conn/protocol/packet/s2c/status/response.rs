@@ -1,23 +1,28 @@
 use crate::conn::protocol::{
     Protocol,
-    codec::encode::{
-        PacketEncode,
-        EncodeBuf
-    },
-    packet::{
-        PacketMeta,
-        PacketState,
-        PacketBound,
-        s2c::{
-            S2CPackets,
-            status::S2CStatusPackets
+    codec::{
+        encode::{
+            PacketEncode,
+            EncodeBuf
+        },
+        meta::{
+            PacketMeta,
+            PacketState,
+            PacketBound
         }
+    },
+    packet::s2c::{
+        S2CPackets,
+        status::S2CStatusPackets
     }
 };
-use crate::data::text::{
-    Text,
-    TextComponent,
-    TextContent
+use crate::data::{
+    text::{
+        Text,
+        TextComponent,
+        TextContent
+    },
+    uuid::Uuid
 };
 use std::borrow::Cow;
 use serde::{
@@ -25,7 +30,6 @@ use serde::{
     Serializer as Serer
 };
 use serde_json::to_string as to_json_string;
-use uuid::Uuid;
 
 
 #[derive(Debug)]

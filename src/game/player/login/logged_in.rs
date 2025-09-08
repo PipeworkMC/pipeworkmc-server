@@ -1,9 +1,11 @@
-use crate::data::bounded_string::BoundedString;
+use crate::data::{
+    bounded_string::BoundedString,
+    uuid::Uuid
+};
 use bevy_ecs::{
     entity::Entity,
     event::Event
 };
-use uuid::Uuid;
 
 
 #[derive(Event, Debug)]

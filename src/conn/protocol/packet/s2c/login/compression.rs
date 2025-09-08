@@ -1,16 +1,18 @@
 use crate::conn::protocol::{
-    codec::encode::{
-        PacketEncode,
-        EncodeBuf
-    },
-    packet::{
-        PacketMeta,
-        PacketState,
-        PacketBound,
-        s2c::{
-            S2CPackets,
-            login::S2CLoginPackets
+    codec::{
+        encode::{
+            PacketEncode,
+            EncodeBuf
+        },
+        meta::{
+            PacketMeta,
+            PacketState,
+            PacketBound
         }
+    },
+    packet::s2c::{
+        S2CPackets,
+        login::S2CLoginPackets
     }
 };
 use crate::data::varint::VarInt;

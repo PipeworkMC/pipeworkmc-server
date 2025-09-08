@@ -1,14 +1,16 @@
 use crate::conn::protocol::{
-    codec::decode::{
-        PacketDecode,
-        DecodeBuf,
-        IncompleteDecodeError,
-        string::StringDecodeError
-    },
-    packet::{
-        PacketMeta,
-        PacketState,
-        PacketBound
+    codec::{
+        decode::{
+            PacketDecode,
+            DecodeBuf,
+            IncompleteDecodeError,
+            string::StringDecodeError
+        },
+        meta::{
+            PacketMeta,
+            PacketState,
+            PacketBound
+        }
     }
 };
 use crate::data::varint::{

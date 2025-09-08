@@ -1,11 +1,11 @@
-use crate::conn::protocol::{
-    codec::decode::{
+use crate::conn::protocol::codec::{
+    decode::{
         PacketDecode,
         PrefixedPacketDecode,
         DecodeBuf,
         IncompleteDecodeError
     },
-    packet::PacketMeta
+    meta::PacketMeta
 };
 use core::{
     fmt::{ self, Display, Formatter },

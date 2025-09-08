@@ -1,14 +1,9 @@
 #![feature(
 
     // Language
-    const_precise_live_drops,
-
-    // Syntax
-    decl_macro,
     never_type,
 
     // Standard library
-    maybe_uninit_array_assume_init,
     mpmc_channel
 
 )]
@@ -16,8 +11,8 @@
 
 pub mod conn;
 pub mod game;
+pub use pipeworkmc_data as data;
 
-pub mod data;
 mod util;
 
 pub mod ecs;
@@ -53,9 +48,9 @@ pub mod prelude {
         ident::Ident,
         itemstack::ItemStack,
         profile::AccountProfile,
-        text::{ Text, TextFormatted as _ }
+        text::{ Text, TextFormatted as _ },
+        uuid::Uuid
     };
-    pub use uuid::Uuid;
 
     pub mod packet {
         pub use crate::conn::{

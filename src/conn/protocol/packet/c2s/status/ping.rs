@@ -1,13 +1,15 @@
 use crate::conn::protocol::{
-    codec::decode::{
-        PacketDecode,
-        DecodeBuf,
-        IncompleteDecodeError
-    },
-    packet::{
-        PacketMeta,
-        PacketState,
-        PacketBound
+    codec::{
+        decode::{
+            PacketDecode,
+            DecodeBuf,
+            IncompleteDecodeError
+        },
+        meta::{
+            PacketMeta,
+            PacketState,
+            PacketBound
+        }
     }
 };
 

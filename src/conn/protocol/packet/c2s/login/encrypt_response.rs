@@ -1,13 +1,15 @@
 use crate::conn::protocol::{
-    codec::decode::{
-        PacketDecode,
-        DecodeBuf,
-        vec::VecDecodeError
-    },
-    packet::{
-        PacketMeta,
-        PacketState,
-        PacketBound
+    codec::{
+        decode::{
+            PacketDecode,
+            DecodeBuf,
+            vec::VecDecodeError
+        },
+        meta::{
+            PacketMeta,
+            PacketState,
+            PacketBound
+        }
     }
 };
 use crate::data::redacted::Redacted;

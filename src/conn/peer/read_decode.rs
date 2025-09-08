@@ -11,19 +11,19 @@ use crate::conn::{
         }
     },
     protocol::{
-        codec::decode::{
-            PrefixedPacketDecode,
-            DecodeBuf
+        codec::{
+            decode::{
+                PrefixedPacketDecode,
+                DecodeBuf
+            },
+            meta::PacketState
         },
-        packet::{
-            PacketState,
-            c2s::{
-                handshake::C2SHandshakePackets,
-                status::C2SStatusPackets,
-                login::C2SLoginPackets,
-                config::C2SConfigPackets,
-                play::C2SPlayPackets
-            }
+        packet::c2s::{
+            handshake::C2SHandshakePackets,
+            status::C2SStatusPackets,
+            login::C2SLoginPackets,
+            config::C2SConfigPackets,
+            play::C2SPlayPackets
         }
     }
 };

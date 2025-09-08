@@ -1,6 +1,6 @@
 use crate::conn::{
     peer::event::login::ConnPeerLoginFlow,
-    protocol::packet::{ AtomicPacketState, PacketState }
+    protocol::codec::meta::{ AtomicPacketState, PacketState }
 };
 use crate::data::client_info::ClientInfo;
 use core::{

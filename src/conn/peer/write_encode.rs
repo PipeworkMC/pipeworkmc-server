@@ -1,14 +1,20 @@
 use crate::conn::protocol::{
-    codec::encode::{ EncodeBuf, PrefixedPacketEncode },
-    packet::{
-        s2c::{
-            S2CPackets,
-            login::disconnect::S2CLoginDisconnectPacket,
-            config::disconnect::S2CConfigDisconnectPacket,
-            play::disconnect::S2CPlayDisconnectPacket
+    codec::{
+        encode::{
+            EncodeBuf,
+            PrefixedPacketEncode
         },
-        PacketMeta,
-        AtomicPacketState, PacketState
+        meta::{
+            PacketMeta,
+            AtomicPacketState,
+            PacketState
+        }
+    },
+    packet::s2c::{
+        S2CPackets,
+        login::disconnect::S2CLoginDisconnectPacket,
+        config::disconnect::S2CConfigDisconnectPacket,
+        play::disconnect::S2CPlayDisconnectPacket
     }
 };
 use crate::data::{

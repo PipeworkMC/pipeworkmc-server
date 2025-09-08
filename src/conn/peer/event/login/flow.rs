@@ -70,7 +70,8 @@ use crate::data::{
             WolfVariantAssets
         },
         wolf_sound_variant::WolfSoundVariantRegistryEntry
-    }
+    },
+    uuid::Uuid
 };
 use core::{
     hint::unreachable_unchecked,
@@ -94,7 +95,6 @@ use openssl::{
 };
 use ethnum::I256 as i256;
 use rand::RngCore;
-use uuid::Uuid;
 
 
 const MOJAUTH_URL_PREFIX   : &str = "https://sessionserver.mojang.com/session/minecraft/hasJoined?username=";

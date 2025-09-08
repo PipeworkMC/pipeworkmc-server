@@ -1,21 +1,25 @@
 use crate::conn::protocol::{
-    codec::decode::{
-        PacketDecode,
-        DecodeBuf,
-        IncompleteDecodeError
-    },
-    packet::{
-        PacketMeta,
-        PacketState,
-        PacketBound
+    codec::{
+        decode::{
+            PacketDecode,
+            DecodeBuf,
+            IncompleteDecodeError
+        },
+        meta::{
+            PacketMeta,
+            PacketState,
+            PacketBound
+        }
     }
 };
-use crate::data::bounded_string::{
-    BoundedString,
-    BoundedStringDecodeError
+use crate::data::{
+    bounded_string::{
+        BoundedString,
+        BoundedStringDecodeError
+    },
+    uuid::Uuid
 };
 use core::fmt::{ self, Display, Formatter };
-use uuid::Uuid;
 
 
 #[derive(Debug)]

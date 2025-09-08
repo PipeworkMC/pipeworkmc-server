@@ -1,12 +1,14 @@
 use crate::conn::protocol::{
-    codec::decode::{
-        PacketDecode,
-        DecodeBuf
-    },
-    packet::{
-        PacketMeta,
-        PacketState,
-        PacketBound
+    codec::{
+        decode::{
+            PacketDecode,
+            DecodeBuf
+        },
+        meta::{
+            PacketMeta,
+            PacketState,
+            PacketBound
+        }
     }
 };
 use crate::data::client_info::{

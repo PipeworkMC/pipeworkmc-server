@@ -1,9 +1,11 @@
 use crate::conn::protocol::{
-    codec::encode::{
-        PrefixedPacketEncode,
-        EncodeBuf
-    },
-    packet::PacketState
+    codec::{
+        encode::{
+            PrefixedPacketEncode,
+            EncodeBuf
+        },
+        meta::PacketState
+    }
 };
 
 

@@ -1,12 +1,12 @@
 use crate::conn::protocol::{
-    codec::encode::{
-        PrefixedPacketEncode,
-        EncodeBuf
+    codec::{
+        encode::{
+            PrefixedPacketEncode,
+            EncodeBuf
+        },
+        meta::PacketMeta
     },
-    packet::{
-        PacketMeta,
-        s2c::S2CPackets
-    }
+    packet::s2c::S2CPackets
 };
 
 
