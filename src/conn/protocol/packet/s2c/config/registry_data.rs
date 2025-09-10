@@ -18,7 +18,10 @@ use crate::conn::protocol::{
 };
 use crate::data::{
     ident::Ident,
-    registry_entry::RegistryEntryType
+    registry_entry::{
+        RegistryEntry,
+        RegistryEntryType
+    }
 };
 use core::fmt::Debug;
 
@@ -63,17 +66,17 @@ impl From<S2CConfigRegistryDataPacket> for S2CConfigPackets<'_> {
 }
 
 
-impl<I, T> From<I> for S2CConfigRegistryDataPacket
+impl<'l, I, T> From<I> for S2CConfigRegistryDataPacket
 where
-    I : IntoIterator<Item = (Ident, T,)>,
-    T : RegistryEntryType
+    I : IntoIterator<Item = &'l RegistryEntry<T>>,
+    T : RegistryEntryType + 'l
 {
     fn from(entries : I) -> Self { Self {
         registry : T::REGISTRY_ID,
-        entries  : entries.into_iter().map(|(entry_id, entry,)| {
-            let mut data    = Vec::new();
-            let     is_some = entry.to_network_nbt(&mut data);
-            (entry_id, is_some.then(|| UnprefixedVec::from(data)),)
+        entries  : entries.into_iter().map(|entry| {
+            let mut buf     = Vec::new();
+            let     is_some = entry.data.to_network_nbt(&mut buf);
+            (entry.id.clone(), is_some.then(|| UnprefixedVec::from(buf)),)
         }).collect::<Vec<_>>()
     } }
 }

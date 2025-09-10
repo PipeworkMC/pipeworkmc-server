@@ -46,36 +46,26 @@ use crate::game::player::{
 };
 use crate::data::{
     bounded_string::BoundedString,
+    cat_variant::CatVariant,
     channel_data::ChannelData,
     character::NextCharacterId,
+    chicken_variant::ChickenVariant,
+    cow_variant::CowVariant,
+    damage_type::DamageType,
+    frog_variant::FrogVariant,
     game_mode::GameMode,
-    ident::Ident,
+    painting_variant::PaintingVariant,
+    pig_variant::PigVariant,
     profile::AccountProfile,
     redacted::Redacted,
-    registry_entry::{
-        cat_variant::CatVariantRegistryEntry,
-        chicken_variant::ChickenVariantRegistryEntry,
-        cow_variant::CowVariantRegistryEntry,
-        damage_type::{
-            DamageTypeRegistryEntry,
-            DamageTypeScaling,
-            DamageTypeEffects,
-            DamageTypeDeathMessage
-        },
-        frog_variant::FrogVariantRegistryEntry,
-        painting_variant::PaintingVariantRegistryEntry,
-        pig_variant::PigVariantRegistryEntry,
-        wolf_variant::{
-            WolfVariantRegistryEntry,
-            WolfVariantAssets
-        },
-        wolf_sound_variant::WolfSoundVariantRegistryEntry
-    },
-    uuid::Uuid
+    registry_entry::RegistryEntry,
+    uuid::Uuid,
+    wolf_variant::WolfVariant,
+    wolf_sound_variant::WolfSoundVariant,
+    worldgen::biome::WorldgenBiome
 };
 use core::{
     hint::unreachable_unchecked,
-    num::NonZeroU32,
     ptr
 };
 use std::borrow::Cow;
@@ -318,7 +308,6 @@ pub(in crate::conn) fn finalise_logins(
 ) {
     for event in er_login.read() {
         if let C2SLoginPackets::FinishAcknowledged(_) = event.packet() {
-            println!("\x1b[1m{:?} DONE\x1b[0m", event.peer());
             if let Ok((
                     entity,
                 mut sender,
@@ -332,7 +321,6 @@ pub(in crate::conn) fn finalise_logins(
                     no_respawn_screen,
                     game_mode,
             )) = q_peers.get_mut(event.peer()) {
-                println!("  as {} ({}).", profile.username, profile.uuid);
                 if (sender.is_disconnecting()) { continue; }
                 if (! login_flow.approved) {
                     sender.kick_login_failed("Login not yet approved");
@@ -355,73 +343,20 @@ pub(in crate::conn) fn finalise_logins(
                     brand : Cow::Borrowed(&r_options.server_brand)
                 } });
 
-                sender.send(S2CConfigRegistryDataPacket::from(
-                    [(const { Ident::new("minecraft:empty") }, &CatVariantRegistryEntry {
-                        texture_asset : const { Ident::new("minecraft:empty") }
-                    },)]
-                ));
-                sender.send(S2CConfigRegistryDataPacket::from(
-                    [(const { Ident::new("minecraft:empty") }, &ChickenVariantRegistryEntry {
-                        texture_asset : const { Ident::new("minecraft:empty") }
-                    },)]
-                ));
-                sender.send(S2CConfigRegistryDataPacket::from(
-                    [(const { Ident::new("minecraft:empty") }, &CowVariantRegistryEntry {
-                        texture_asset : const { Ident::new("minecraft:empty") }
-                    },)]
-                ));
-                sender.send(S2CConfigRegistryDataPacket::from(
-                    [(const { Ident::new("minecraft:in_fire") }, &DamageTypeRegistryEntry {
-                        message_id    : Cow::Borrowed("inFire"),
-                        scaling       : DamageTypeScaling::WhenByEnemy,
-                        exhaustion    : 0.1,
-                        effects       : DamageTypeEffects::Burning,
-                        death_message : DamageTypeDeathMessage::Default
-                    },)]
-                ));
-                sender.send(S2CConfigRegistryDataPacket::from(
-                    [(const { Ident::new("minecraft:empty") }, &FrogVariantRegistryEntry {
-                        texture_asset : const { Ident::new("minecraft:empty") }
-                    },)]
-                ));
-                sender.send(S2CConfigRegistryDataPacket::from(
-                    [(const { Ident::new("minecraft:empty") }, &PaintingVariantRegistryEntry {
-                        texture_asset : const { Ident::new("minecraft:empty") },
-                        width         : unsafe { NonZeroU32::new_unchecked(1) },
-                        height        : unsafe { NonZeroU32::new_unchecked(1) },
-                        title         : None,
-                        author        : None
-                    },)]
-                ));
-                sender.send(S2CConfigRegistryDataPacket::from(
-                    [(const { Ident::new("minecraft:empty") }, &PigVariantRegistryEntry {
-                        texture_asset : const { Ident::new("minecraft:empty") }
-                    },)]
-                ));
-                sender.send(S2CConfigRegistryDataPacket::from(
-                    [(const { Ident::new("minecraft:empty") }, &WolfVariantRegistryEntry {
-                        assets : WolfVariantAssets {
-                            wild  : const { Ident::new("minecraft:empty") },
-                            tame  : const { Ident::new("minecraft:empty") },
-                            angry : const { Ident::new("minecraft:empty") }
-                        },
-                        biomes : Cow::Borrowed(&[])
-                    },)]
-                ));
-                sender.send(S2CConfigRegistryDataPacket::from(
-                    [(const { Ident::new("minecraft:empty") }, &WolfSoundVariantRegistryEntry {
-                        hurt_sound    : const { Ident::new("minecraft:entity.wolf.hurt") },
-                        pant_sound    : const { Ident::new("minecraft:entity.wolf.pant") },
-                        whine_sound   : const { Ident::new("minecraft:entity.wolf.whine") },
-                        ambient_sound : const { Ident::new("minecraft:entity.wolf.ambient") },
-                        death_sound   : const { Ident::new("minecraft:entity.wolf.death") },
-                        growl_sound   : const { Ident::new("minecraft:entity.wolf.growl") }
-                    },)]
-                ));
+                sender.send(S2CConfigRegistryDataPacket::from(CatVariant::VANILLA_REGISTRY_ENTRIES)); // TODO: Make these customisable.
+                sender.send(S2CConfigRegistryDataPacket::from(ChickenVariant::VANILLA_REGISTRY_ENTRIES));
+                sender.send(S2CConfigRegistryDataPacket::from(CowVariant::VANILLA_REGISTRY_ENTRIES));
+                sender.send(S2CConfigRegistryDataPacket::from(DamageType::VANILLA_REGISTRY_ENTRIES));
+                sender.send(S2CConfigRegistryDataPacket::from(FrogVariant::VANILLA_REGISTRY_ENTRIES));
+                sender.send(S2CConfigRegistryDataPacket::from(PaintingVariant::VANILLA_REGISTRY_ENTRIES));
+                sender.send(S2CConfigRegistryDataPacket::from(PigVariant::VANILLA_REGISTRY_ENTRIES));
+                sender.send(S2CConfigRegistryDataPacket::from(WolfVariant::VANILLA_REGISTRY_ENTRIES));
+                sender.send(S2CConfigRegistryDataPacket::from(WolfSoundVariant::VANILLA_REGISTRY_ENTRIES));
+                sender.send(S2CConfigRegistryDataPacket::from(WorldgenBiome::VANILLA_REGISTRY_ENTRIES));
 
-                sender.send(S2CConfigRegistryDataPacket::from(
-                    [(dimension.id.clone(), &dimension.dim_type,)]
-                ));
+                sender.send(S2CConfigRegistryDataPacket::from(&[
+                    RegistryEntry { id : dimension.id.clone(), data : &dimension.dim_type }
+                ]));
 
                 sender.send(S2CConfigFinishPacket);
                 unsafe { state.config_finish(); }

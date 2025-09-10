@@ -100,13 +100,16 @@ impl ConnPeerSender {
     pub fn kick<S>(&mut self, reason : S)
     where
         S : Into<Text>
-    { match (self.outgoing_state.load(AtomicOrdering::SeqCst)) {
-        PacketState::Handshake
-        | PacketState::Status  => { self.disconnecting = true; },
-        PacketState::Login     => { self.send(S2CLoginDisconnectPacket::from(reason)); },
-        PacketState::Config    => { self.send(S2CConfigDisconnectPacket::from(reason)); },
-        PacketState::Play      => { self.send(S2CPlayDisconnectPacket::from(reason)); }
-    } }
+    {
+        let reason = reason.into();
+        match (self.outgoing_state.load(AtomicOrdering::SeqCst)) {
+            PacketState::Handshake
+            | PacketState::Status  => { self.disconnecting = true; },
+            PacketState::Login     => { self.send(S2CLoginDisconnectPacket::from(reason)); },
+            PacketState::Config    => { self.send(S2CConfigDisconnectPacket::from(reason)); },
+            PacketState::Play      => { self.send(S2CPlayDisconnectPacket::from(reason)); }
+        }
+    }
 
     #[inline]
     pub fn kick_generic(&mut self) {

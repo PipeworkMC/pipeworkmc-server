@@ -1,6 +1,6 @@
 use crate::data::{
     ident::Ident,
-    registry_entry::dimension_type::DimensionTypeRegistryEntry
+    dimension_type::DimensionType
 };
 use bevy_ecs::component::Component;
 
@@ -12,7 +12,7 @@ pub struct Dimension { // TODO: Detect changes and reload player dimension.
     pub is_debug    : bool,
     pub is_flat     : bool,
     pub sea_level   : i32,
-    pub dim_type    : DimensionTypeRegistryEntry<'static>
+    pub dim_type    : DimensionType<'static>
 }
 
 impl Dimension {
@@ -22,7 +22,7 @@ impl Dimension {
         is_debug    : false,
         is_flat     : true,
         sea_level   : 64,
-        dim_type    : DimensionTypeRegistryEntry::OVERWORLD
+        dim_type    : DimensionType::OVERWORLD
     };
 }
 
