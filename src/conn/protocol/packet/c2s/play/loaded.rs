@@ -2,8 +2,7 @@ use crate::conn::protocol::{
     codec::{
         decode::{
             PacketDecode,
-            DecodeBuf,
-            IncompleteDecodeError
+            DecodeBuf
         },
         meta::{
             PacketMeta,
@@ -27,7 +26,7 @@ impl PacketDecode for C2SPlayLoadedPacket {
     type Error = !;
 
     #[inline(always)]
-    fn decode(buf : &mut DecodeBuf<'_>)
+    fn decode(_ : &mut DecodeBuf<'_>)
         -> Result<Self, Self::Error>
     { Ok(Self) }
 }

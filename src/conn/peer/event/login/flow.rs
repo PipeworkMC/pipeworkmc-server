@@ -295,6 +295,7 @@ pub(in crate::conn) fn approve_logins(
 }
 
 
+#[expect(clippy::type_complexity)]
 pub(in crate::conn) fn finalise_logins(
     mut cmds      : Commands,
     mut q_peers   : Query<(
@@ -315,86 +316,86 @@ pub(in crate::conn) fn finalise_logins(
         r_options : Res<ConnOptions>
 ) {
     for event in er_login.read() {
-        if let C2SLoginPackets::FinishAcknowledged(_) = event.packet() {
-            if let Ok((
-                    entity,
+        if let C2SLoginPackets::FinishAcknowledged(_) = event.packet()
+            && let Ok((
+                entity,
                 mut sender,
                 mut state,
-                    login_flow,
-                    chid,
-                    profile,
-                    is_hardcore,
-                    dimension,
-                    view_dist,
-                    reduced_debug_info,
-                    no_respawn_screen,
-                    game_mode,
-            )) = q_peers.get_mut(event.peer()) {
-                if (sender.is_disconnecting()) { continue; }
-                if (! login_flow.approved) {
-                    sender.kick_login_failed("Login not yet approved");
-                    continue;
-                };
+                login_flow,
+                chid,
+                profile,
+                is_hardcore,
+                dimension,
+                view_dist,
+                reduced_debug_info,
+                no_respawn_screen,
+                game_mode,
+            )) = q_peers.get_mut(event.peer())
+        {
+            if (sender.is_disconnecting()) { continue; }
+            if (! login_flow.approved) {
+                sender.kick_login_failed("Login not yet approved");
+                continue;
+            };
 
-                unsafe { state.login_finish_acknowledged(); }
+            unsafe { state.login_finish_acknowledged(); }
 
-                let mut ecmds = cmds.entity(entity);
-                ecmds.remove::<ConnPeerLoginFlow>();
+            let mut ecmds = cmds.entity(entity);
+            ecmds.remove::<ConnPeerLoginFlow>();
 
-                // TODO: Generate and use vanilla registries.
-                sender.send(S2CConfigCustomPayloadPacket { data : ChannelData::Brand {
-                    brand : Cow::Borrowed(&r_options.server_brand)
-                } });
+            // TODO: Generate and use vanilla registries.
+            sender.send(S2CConfigCustomPayloadPacket { data : ChannelData::Brand {
+                brand : Cow::Borrowed(&r_options.server_brand)
+            } });
 
-                sender.send(S2CConfigKnownPacksPacket { known_packs : Cow::Borrowed(&[ KnownPack {
-                    namespace : Cow::Borrowed("minecraft"),
-                    id        : Cow::Borrowed("core"),
-                    version   : Cow::Borrowed(Protocol::LATEST.latest_name())
-                } ]) });
+            sender.send(S2CConfigKnownPacksPacket { known_packs : Cow::Borrowed(&[ KnownPack {
+                namespace : Cow::Borrowed("minecraft"),
+                id        : Cow::Borrowed("core"),
+                version   : Cow::Borrowed(Protocol::LATEST.latest_name())
+            } ]) });
 
-                sender.send(S2CConfigRegistryDataPacket::from(CatVariant::VANILLA_REGISTRY_ENTRIES)); // TODO: Make these customisable.
-                sender.send(S2CConfigRegistryDataPacket::from(ChickenVariant::VANILLA_REGISTRY_ENTRIES));
-                sender.send(S2CConfigRegistryDataPacket::from(CowVariant::VANILLA_REGISTRY_ENTRIES));
-                sender.send(S2CConfigRegistryDataPacket::from(DamageType::VANILLA_REGISTRY_ENTRIES));
-                sender.send(S2CConfigRegistryDataPacket::from(FrogVariant::VANILLA_REGISTRY_ENTRIES));
-                sender.send(S2CConfigRegistryDataPacket::from(PaintingVariant::VANILLA_REGISTRY_ENTRIES));
-                sender.send(S2CConfigRegistryDataPacket::from(PigVariant::VANILLA_REGISTRY_ENTRIES));
-                sender.send(S2CConfigRegistryDataPacket::from(WolfVariant::VANILLA_REGISTRY_ENTRIES));
-                sender.send(S2CConfigRegistryDataPacket::from(WolfSoundVariant::VANILLA_REGISTRY_ENTRIES));
-                sender.send(S2CConfigRegistryDataPacket::from(WorldgenBiome::VANILLA_REGISTRY_ENTRIES));
+            sender.send(S2CConfigRegistryDataPacket::from(CatVariant::VANILLA_REGISTRY_ENTRIES)); // TODO: Make these customisable.
+            sender.send(S2CConfigRegistryDataPacket::from(ChickenVariant::VANILLA_REGISTRY_ENTRIES));
+            sender.send(S2CConfigRegistryDataPacket::from(CowVariant::VANILLA_REGISTRY_ENTRIES));
+            sender.send(S2CConfigRegistryDataPacket::from(DamageType::VANILLA_REGISTRY_ENTRIES));
+            sender.send(S2CConfigRegistryDataPacket::from(FrogVariant::VANILLA_REGISTRY_ENTRIES));
+            sender.send(S2CConfigRegistryDataPacket::from(PaintingVariant::VANILLA_REGISTRY_ENTRIES));
+            sender.send(S2CConfigRegistryDataPacket::from(PigVariant::VANILLA_REGISTRY_ENTRIES));
+            sender.send(S2CConfigRegistryDataPacket::from(WolfVariant::VANILLA_REGISTRY_ENTRIES));
+            sender.send(S2CConfigRegistryDataPacket::from(WolfSoundVariant::VANILLA_REGISTRY_ENTRIES));
+            sender.send(S2CConfigRegistryDataPacket::from(WorldgenBiome::VANILLA_REGISTRY_ENTRIES));
 
-                sender.send(S2CConfigRegistryDataPacket::from(&[
-                    RegistryEntry { id : dimension.id.clone(), data : &dimension.dim_type }
-                ]));
+            sender.send(S2CConfigRegistryDataPacket::from(&[
+                RegistryEntry { id : dimension.id.clone(), data : &dimension.dim_type }
+            ]));
 
-                sender.send(S2CConfigFinishPacket);
-                unsafe { state.config_finish(); }
-                sender.send(S2CPlayLoginPacket { // TODO: Finish logging in.
-                    eid                  : *chid,
-                    hardcore             : is_hardcore,
-                    all_dim_ids          : Cow::Owned(vec![dimension.id.clone()]),
-                    max_players          : 0,
-                    view_dist            : view_dist.as_u8() as u32,
-                    sim_dist             : 32,
-                    reduced_debug_info,
-                    respawn_screen       : ! no_respawn_screen,
-                    limited_crafting     : true,
-                    dim_type             : 0,
-                    dim_id               : dimension.id.clone(),
-                    hashed_seed          : dimension.hashed_seed,
-                    game_mode            : *game_mode,
-                    prev_game_mode       : None,
-                    is_debug_world       : dimension.is_debug,
-                    is_flat_world        : dimension.is_flat,
-                    death_location       : None,
-                    portal_cooldown      : 0,
-                    sea_level            : dimension.sea_level,
-                    enforces_secure_chat : false
-                });
+            sender.send(S2CConfigFinishPacket);
+            unsafe { state.config_finish(); }
+            sender.send(S2CPlayLoginPacket { // TODO: Finish logging in.
+                eid                  : *chid,
+                hardcore             : is_hardcore,
+                all_dim_ids          : Cow::Owned(vec![dimension.id.clone()]),
+                max_players          : 0,
+                view_dist            : view_dist.as_u8() as u32,
+                sim_dist             : 32,
+                reduced_debug_info,
+                respawn_screen       : ! no_respawn_screen,
+                limited_crafting     : true,
+                dim_type             : 0,
+                dim_id               : dimension.id.clone(),
+                hashed_seed          : dimension.hashed_seed,
+                game_mode            : *game_mode,
+                prev_game_mode       : None,
+                is_debug_world       : dimension.is_debug,
+                is_flat_world        : dimension.is_flat,
+                death_location       : None,
+                portal_cooldown      : 0,
+                sea_level            : dimension.sea_level,
+                enforces_secure_chat : false
+            });
 
-                cmds.send_event(PlayerLoggedInEvent::new(entity, profile.uuid, profile.username.clone()));
+            cmds.send_event(PlayerLoggedInEvent::new(entity, profile.uuid, profile.username.clone()));
 
-            }
         }
     }
 }

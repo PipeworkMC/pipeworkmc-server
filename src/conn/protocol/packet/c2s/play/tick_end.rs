@@ -26,7 +26,7 @@ impl PacketDecode for C2SPlayTickEndPacket {
     type Error = !;
 
     #[inline(always)]
-    fn decode(buf : &mut DecodeBuf<'_>)
+    fn decode(_ : &mut DecodeBuf<'_>)
         -> Result<Self, Self::Error>
     { Ok(Self) }
 }
