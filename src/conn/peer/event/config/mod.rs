@@ -1,15 +1,13 @@
-use crate::conn::{
-    peer::{
-        ConnPeerState,
-        ConnPeerBrand
-    },
-    protocol::packet::c2s::config::{
-        C2SConfigPackets,
-        client_info::C2SConfigClientInfoPacket,
-        custom_payload::C2SConfigCustomPayloadPacket
-    }
+use crate::conn::peer::{
+    ConnPeerState,
+    ConnPeerBrand
 };
-use crate::data::channel_data::ChannelData;
+use pipeworkmc_data::channel_data::ChannelData;
+use pipeworkmc_packet::c2s::config::{
+    C2SConfigPackets,
+    client_info::C2SConfigClientInfoPacket,
+    custom_payload::C2SConfigCustomPayloadPacket
+};
 use std::time::Instant;
 use bevy_ecs::{
     entity::Entity,

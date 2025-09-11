@@ -1,4 +1,4 @@
-use crate::conn::protocol::packet::c2s::handshake::C2SHandshakePackets;
+use pipeworkmc_packet::c2s::handshake::C2SHandshakePackets;
 use std::time::Instant;
 use bevy_ecs::{
     entity::Entity,

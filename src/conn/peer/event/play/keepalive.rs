@@ -1,14 +1,12 @@
-use crate::conn::{
-    peer::{
-        ConnPeerSender,
-        ConnPeerState
-    },
-    protocol::packet::s2c::{
-        config::keep_alive::S2CConfigKeepAlivePacket,
-        play::keep_alive::S2CPlayKeepAlivePacket
-    }
+use crate::conn::peer::{
+    ConnPeerSender,
+    ConnPeerState
 };
 use pipeworkmc_codec::meta::PacketState;
+use pipeworkmc_packet::s2c::{
+    config::keep_alive::S2CConfigKeepAlivePacket,
+    play::keep_alive::S2CPlayKeepAlivePacket
+};
 use bevy_ecs::system::Query;
 
 

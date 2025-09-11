@@ -1,4 +1,4 @@
-use crate::conn::protocol::packet::c2s::play::C2SPlayPackets;
+use pipeworkmc_packet::c2s::play::C2SPlayPackets;
 use std::time::Instant;
 use bevy_ecs::{
     entity::Entity,

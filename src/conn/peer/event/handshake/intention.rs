@@ -1,12 +1,10 @@
-use crate::conn::{
-    peer::{
-        ConnPeerState,
-        event::handshake::IncomingHandshakePacketEvent
-    },
-    protocol::packet::c2s::handshake::{
-        C2SHandshakePackets,
-        intention::Intention
-    }
+use crate::conn::peer::{
+    ConnPeerState,
+    event::handshake::IncomingHandshakePacketEvent
+};
+use pipeworkmc_packet::c2s::handshake::{
+    C2SHandshakePackets,
+    intention::Intention
 };
 use bevy_ecs::{
     event::EventReader,

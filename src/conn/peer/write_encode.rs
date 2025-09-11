@@ -1,26 +1,24 @@
-use crate::conn::protocol::{
-    codec::{
-        encode::{
-            EncodeBuf,
-            PrefixedPacketEncode
-        },
-        meta::{
-            PacketMeta,
-            AtomicPacketState,
-            PacketState
-        }
+use pipeworkmc_codec::{
+    encode::{
+        EncodeBuf,
+        PrefixedPacketEncode
     },
-    packet::s2c::{
-        S2CPackets,
-        login::disconnect::S2CLoginDisconnectPacket,
-        config::disconnect::S2CConfigDisconnectPacket,
-        play::disconnect::S2CPlayDisconnectPacket
+    meta::{
+        PacketMeta,
+        AtomicPacketState,
+        PacketState
     }
 };
-use crate::data::{
+use pipeworkmc_data::{
     redacted::Redacted,
     text::{ Text, TextComponent, TextContent },
     varint::VarIntType
+};
+use pipeworkmc_packet::s2c::{
+    S2CPackets,
+    login::disconnect::S2CLoginDisconnectPacket,
+    config::disconnect::S2CConfigDisconnectPacket,
+    play::disconnect::S2CPlayDisconnectPacket
 };
 use crate::util::VecDequeExt;
 use std::{

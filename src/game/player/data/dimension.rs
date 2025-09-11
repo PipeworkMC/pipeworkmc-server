@@ -1,4 +1,4 @@
-use crate::data::{
+use pipeworkmc_data::{
     ident::Ident,
     dimension_type::DimensionType
 };

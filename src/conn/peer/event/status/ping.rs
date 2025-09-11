@@ -1,15 +1,13 @@
-use crate::conn::{
-    peer::{
-        ConnPeerSender,
-        event::status::IncomingStatusPacketEvent
+use crate::conn::peer::{
+    ConnPeerSender,
+    event::status::IncomingStatusPacketEvent
+};
+use pipeworkmc_packet::{
+    c2s::status::{
+        C2SStatusPackets,
+        ping::C2SStatusPingPacket
     },
-    protocol::packet::{
-        c2s::status::{
-            C2SStatusPackets,
-            ping::C2SStatusPingPacket
-        },
-        s2c::status::pong::S2CStatusPongPacket
-    }
+    s2c::status::pong::S2CStatusPongPacket
 };
 use bevy_ecs::{
     event::EventReader,

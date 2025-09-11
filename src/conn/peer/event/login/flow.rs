@@ -6,30 +6,6 @@ use crate::conn::{
         ConnPeerWriter,
         ConnPeerSender,
         ConnPeerState
-    },
-    protocol::{
-        Protocol,
-        packet::{
-            c2s::login::{
-                C2SLoginPackets,
-                start::C2SLoginStartPacket,
-                encrypt_response::C2SLoginEncryptResponsePacket,
-                finish_acknowledged::C2SLoginFinishAcknowledgedPacket
-            },
-            s2c::{
-                login::{
-                    encrypt_request::S2CLoginEncryptRequestPacket,
-                    finish::S2CLoginFinishPacket
-                },
-                config::{
-                    custom_payload::S2CConfigCustomPayloadPacket,
-                    finish::S2CConfigFinishPacket,
-                    registry_data::S2CConfigRegistryDataPacket,
-                    known_packs::S2CConfigKnownPacksPacket
-                },
-                play::login::S2CPlayLoginPacket
-            }
-        }
     }
 };
 use crate::game::player::{
@@ -46,7 +22,8 @@ use crate::game::player::{
         NoRespawnScreen
     }
 };
-use crate::data::{
+use pipeworkmc_codec::Protocol;
+use pipeworkmc_data::{
     bounded_string::BoundedString,
     cat_variant::CatVariant,
     channel_data::ChannelData,
@@ -69,6 +46,27 @@ use crate::data::{
     wolf_variant::WolfVariant,
     wolf_sound_variant::WolfSoundVariant,
     worldgen::biome::WorldgenBiome
+};
+use pipeworkmc_packet::{
+    c2s::login::{
+        C2SLoginPackets,
+        start::C2SLoginStartPacket,
+        encrypt_response::C2SLoginEncryptResponsePacket,
+        finish_acknowledged::C2SLoginFinishAcknowledgedPacket
+    },
+    s2c::{
+        login::{
+            encrypt_request::S2CLoginEncryptRequestPacket,
+            finish::S2CLoginFinishPacket
+        },
+        config::{
+            custom_payload::S2CConfigCustomPayloadPacket,
+            finish::S2CConfigFinishPacket,
+            registry_data::S2CConfigRegistryDataPacket,
+            known_packs::S2CConfigKnownPacksPacket
+        },
+        play::login::S2CPlayLoginPacket
+    }
 };
 use core::{
     hint::unreachable_unchecked,

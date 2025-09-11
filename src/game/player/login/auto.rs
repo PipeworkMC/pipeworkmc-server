@@ -3,8 +3,8 @@ use crate::game::player::login::{
     PlayerRequestLoginEvent,
     PlayerApproveLoginEvent
 };
-use crate::data::profile::AccountProfile;
 use crate::ecs::ParallelEventWriter;
+use pipeworkmc_data::profile::AccountProfile;
 use bevy_app::{ App, Plugin, Update };
 use bevy_ecs::{
     entity::Entity,

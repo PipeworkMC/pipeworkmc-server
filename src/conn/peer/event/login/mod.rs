@@ -1,4 +1,4 @@
-use crate::conn::protocol::packet::c2s::login::C2SLoginPackets;
+use pipeworkmc_packet::c2s::login::C2SLoginPackets;
 use std::time::Instant;
 use bevy_ecs::{
     entity::Entity,

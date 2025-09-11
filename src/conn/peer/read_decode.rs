@@ -1,38 +1,34 @@
-use crate::conn::{
-    peer::{
-        ConnPeerSender,
-        ConnPeerState,
-        event::{
-            handshake::IncomingHandshakePacketEvent,
-            status::IncomingStatusPacketEvent,
-            login::IncomingLoginPacketEvent,
-            config::IncomingConfigPacketEvent,
-            play::IncomingPlayPacketEvent
-        }
-    },
-    protocol::{
-        codec::{
-            decode::{
-                PrefixedPacketDecode,
-                DecodeBuf
-            },
-            meta::PacketState
-        },
-        packet::c2s::{
-            handshake::C2SHandshakePackets,
-            status::C2SStatusPackets,
-            login::C2SLoginPackets,
-            config::C2SConfigPackets,
-            play::C2SPlayPackets
-        }
+use crate::conn::peer::{
+    ConnPeerSender,
+    ConnPeerState,
+    event::{
+        handshake::IncomingHandshakePacketEvent,
+        status::IncomingStatusPacketEvent,
+        login::IncomingLoginPacketEvent,
+        config::IncomingConfigPacketEvent,
+        play::IncomingPlayPacketEvent
     }
 };
-use crate::data::{
+use pipeworkmc_codec::{
+    decode::{
+        PrefixedPacketDecode,
+        DecodeBuf
+    },
+    meta::PacketState
+};
+use pipeworkmc_data::{
     redacted::Redacted,
     varint::{
         VarIntType,
         VarIntDecodeError
     }
+};
+use pipeworkmc_packet::c2s::{
+    handshake::C2SHandshakePackets,
+    status::C2SStatusPackets,
+    login::C2SLoginPackets,
+    config::C2SConfigPackets,
+    play::C2SPlayPackets
 };
 use crate::util::{
     OptionExt,

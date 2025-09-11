@@ -9,9 +9,12 @@
 )]
 
 
+pub use pipeworkmc_codec::Protocol;
+pub use pipeworkmc_data as data;
+pub use pipeworkmc_packet as packet;
+
 pub mod conn;
 pub mod game;
-pub use pipeworkmc_data as data;
 
 mod util;
 
@@ -30,18 +33,14 @@ pub mod prelude {
         }
     }
 
-    pub use crate::conn::{
-        ConnListenerPlugin,
-        protocol::Protocol
-    };
-
+    pub use crate::conn::ConnListenerPlugin;
     pub use crate::game::player::login::{
         PlayerRequestLoginEvent,
         PlayerApproveLoginEvent,
         PlayerLoggedInEvent
     };
 
-    pub use crate::data::{
+    pub use pipeworkmc_data::{
         block_pos::{ BlockPos, DimBlockPos },
         character::CharacterId,
         colour::{ Rgb, Argb },
@@ -54,38 +53,36 @@ pub mod prelude {
     };
 
     pub mod packet {
-        pub use crate::conn::{
-            peer::{
-                ConnPeerSender,
-                event::{
-                    handshake::IncomingHandshakePacketEvent,
-                    status::IncomingStatusPacketEvent,
-                    login::IncomingLoginPacketEvent,
-                    config::IncomingConfigPacketEvent,
-                    play::IncomingPlayPacketEvent
-                }
+        pub use crate::conn::peer::{
+            ConnPeerSender,
+            event::{
+                handshake::IncomingHandshakePacketEvent,
+                status::IncomingStatusPacketEvent,
+                login::IncomingLoginPacketEvent,
+                config::IncomingConfigPacketEvent,
+                play::IncomingPlayPacketEvent
+            }
+        };
+        pub use pipeworkmc_packet::{
+            c2s::{ self,
+                C2SPackets,
+                handshake::C2SHandshakePackets,
+                status::C2SStatusPackets,
+                login::C2SLoginPackets,
+                config::C2SConfigPackets,
+                play::C2SPlayPackets
             },
-            protocol::packet::{
-                c2s::{ self,
-                    C2SPackets,
-                    handshake::C2SHandshakePackets,
-                    status::C2SStatusPackets,
-                    login::C2SLoginPackets,
-                    config::C2SConfigPackets,
-                    play::C2SPlayPackets
+            s2c::{ self,
+                S2CPackets,
+                status::{
+                    S2CStatusPackets,
+                    response::{
+                        Status,
+                        StatusVersion,
+                        StatusPlayers,
+                        StatusPlayer
+                    }
                 },
-                s2c::{ self,
-                    S2CPackets,
-                    status::{
-                        S2CStatusPackets,
-                        response::{
-                            Status,
-                            StatusVersion,
-                            StatusPlayers,
-                            StatusPlayer
-                        }
-                    },
-                }
             }
         };
     }

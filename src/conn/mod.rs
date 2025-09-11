@@ -3,7 +3,7 @@ use crate::game::player::login::{
     PlayerApproveLoginEvent,
     PlayerLoggedInEvent
 };
-use crate::data::{
+use pipeworkmc_data::{
     bounded_string::BoundedString,
     character::NextCharacterId,
     client_info::ClientInfo
@@ -42,8 +42,6 @@ use peer::{
     event::login::ConnPeerLoginFlow,
     KEEPALIVE_TIMEOUT
 };
-
-pub mod protocol;
 
 
 /// Enables the connection listener on install.

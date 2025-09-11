@@ -17,6 +17,9 @@ path = "../pipeworkmc-codec"
 path     = "../pipeworkmc-data"
 features = [ "generated" ]
 
+[dependencies.pipeworkmc-packet]
+path = "../pipeworkmc-packet"
+
 # ECS
 
 [dependencies.bevy_app]
@@ -39,13 +42,6 @@ version = "0.4"
 
 [dependencies.openssl]
 version = "0.10"
-
-[dependencies.serde]
-version  = "1.0"
-features = [ "derive" ]
-
-[dependencies.serde_json]
-version = "1.0"
 
 # Values
 

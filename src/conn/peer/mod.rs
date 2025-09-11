@@ -1,8 +1,6 @@
-use crate::conn::{
-    peer::event::login::ConnPeerLoginFlow,
-    protocol::codec::meta::{ AtomicPacketState, PacketState }
-};
-use crate::data::client_info::ClientInfo;
+use crate::conn::peer::event::login::ConnPeerLoginFlow;
+use pipeworkmc_codec::meta::{ AtomicPacketState, PacketState };
+use pipeworkmc_data::client_info::ClientInfo;
 use core::{
     net::SocketAddr,
     time::Duration

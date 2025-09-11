@@ -1,4 +1,4 @@
-use crate::conn::protocol::packet::c2s::status::C2SStatusPackets;
+use pipeworkmc_packet::c2s::status::C2SStatusPackets;
 use std::time::Instant;
 use bevy_ecs::{
     entity::Entity,

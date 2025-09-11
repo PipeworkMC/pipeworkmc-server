@@ -1,4 +1,4 @@
-use crate::data::{
+use pipeworkmc_data::{
     bounded_string::BoundedString,
     uuid::Uuid
 };
