@@ -53,6 +53,6 @@ impl Display for C2SStatusDecodeError {
     fn fmt(&self, f : &mut Formatter<'_>) -> fmt::Result { match (self) {
         Self::Incomplete(err)   => err.fmt(f),
         Self::Ping (err)        => write!(f, "ping {err}"),
-        Self::UnknownPrefix (b) => write!(f, "unknown prefix `0x{b:0>2x}`"),
+        Self::UnknownPrefix (b) => write!(f, "unknown prefix `0x{b:0>2X}`"),
     } }
 }

@@ -8,6 +8,7 @@ use crate::conn::{
         ConnPeerState
     },
     protocol::{
+        Protocol,
         packet::{
             c2s::login::{
                 C2SLoginPackets,
@@ -23,7 +24,8 @@ use crate::conn::{
                 config::{
                     custom_payload::S2CConfigCustomPayloadPacket,
                     finish::S2CConfigFinishPacket,
-                    registry_data::S2CConfigRegistryDataPacket
+                    registry_data::S2CConfigRegistryDataPacket,
+                    known_packs::S2CConfigKnownPacksPacket
                 },
                 play::login::S2CPlayLoginPacket
             }
@@ -48,12 +50,16 @@ use crate::data::{
     bounded_string::BoundedString,
     cat_variant::CatVariant,
     channel_data::ChannelData,
-    character::NextCharacterId,
+    character::{
+        CharacterId,
+        NextCharacterId
+    },
     chicken_variant::ChickenVariant,
     cow_variant::CowVariant,
     damage_type::DamageType,
     frog_variant::FrogVariant,
     game_mode::GameMode,
+    known_pack::KnownPack,
     painting_variant::PaintingVariant,
     pig_variant::PigVariant,
     profile::AccountProfile,
@@ -119,7 +125,8 @@ pub(in crate::conn) fn handle_login_flow(
         &mut ConnPeerLoginFlow,
     )>,
     mut er_login  : EventReader<IncomingLoginPacketEvent>,
-        r_options : Res<ConnOptions>
+        r_options : Res<ConnOptions>,
+    mut r_chid    : ResMut<NextCharacterId>
 ) {
     for event in er_login.read() {
         if let Ok((
@@ -223,6 +230,7 @@ pub(in crate::conn) fn handle_login_flow(
                         cmds.send_event(PlayerRequestLoginEvent::new(entity, profile.uuid, profile.username.clone()));
                         let mut ecmds = cmds.entity(entity);
                         ecmds.insert((
+                            r_chid.next(),
                             profile,
                             Dimension::default(),
                             ViewDistance::default(),
@@ -294,6 +302,7 @@ pub(in crate::conn) fn finalise_logins(
         &mut ConnPeerSender,
         &mut ConnPeerState,
         &ConnPeerLoginFlow,
+        &CharacterId,
         &AccountProfile,
         Has<IsHardcore>,
         &Dimension,
@@ -303,8 +312,7 @@ pub(in crate::conn) fn finalise_logins(
         &GameMode
     )>,
     mut er_login  : EventReader<IncomingLoginPacketEvent>,
-        r_options : Res<ConnOptions>,
-    mut r_chid    : ResMut<NextCharacterId>
+        r_options : Res<ConnOptions>
 ) {
     for event in er_login.read() {
         if let C2SLoginPackets::FinishAcknowledged(_) = event.packet() {
@@ -313,6 +321,7 @@ pub(in crate::conn) fn finalise_logins(
                 mut sender,
                 mut state,
                     login_flow,
+                    chid,
                     profile,
                     is_hardcore,
                     dimension,
@@ -329,19 +338,19 @@ pub(in crate::conn) fn finalise_logins(
 
                 unsafe { state.login_finish_acknowledged(); }
 
-                let chid = r_chid.next();
-
                 let mut ecmds = cmds.entity(entity);
                 ecmds.remove::<ConnPeerLoginFlow>();
-                ecmds.insert((
-                    chid,
-                    GameMode::default(),
-                ));
 
                 // TODO: Generate and use vanilla registries.
                 sender.send(S2CConfigCustomPayloadPacket { data : ChannelData::Brand {
                     brand : Cow::Borrowed(&r_options.server_brand)
                 } });
+
+                sender.send(S2CConfigKnownPacksPacket { known_packs : Cow::Borrowed(&[ KnownPack {
+                    namespace : Cow::Borrowed("minecraft"),
+                    id        : Cow::Borrowed("core"),
+                    version   : Cow::Borrowed(Protocol::LATEST.latest_name())
+                } ]) });
 
                 sender.send(S2CConfigRegistryDataPacket::from(CatVariant::VANILLA_REGISTRY_ENTRIES)); // TODO: Make these customisable.
                 sender.send(S2CConfigRegistryDataPacket::from(ChickenVariant::VANILLA_REGISTRY_ENTRIES));
@@ -361,7 +370,7 @@ pub(in crate::conn) fn finalise_logins(
                 sender.send(S2CConfigFinishPacket);
                 unsafe { state.config_finish(); }
                 sender.send(S2CPlayLoginPacket { // TODO: Finish logging in.
-                    eid                  : chid,
+                    eid                  : *chid,
                     hardcore             : is_hardcore,
                     all_dim_ids          : Cow::Owned(vec![dimension.id.clone()]),
                     max_players          : 0,

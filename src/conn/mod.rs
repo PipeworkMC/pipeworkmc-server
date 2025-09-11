@@ -26,6 +26,7 @@ use bevy_ecs::{
     system::{ Commands, Res }
 };
 use bevy_tasks::{ IoTaskPool, TaskPool };
+use bevy_time::common_conditions::on_timer;
 
 
 pub mod peer;
@@ -38,7 +39,8 @@ use peer::{
     ConnPeerWriter,
     ConnPeerSender,
     ConnPeerState,
-    event::login::ConnPeerLoginFlow
+    event::login::ConnPeerLoginFlow,
+    KEEPALIVE_TIMEOUT
 };
 
 pub mod protocol;
@@ -133,6 +135,8 @@ impl Plugin for ConnListenerPlugin {
                 .before(peer::decode_conn_peer_incoming))
             .add_systems(Update, peer::event::config::handle_config
                 .before(peer::decode_conn_peer_incoming))
+            .add_systems(Update, peer::event::play::handle_keepalive
+                .run_if(on_timer(KEEPALIVE_TIMEOUT / 2)))
         ;
     }
 }

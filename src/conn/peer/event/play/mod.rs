@@ -6,6 +6,10 @@ use bevy_ecs::{
 };
 
 
+mod keepalive;
+pub(in crate::conn) use keepalive::*;
+
+
 #[derive(Event, Debug)]
 pub struct IncomingPlayPacketEvent {
     peer      : Entity,

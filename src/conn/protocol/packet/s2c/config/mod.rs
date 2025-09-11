@@ -13,7 +13,9 @@ use crate::{conn::protocol::{
 pub mod custom_payload;
 pub mod disconnect;
 pub mod finish;
+pub mod keep_alive;
 pub mod registry_data;
+pub mod known_packs;
 
 
 #[derive(Debug)]
@@ -22,17 +24,17 @@ pub enum S2CConfigPackets<'l> {
     CustomPayload (custom_payload ::S2CConfigCustomPayloadPacket<'l>),
     Disconnect    (disconnect     ::S2CConfigDisconnectPacket),
     Finish        (finish         ::S2CConfigFinishPacket),
-    // TODO: Keepalive
+    KeepAlive     (keep_alive     ::S2CConfigKeepAlivePacket),
     // TODO: Ping
     // TODO: ResetChat
-    RegistryData  (registry_data  ::S2CConfigRegistryDataPacket)
+    RegistryData  (registry_data  ::S2CConfigRegistryDataPacket),
     // TODO: RemoveResourcePack
     // TODO: AddResourcePack
     // TODO: StoreCookie
     // TODO: Transfer
     // TODO: FeatureFlags
     // TODO: UpdateTags
-    // TODO: KnownPacks
+    KnownPacks    (known_packs    ::S2CConfigKnownPacksPacket<'l>)
     // TODO: CustomReportDetails
     // TODO: ServerLinks
     // TODO: ClearDialog
@@ -45,7 +47,9 @@ impl S2CConfigPackets<'_> {
         Self::CustomPayload (_) => custom_payload ::S2CConfigCustomPayloadPacket ::PREFIX,
         Self::Disconnect    (_) => disconnect     ::S2CConfigDisconnectPacket    ::PREFIX,
         Self::Finish        (_) => finish         ::S2CConfigFinishPacket        ::PREFIX,
-        Self::RegistryData  (_) => registry_data  ::S2CConfigRegistryDataPacket  ::PREFIX
+        Self::KeepAlive     (_) => keep_alive     ::S2CConfigKeepAlivePacket     ::PREFIX,
+        Self::RegistryData  (_) => registry_data  ::S2CConfigRegistryDataPacket  ::PREFIX,
+        Self::KnownPacks    (_) => known_packs    ::S2CConfigKnownPacksPacket    ::PREFIX
     } }
 
 }
@@ -56,14 +60,18 @@ unsafe impl PrefixedPacketEncode for S2CConfigPackets<'_> {
         Self::CustomPayload (packet) => packet.encode_prefixed_len(),
         Self::Disconnect    (packet) => packet.encode_prefixed_len(),
         Self::Finish        (packet) => packet.encode_prefixed_len(),
-        Self::RegistryData  (packet) => packet.encode_prefixed_len()
+        Self::KeepAlive     (packet) => packet.encode_prefixed_len(),
+        Self::RegistryData  (packet) => packet.encode_prefixed_len(),
+        Self::KnownPacks    (packet) => packet.encode_prefixed_len()
     } }
 
     unsafe fn encode_prefixed(&self, buf : &mut EncodeBuf) { unsafe { match (self) {
         Self::CustomPayload (packet) => packet.encode_prefixed(buf),
         Self::Disconnect    (packet) => packet.encode_prefixed(buf),
         Self::Finish        (packet) => packet.encode_prefixed(buf),
-        Self::RegistryData  (packet) => packet.encode_prefixed(buf)
+        Self::KeepAlive     (packet) => packet.encode_prefixed(buf),
+        Self::RegistryData  (packet) => packet.encode_prefixed(buf),
+        Self::KnownPacks    (packet) => packet.encode_prefixed(buf)
     } } }
 
 }

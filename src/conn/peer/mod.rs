@@ -75,7 +75,7 @@ impl ConnPeerState {
 
 }
 
-const KEEPALIVE_TIMEOUT : Duration = Duration::from_secs(5);
+pub(in crate::conn) const KEEPALIVE_TIMEOUT : Duration = Duration::from_secs(5);
 
 impl ConnPeerState {
 

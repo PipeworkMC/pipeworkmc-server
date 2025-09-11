@@ -72,7 +72,13 @@ pub(in crate::conn) fn handle_config(
 
                 C2SConfigPackets::FinishAcknowledged(_) => {
                     unsafe { state.config_finish_acknowledged(); }
-                }
+                },
+
+
+                C2SConfigPackets::KeepAlive(_) => { },
+
+
+                C2SConfigPackets::KnownPacks(_) => { }
 
 
             }

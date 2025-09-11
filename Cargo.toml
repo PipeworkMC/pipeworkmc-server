@@ -29,6 +29,9 @@ features = [ "multi_threaded" ]
 [dependencies.bevy_tasks]
 version = "0.16"
 
+[dependencies.bevy_time]
+version = "0.16"
+
 # Encryption & Serialisation
 
 [dependencies.hex]

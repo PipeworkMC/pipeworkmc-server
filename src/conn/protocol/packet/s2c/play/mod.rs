@@ -11,6 +11,7 @@ use crate::conn::protocol::{
 
 
 pub mod disconnect;
+pub mod keep_alive;
 pub mod login;
 
 
@@ -54,7 +55,7 @@ pub enum S2CPlayPackets<'l> {
     // TODO: OpenHorseScreen
     // TODO: HurtAnim
     // TODO: InitWorldBorder
-    // TODO: KeepAlive
+    KeepAlive  (keep_alive ::S2CPlayKeepAlivePacket),
     // TODO: ChunkDataAndLightUpdate
     // TODO: WorldEvent
     // TODO: Particle
@@ -156,6 +157,7 @@ impl S2CPlayPackets<'_> {
 
     pub fn prefix(&self) -> u8 { match (self) {
         Self::Disconnect (_) => disconnect ::S2CPlayDisconnectPacket ::PREFIX,
+        Self::KeepAlive  (_) => keep_alive ::S2CPlayKeepAlivePacket  ::PREFIX,
         Self::Login      (_) => login      ::S2CPlayLoginPacket      ::PREFIX
     } }
 
@@ -165,11 +167,13 @@ unsafe impl PrefixedPacketEncode for S2CPlayPackets<'_> {
 
     fn encode_prefixed_len(&self) -> usize { match (self) {
         Self::Disconnect (packet) => packet.encode_prefixed_len(),
+        Self::KeepAlive  (packet) => packet.encode_prefixed_len(),
         Self::Login      (packet) => packet.encode_prefixed_len()
     } }
 
     unsafe fn encode_prefixed(&self, buf : &mut EncodeBuf) { unsafe { match (self) {
         Self::Disconnect (packet) => packet.encode_prefixed(buf),
+        Self::KeepAlive  (packet) => packet.encode_prefixed(buf),
         Self::Login      (packet) => packet.encode_prefixed(buf)
     } } }
 

@@ -24,6 +24,7 @@ pub mod prelude {
         #[derive(Debug)]
         pub struct DefaultPlugins {
             bevy_app:::ScheduleRunnerPlugin,
+            bevy_time:::TimePlugin,
             crate::conn:::ConnListenerPlugin,
             crate::game::player::login:::AutoApproveLoginsPlugin
         }
@@ -93,11 +94,13 @@ pub mod prelude {
         pub use bevy_app as app;
         pub use bevy_ecs as ecs;
         pub use bevy_tasks as tasks;
+        pub use bevy_time as time;
         pub mod prelude {
             pub use crate::ecs::ParallelEventWriter;
             pub use bevy_app::prelude::*;
             pub use bevy_ecs::prelude::*;
             pub use bevy_tasks::prelude::*;
+            pub use bevy_time::prelude::*;
         }
     }
 
