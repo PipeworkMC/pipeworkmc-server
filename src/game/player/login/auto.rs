@@ -1,9 +1,10 @@
-use crate::conn::peer::ConnPeerSender;
+use crate::peer::event::SendPacket;
 use crate::game::player::login::{
     PlayerRequestLoginEvent,
     PlayerApproveLoginEvent
 };
 use crate::ecs::ParallelEventWriter;
+use crate::peer::writer::PacketSender;
 use pipeworkmc_data::profile::AccountProfile;
 use bevy_app::{ App, Plugin, Update };
 use bevy_ecs::{
@@ -52,33 +53,33 @@ fn allow_duplicates(
 }
 
 fn kick_old_duplicates(
-    mut q_peers    : Query<(Entity, &mut ConnPeerSender, &AccountProfile)>,
+        q_peers    : Query<(Entity, &AccountProfile)>,
     mut er_request : EventReader<PlayerRequestLoginEvent>,
+        ew_packet  : ParallelEventWriter<SendPacket>,
         ew_approve : ParallelEventWriter<PlayerApproveLoginEvent>
 ) {
-    'request_loop : for e in er_request.read() {
-        for (entity, mut sender, profile,) in &mut q_peers {
-            if (e.peer() != entity && e.uuid() == profile.uuid) {
-                sender.kick_duplicate_login();
-                continue 'request_loop;
+    er_request.par_read().for_each(|e| {
+        for (entity, profile,) in &q_peers {
+            if (e.peer() != entity && e.uuid() != profile.uuid) {
+                ew_packet.write(SendPacket::new(entity).kick_duplicate_login());
+                return;
             }
         }
         ew_approve.write(PlayerApproveLoginEvent::from(e));
-    }
+    });
 }
 
 fn reject_new_duplicates(
-    mut q_peers    : Query<(Entity, &mut ConnPeerSender, &AccountProfile)>,
+        q_peers    : Query<(Entity, &AccountProfile)>,
     mut er_request : EventReader<PlayerRequestLoginEvent>,
+        ew_packet  : ParallelEventWriter<SendPacket>,
         ew_approve : ParallelEventWriter<PlayerApproveLoginEvent>
 ) {
-    for e in er_request.read() {
-        if (q_peers.iter().any(|(entity, _, profile,)| e.peer() != entity && e.uuid() == profile.uuid)) {
-            if let Ok((_, mut sender, _,)) = q_peers.get_mut(e.peer()) {
-                sender.kick_name_taken();
-            }
+    er_request.par_read().for_each(|e| {
+        if (q_peers.iter().any(|(entity, profile,)| e.peer() != entity && e.uuid() == profile.uuid)) {
+            ew_packet.write(SendPacket::new(e.peer()).kick_name_taken());
         } else {
             ew_approve.write(PlayerApproveLoginEvent::from(e));
         }
-    }
+    });
 }

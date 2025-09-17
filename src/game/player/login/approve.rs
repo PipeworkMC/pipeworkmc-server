@@ -7,19 +7,19 @@ use bevy_ecs::{
 
 #[derive(Event, Debug)]
 pub struct PlayerApproveLoginEvent {
-    peer : Entity
+    entity : Entity
 }
 
 impl PlayerApproveLoginEvent {
     #[inline(always)]
-    pub(in super) fn new(peer : Entity) -> Self {
-        Self { peer }
+    pub(in super) fn new(entity : Entity) -> Self {
+        Self { entity }
     }
 }
 
 impl PlayerApproveLoginEvent {
     #[inline(always)]
-    pub fn peer(&self) -> Entity { self.peer }
+    pub fn entity(&self) -> Entity { self.entity }
 }
 
 impl From<&PlayerRequestLoginEvent> for PlayerApproveLoginEvent {

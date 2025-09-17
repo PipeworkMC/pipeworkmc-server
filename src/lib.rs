@@ -13,7 +13,7 @@ pub use pipeworkmc_codec::Protocol;
 pub use pipeworkmc_data as data;
 pub use pipeworkmc_packet as packet;
 
-pub mod conn;
+pub mod peer;
 pub mod game;
 
 mod util;
@@ -28,12 +28,19 @@ pub mod prelude {
         pub struct DefaultPlugins {
             bevy_app:::ScheduleRunnerPlugin,
             bevy_time:::TimePlugin,
-            crate::conn:::ConnListenerPlugin,
+            crate::peer::plugin:::PeerManagerPlugin,
             crate::game::player::login:::AutoApproveLoginsPlugin
         }
     }
 
-    pub use crate::conn::ConnListenerPlugin;
+    pub use crate::peer::{
+        plugin::PeerManagerPlugin,
+        writer::PacketSender as _,
+        event::{
+            PacketReceived,
+            SendPacket
+        }
+    };
     pub use crate::game::player::login::{
         PlayerRequestLoginEvent,
         PlayerApproveLoginEvent,
@@ -53,16 +60,6 @@ pub mod prelude {
     };
 
     pub mod packet {
-        pub use crate::conn::peer::{
-            ConnPeerSender,
-            event::{
-                handshake::IncomingHandshakePacketEvent,
-                status::IncomingStatusPacketEvent,
-                login::IncomingLoginPacketEvent,
-                config::IncomingConfigPacketEvent,
-                play::IncomingPlayPacketEvent
-            }
-        };
         pub use pipeworkmc_packet::{
             c2s::{ self,
                 C2SPackets,

@@ -1,7 +1,5 @@
-use crate::conn::peer::{
-    ConnPeerState,
-    ConnPeerBrand
-};
+use crate::peer::state::PeerState;
+use crate::game::player::data::ClientBrand;
 use pipeworkmc_data::channel_data::ChannelData;
 use pipeworkmc_packet::c2s::config::{
     C2SConfigPackets,
@@ -48,7 +46,7 @@ impl IncomingConfigPacketEvent {
 
 pub(in crate::conn) fn handle_config(
         pcmds     : ParallelCommands,
-    mut q_peers   : Query<(Entity, &mut ConnPeerState,)>,
+    mut q_peers   : Query<(Entity, &mut PeerState,)>,
     mut er_config : EventReader<IncomingConfigPacketEvent>
 ) {
     for event in er_config.read() {
@@ -63,7 +61,7 @@ pub(in crate::conn) fn handle_config(
 
                 C2SConfigPackets::CustomPayload(C2SConfigCustomPayloadPacket { data }) => { // Handle CustomPayload packets from all other states as well.
                     if let ChannelData::Brand { brand } = data {
-                        pcmds.command_scope(|mut cmds| { cmds.entity(entity).insert(ConnPeerBrand { brand : brand.to_string() }); });
+                        pcmds.command_scope(|mut cmds| { cmds.entity(entity).insert(ClientBrand { brand : brand.to_string() }); });
                     }
                 },
 
