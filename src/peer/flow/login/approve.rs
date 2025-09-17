@@ -1,26 +1,49 @@
+use super::LoginFlow;
 use crate::peer::{
     writer::PacketSender,
-    event::SendPacket
+    state::PeerState,
+    event::{
+        PacketReceived,
+        SendPacket
+    }
 };
 use crate::game::player::login::{
     PlayerApproveLoginEvent
 };
-use crate::ecs::ParallelEventWriter;
 use pipeworkmc_data::profile::AccountProfile;
-use pipeworkmc_packet::s2c::login::finish::S2CLoginFinishPacket;
+use pipeworkmc_packet::{
+    c2s::{
+        C2SPackets,
+        login::{
+            C2SLoginPackets,
+            finish_acknowledged::C2SLoginFinishAcknowledgedPacket
+        }
+    },
+    s2c::login::finish::S2CLoginFinishPacket
+};
 use bevy_ecs::{
-    event::EventReader,
-    system::Query
+    event::{
+        EventReader,
+        EventWriter
+    },
+    system::{
+        Commands,
+        Query
+    }
 };
 
 
 pub(in crate::peer) fn alert_approved_logins(
-        q_peers   : Query<(&AccountProfile,)>,
+    mut q_peers   : Query<(&mut PeerState, &AccountProfile, &mut LoginFlow,)>,
     mut er_login  : EventReader<PlayerApproveLoginEvent>,
-        ew_packet : ParallelEventWriter<SendPacket>
+    mut ew_packet : EventWriter<SendPacket>
 ) {
-    er_login.par_read().for_each(|e| {
-        if let Ok((profile,)) = q_peers.get(e.entity()) {
+    for e in er_login.read() {
+        if let Ok((mut state, profile, mut flow)) = q_peers.get_mut(e.entity()) {
+            let LoginFlow::Approval = &*flow else {
+                continue;
+            };
+
             ew_packet.write(SendPacket::new(e.entity()).with(S2CLoginFinishPacket {
                 profile : AccountProfile {
                     uuid     : profile.uuid,
@@ -28,6 +51,33 @@ pub(in crate::peer) fn alert_approved_logins(
                     skin     : None
                 }
             }));
+            unsafe { state.login_finish(); }
+            *flow = LoginFlow::Acknowledge;
         }
-    });
+    }
+}
+
+
+pub(in crate::peer) fn handle_login_acknowledge(
+    mut cmds      : Commands,
+    mut q_peers   : Query<(&mut PeerState, &mut LoginFlow,)>,
+    mut er_packet : EventReader<PacketReceived>,
+    mut ew_packet : EventWriter<SendPacket>
+) {
+    for e in er_packet.read() {
+        if let C2SPackets::Login(C2SLoginPackets::FinishAcknowledged(
+            C2SLoginFinishAcknowledgedPacket { }
+        )) = e.packet() {
+            if let Ok((mut state, mut flow,)) = q_peers.get_mut(e.entity()) {
+                let LoginFlow::Acknowledge = &*flow else {
+                    ew_packet.write(SendPacket::new(e.entity()).kick_login_failed("Login acknowledgement invalid at this time"));
+                    continue;
+                };
+
+                unsafe { state.login_finish_acknowledged(); }
+                *flow = LoginFlow::Done;
+                cmds.entity(e.entity()).remove::<LoginFlow>();
+            }
+        }
+    }
 }

@@ -65,13 +65,15 @@ impl PeerStreamWriter {
 
         if let Some(b) = e.bytes(prev_state) {
             self.bytes_to_write.extend(b);
-        }
-
-        else if let Some(switch_state) = e.switch_state() {
+        } else if let Some(switch_state) = e.switch_state() {
             todo!("switch state");
             if let Some(b) = e.bytes(switch_state) {
                 self.bytes_to_write.extend(b);
             }
+        }
+
+        if (e.is_kick()) {
+            self.disconnecting.store(true, AtomicOrdering::Relaxed);
         }
     }
 

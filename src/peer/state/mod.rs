@@ -42,9 +42,6 @@ impl PeerState {
     #[inline(always)]
     pub fn disconnecting(&self) -> bool { self.disconnecting.load(AtomicOrdering::Relaxed) }
 
-    #[inline(always)]
-    pub(in crate::peer) fn disconnect(&mut self) { self.disconnecting.store(true, AtomicOrdering::Relaxed); }
-
 }
 
 pub(in crate::peer) const KEEPALIVE_TIMEOUT : Duration = Duration::from_secs(5);

@@ -9,7 +9,9 @@ use crate::peer::{
         KEEPALIVE_TIMEOUT
     },
     event,
-    flow
+    flow::{ self,
+        login::LoginFlow
+    }
 };
 use crate::game::player::login::{
     PlayerRequestLoginEvent,
@@ -132,6 +134,7 @@ impl Plugin for PeerManagerPlugin {
             .add_systems(Update, flow::login::mojauth::poll_mojauth_tasks
                 .run_if(flow::login::mojauth::is_mojauth_enabled))
             .add_systems(Update, flow::login::approve::alert_approved_logins)
+            .add_systems(Update, flow::login::approve::handle_login_acknowledge)
 
             // .add_systems(Update, peer::event::config::handle_config
             //     .before(peer::decode_conn_peer_incoming))
@@ -175,7 +178,7 @@ fn accept_new_peers(
                 reader     : PeerStreamReader::new(read_stream),
                 writer     : PeerStreamWriter::new(write_stream, outgoing_state, disconnecting),
                 state,
-                // login_flow : ConnPeerLoginFlow::default(),
+                login_flow : LoginFlow::default(),
                 info       : ClientInfo::default()
             });
         },

@@ -1,6 +1,6 @@
-use super::mojauth::{
-    MojauthTask,
-    build_mojauth_uri
+use super::{
+    LoginFlow,
+    mojauth::build_mojauth_uri
 };
 use crate::peer::{
     PeerOptions,
@@ -19,7 +19,6 @@ use crate::game::player::{
     data::PlayerBundle
 };
 use pipeworkmc_data::{
-    bounded_string::BoundedString,
     character::NextCharacterId,
     profile::AccountProfile,
     redacted::Redacted,
@@ -33,7 +32,6 @@ use pipeworkmc_packet::c2s::{
     }
 };
 use bevy_ecs::{
-    component::Component,
     event::{
         EventReader,
         EventWriter
@@ -46,8 +44,7 @@ use bevy_ecs::{
 };
 use bevy_tasks::IoTaskPool;
 use openssl::{
-    pkey::Private,
-    rsa::{ Padding, Rsa },
+    rsa::Padding,
     symm::{
         Cipher,
         Crypter,
@@ -59,20 +56,9 @@ use openssl::{
 const OFFLINE_NAMESPACE : Uuid = Uuid::from_bytes([b'P', b'i', b'p', b'e', b'w', b'o', b'r', b'k', b'_', b'O', b'f', b'f', b'l', b'i', b'n', b'e']);
 
 
-#[derive(Component)]
-#[component(storage = "SparseSet")]
-pub(in crate::peer) struct KeyExchange {
-    pub(super) declared_username : BoundedString<16>,
-    pub(super) private_key       : Redacted<Rsa<Private>>,
-    pub(super) public_key_der    : Redacted<Vec<u8>>,
-    pub(super) verify_token      : [u8; 4],
-    pub(super) invalidated       : bool
-}
-
-
 pub(in crate::peer) fn finish_key_exchange_and_check_mojauth(
     mut cmds      : Commands,
-    mut q_peers   : Query<(&mut PeerStreamReader, &mut PeerStreamWriter, &mut KeyExchange,)>,
+    mut q_peers   : Query<(&mut PeerStreamReader, &mut PeerStreamWriter, &mut LoginFlow,)>,
     mut er_packet : EventReader<PacketReceived>,
     mut ew_packet : EventWriter<SendPacket>,
     mut ew_login  : EventWriter<PlayerRequestLoginEvent>,
@@ -80,29 +66,30 @@ pub(in crate::peer) fn finish_key_exchange_and_check_mojauth(
         r_chid    : Res<NextCharacterId>
 ) {
     for e in er_packet.read() {
-        if let C2SPackets::Login(C2SLoginPackets::EncryptResponse(C2SLoginEncryptResponsePacket { encrypted_secret_key, encrypted_vtoken })) = e.packet()
-            && let Ok((mut reader, mut writer, mut keyex,)) = q_peers.get_mut(e.entity())
+        if let C2SPackets::Login(C2SLoginPackets::EncryptResponse(
+            C2SLoginEncryptResponsePacket { encrypted_secret_key, encrypted_vtoken }
+        )) = e.packet()
+            && let Ok((mut reader, mut writer, mut flow,)) = q_peers.get_mut(e.entity())
         {
-            if (keyex.invalidated) {
-                ew_packet.write(SendPacket::new(e.entity()).kick_login_failed("Key exchange already done"));
+            let LoginFlow::KeyExchange { declared_username, private_key, public_key_der, verify_token } = &*flow else {
+                ew_packet.write(SendPacket::new(e.entity()).kick_login_failed("Key exchange invalid at this time"));
                 continue;
-            }
-            keyex.invalidated = true;
+            };
 
             // Check verify token.
             let mut decrypted_vtoken = [0u8; 256];
-            let Ok(vtoken_size) = unsafe { keyex.private_key.as_ref() }.private_decrypt(encrypted_vtoken, &mut decrypted_vtoken, Padding::PKCS1) else {
+            let Ok(vtoken_size) = unsafe { private_key.as_ref() }.private_decrypt(encrypted_vtoken, &mut decrypted_vtoken, Padding::PKCS1) else {
                 ew_packet.write(SendPacket::new(e.entity()).kick_login_failed("Public key exchange failed"));
                 continue;
             };
-            if (keyex.verify_token != decrypted_vtoken[0..vtoken_size]) {
+            if (*verify_token != decrypted_vtoken[0..vtoken_size]) {
                 ew_packet.write(SendPacket::new(e.entity()).kick_login_failed("Public key exchange verification failed"));
                 continue;
             }
 
             // Decrypt secret key.
             let mut decrypted_secret_key = Redacted::from([0u8; 256]);
-            let Ok(secret_key_size) = unsafe { keyex.private_key.as_ref() }.private_decrypt(unsafe { encrypted_secret_key.as_ref() }, unsafe { decrypted_secret_key.as_mut() }, Padding::PKCS1) else {
+            let Ok(secret_key_size) = unsafe { private_key.as_ref() }.private_decrypt(unsafe { encrypted_secret_key.as_ref() }, unsafe { decrypted_secret_key.as_mut() }, Padding::PKCS1) else {
                 ew_packet.write(SendPacket::new(e.entity()).kick_login_failed("Secret key exchange failed"));
                 continue;
             };
@@ -123,43 +110,38 @@ pub(in crate::peer) fn finish_key_exchange_and_check_mojauth(
             };
             writer.set_encrypter(Redacted::from(encrypter));
 
-            let mut ecmds = cmds.entity(e.entity());
-            ecmds.remove::<KeyExchange>();
-
             // Begin mojauth if enabled.
             if (r_options.mojauth_enabled) {
                 let (url_buf, url_len,) = build_mojauth_uri(
                     &r_options.server_id,
                     &decrypted_secret_key,
-                    &keyex.public_key_der,
-                    &keyex.declared_username
+                    &public_key_der,
+                    &declared_username
                 );
-                ecmds.insert(MojauthTask {
-                    task        : IoTaskPool::get().spawn(async move {
-                        let url = unsafe { str::from_utf8_unchecked(url_buf.get_unchecked(0..url_len)) };
-                        match (surf::get(url).send().await) {
-                            Ok(mut response) => response.body_json::<AccountProfile>().await,
-                            Err(err)         => Err(err)
-                        }
-                    }),
-                    invalidated : false
-                });
+                *flow = LoginFlow::Mojauth { task : IoTaskPool::get().spawn(async move {
+                    let url = unsafe { str::from_utf8_unchecked(url_buf.get_unchecked(0..url_len)) };
+                    match (surf::get(url).send().await) {
+                        Ok(mut response) => response.body_json::<AccountProfile>().await,
+                        Err(err)         => Err(err)
+                    }
+                }) };
             }
             // If mojauth disabled, skip to requesting approval.
             else {
                 let profile = AccountProfile {
-                    uuid     : Uuid::new_v3(&OFFLINE_NAMESPACE, keyex.declared_username.as_bytes()),
-                    username : keyex.declared_username.clone(),
+                    uuid     : Uuid::new_v3(&OFFLINE_NAMESPACE, declared_username.as_bytes()),
+                    username : declared_username.clone(),
                     skin     : None
                 };
                 ew_login.write(PlayerRequestLoginEvent::new(
                     e.entity(), profile.uuid, profile.username.clone()
                 ));
-                ecmds.insert((
+                cmds.entity(e.entity()).insert((
                     profile,
                     r_chid.next(),
                     PlayerBundle::default()
                 ));
+                *flow = LoginFlow::Approval;
             }
 
         }

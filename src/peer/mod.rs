@@ -37,14 +37,13 @@ struct PeerBundle {
     reader     : reader::PeerStreamReader,
     writer     : writer::PeerStreamWriter,
     state      : state::PeerState,
-    // login_flow : ConnPeerLoginFlow,
+    login_flow : flow::login::LoginFlow,
     info       : ClientInfo
 }
 
 
 #[derive(Component)]
 pub struct PeerAddress {
-    #[expect(dead_code)]
     addr : SocketAddr
 }
 

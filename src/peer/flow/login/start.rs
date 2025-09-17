@@ -1,4 +1,4 @@
-use super::encrypt::KeyExchange;
+use super::LoginFlow;
 use crate::peer::{
     PeerOptions,
     writer::PacketSender,
@@ -23,7 +23,7 @@ use std::borrow::Cow;
 use bevy_ecs::{
     event::EventReader,
     system::{
-        ParallelCommands,
+        Query,
         Res
     }
 };
@@ -32,13 +32,21 @@ use rand::RngCore;
 
 
 pub(in crate::peer) fn begin_key_exchange(
-        pcmds     : ParallelCommands,
+    mut q_packet  : Query<(&mut LoginFlow,)>,
     mut er_packet : EventReader<PacketReceived>,
         ew_packet : ParallelEventWriter<SendPacket>,
         r_options : Res<PeerOptions>
 ) {
-    er_packet.par_read().for_each(|e| {
-        if let C2SPackets::Login(C2SLoginPackets::Start(C2SLoginStartPacket { username, uuid })) = e.packet() {
+    for e in er_packet.read() {
+        if let C2SPackets::Login(C2SLoginPackets::Start(
+            C2SLoginStartPacket { username, uuid : _ }
+        )) = e.packet()
+            && let Ok((mut flow,)) = q_packet.get_mut(e.entity())
+        {
+            let LoginFlow::Unstarted = &*flow else {
+                ew_packet.write(SendPacket::new(e.entity()).kick_login_failed("Login start invalid at this time"));
+                continue;
+            };
 
             let     private_key    = Redacted::from(Rsa::generate(2048).unwrap());
             let     public_key_der = Redacted::from(unsafe { private_key.as_ref() }.public_key_to_der().unwrap());
@@ -52,16 +60,13 @@ pub(in crate::peer) fn begin_key_exchange(
                 mojauth_enabled : r_options.mojauth_enabled
             }));
 
-            pcmds.command_scope(|mut cmds| {
-                cmds.entity(e.entity()).insert((KeyExchange {
-                    declared_username : username.clone(),
-                    private_key,
-                    public_key_der,
-                    verify_token,
-                    invalidated       : false
-                },));
-            });
+            *flow = LoginFlow::KeyExchange {
+                declared_username : username.clone(),
+                private_key,
+                public_key_der,
+                verify_token
+            };
 
         }
-    });
+    }
 }
