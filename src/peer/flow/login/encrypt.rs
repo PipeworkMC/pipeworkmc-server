@@ -1,8 +1,9 @@
 use super::{
-    LoginFlow,
+    PeerLoginFlow,
     mojauth::build_mojauth_uri
 };
 use crate::peer::{
+    PeerAddress,
     PeerOptions,
     reader::PeerStreamReader,
     writer::{
@@ -36,6 +37,7 @@ use bevy_ecs::{
         EventReader,
         EventWriter
     },
+    query::With,
     system::{
         Commands,
         Query,
@@ -58,7 +60,7 @@ const OFFLINE_NAMESPACE : Uuid = Uuid::from_bytes([b'P', b'i', b'p', b'e', b'w',
 
 pub(in crate::peer) fn finish_key_exchange_and_check_mojauth(
     mut cmds      : Commands,
-    mut q_peers   : Query<(&mut PeerStreamReader, &mut PeerStreamWriter, &mut LoginFlow,)>,
+    mut q_peers   : Query<(&mut PeerStreamReader, &mut PeerStreamWriter, &mut PeerLoginFlow,), (With<PeerAddress>,)>,
     mut er_packet : EventReader<PacketReceived>,
     mut ew_packet : EventWriter<SendPacket>,
     mut ew_login  : EventWriter<PlayerRequestLoginEvent>,
@@ -71,7 +73,7 @@ pub(in crate::peer) fn finish_key_exchange_and_check_mojauth(
         )) = e.packet()
             && let Ok((mut reader, mut writer, mut flow,)) = q_peers.get_mut(e.entity())
         {
-            let LoginFlow::KeyExchange { declared_username, private_key, public_key_der, verify_token } = &*flow else {
+            let PeerLoginFlow::KeyExchange { declared_username, private_key, public_key_der, verify_token } = &*flow else {
                 ew_packet.write(SendPacket::new(e.entity()).kick_login_failed("Key exchange invalid at this time"));
                 continue;
             };
@@ -118,7 +120,7 @@ pub(in crate::peer) fn finish_key_exchange_and_check_mojauth(
                     &public_key_der,
                     &declared_username
                 );
-                *flow = LoginFlow::Mojauth { task : IoTaskPool::get().spawn(async move {
+                *flow = PeerLoginFlow::Mojauth { task : IoTaskPool::get().spawn(async move {
                     let url = unsafe { str::from_utf8_unchecked(url_buf.get_unchecked(0..url_len)) };
                     match (surf::get(url).send().await) {
                         Ok(mut response) => response.body_json::<AccountProfile>().await,
@@ -141,7 +143,7 @@ pub(in crate::peer) fn finish_key_exchange_and_check_mojauth(
                     r_chid.next(),
                     PlayerBundle::default()
                 ));
-                *flow = LoginFlow::Approval;
+                *flow = PeerLoginFlow::Approval;
             }
 
         }

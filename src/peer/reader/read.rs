@@ -1,4 +1,5 @@
 use crate::peer::{
+    PeerAddress,
     reader::PeerStreamReader,
     writer::PacketSender,
     state::PeerState,
@@ -8,6 +9,7 @@ use crate::ecs::ParallelEventWriter;
 use std::io::{ self, Read };
 use bevy_ecs::{
     entity::Entity,
+    query::With,
     system::Query
 };
 
@@ -16,7 +18,7 @@ const READ_BYTES_PER_CYCLE : usize = 256;
 
 
 pub(in crate::peer) fn read_peer_bytes(
-    mut q_peers   : Query<(Entity, &mut PeerStreamReader, &PeerState,)>,
+    mut q_peers   : Query<(Entity, &mut PeerStreamReader, &PeerState,), (With<PeerAddress>,)>,
         ew_packet : ParallelEventWriter<SendPacket>
 ) {
     q_peers.par_iter_mut().for_each(|(entity, mut reader, state,)| {

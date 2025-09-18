@@ -12,14 +12,14 @@ use bevy_ecs::{
 
 pub mod plugin;
 
-pub mod reader;
+mod reader;
 pub mod writer;
 pub mod state;
 
 pub mod event;
 
-pub mod flow;
-
+mod flow;
+mod keepalive;
 
 
 #[derive(Resource)]
@@ -37,7 +37,8 @@ struct PeerBundle {
     reader     : reader::PeerStreamReader,
     writer     : writer::PeerStreamWriter,
     state      : state::PeerState,
-    login_flow : flow::login::LoginFlow,
+    login_flow : flow::login::PeerLoginFlow,
+    keep_alive : keepalive::PeerKeepAlive,
     info       : ClientInfo
 }
 

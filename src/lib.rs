@@ -9,7 +9,6 @@
 )]
 
 
-pub use pipeworkmc_codec::Protocol;
 pub use pipeworkmc_data as data;
 pub use pipeworkmc_packet as packet;
 

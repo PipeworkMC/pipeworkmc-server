@@ -1,5 +1,6 @@
-use super::LoginFlow;
+use super::PeerLoginFlow;
 use crate::peer::{
+    PeerAddress,
     PeerOptions,
     writer::PacketSender,
     event::{
@@ -22,6 +23,7 @@ use pipeworkmc_packet::{
 use std::borrow::Cow;
 use bevy_ecs::{
     event::EventReader,
+    query::With,
     system::{
         Query,
         Res
@@ -32,7 +34,7 @@ use rand::RngCore;
 
 
 pub(in crate::peer) fn begin_key_exchange(
-    mut q_packet  : Query<(&mut LoginFlow,)>,
+    mut q_packet  : Query<(&mut PeerLoginFlow,), (With<PeerAddress>,)>,
     mut er_packet : EventReader<PacketReceived>,
         ew_packet : ParallelEventWriter<SendPacket>,
         r_options : Res<PeerOptions>
@@ -43,7 +45,7 @@ pub(in crate::peer) fn begin_key_exchange(
         )) = e.packet()
             && let Ok((mut flow,)) = q_packet.get_mut(e.entity())
         {
-            let LoginFlow::Unstarted = &*flow else {
+            let PeerLoginFlow::Unstarted = &*flow else {
                 ew_packet.write(SendPacket::new(e.entity()).kick_login_failed("Login start invalid at this time"));
                 continue;
             };
@@ -60,7 +62,7 @@ pub(in crate::peer) fn begin_key_exchange(
                 mojauth_enabled : r_options.mojauth_enabled
             }));
 
-            *flow = LoginFlow::KeyExchange {
+            *flow = PeerLoginFlow::KeyExchange {
                 declared_username : username.clone(),
                 private_key,
                 public_key_der,

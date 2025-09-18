@@ -18,7 +18,7 @@ pub(in crate::peer) mod approve;
 
 
 #[derive(Component, Default)]
-pub(in crate::peer) enum LoginFlow {
+pub(in crate::peer) enum PeerLoginFlow {
 
     // The login process has not begun.
     // Server is waiting for peer to send a `C2SLoginStartPacket`.

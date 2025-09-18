@@ -1,4 +1,5 @@
 use crate::peer::{
+    PeerAddress,
     writer::PeerStreamWriter,
     state::PeerState
 };
@@ -6,6 +7,7 @@ use crate::util::VecDequeExt;
 use std::io::{ self, Write };
 use bevy_ecs::{
     entity::Entity,
+    query::With,
     system::{
         ParallelCommands,
         Query
@@ -18,7 +20,7 @@ const WRITE_BYTES_PER_CYCLE : usize = 256;
 
 pub(in crate::peer) fn write_peer_bytes(
         pcmds   : ParallelCommands,
-    mut q_peers : Query<(Entity, &mut PeerStreamWriter, &PeerState)>
+    mut q_peers : Query<(Entity, &mut PeerStreamWriter, &PeerState), (With<PeerAddress>,)>
 ) {
     q_peers.par_iter_mut().for_each(|(entity, mut writer, state,)| {
         let writer = &mut*writer;

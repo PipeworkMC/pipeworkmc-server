@@ -1,4 +1,5 @@
 use crate::peer::{
+    PeerAddress,
     writer::PeerStreamWriter,
     event::SendPacket
 };
@@ -16,12 +17,13 @@ use pipeworkmc_packet::s2c::{
 use std::borrow::Cow;
 use bevy_ecs::{
     event::EventReader,
+    query::With,
     system::Query
 };
 
 
 pub(in crate::peer) fn handle_send_events(
-    mut q_peers   : Query<(&mut PeerStreamWriter,)>,
+    mut q_peers   : Query<(&mut PeerStreamWriter,), (With<PeerAddress>,)>,
     mut er_packet : EventReader<SendPacket>
 ) {
     for e in er_packet.read() {

@@ -1,4 +1,5 @@
 use crate::peer::{
+    PeerAddress,
     reader::PeerStreamReader,
     writer::PacketSender,
     state::PeerState,
@@ -30,12 +31,13 @@ use pipeworkmc_packet::c2s::{
 };
 use bevy_ecs::{
     entity::Entity,
+    query::With,
     system::Query
 };
 
 
 pub(in crate::peer) fn decode_peer_packets(
-    mut q_peers     : Query<(Entity, &mut PeerStreamReader, &PeerState)>,
+    mut q_peers     : Query<(Entity, &mut PeerStreamReader, &PeerState), (With<PeerAddress>,)>,
         ew_received : ParallelEventWriter<PacketReceived>,
         ew_send     : ParallelEventWriter<SendPacket>
 ) {

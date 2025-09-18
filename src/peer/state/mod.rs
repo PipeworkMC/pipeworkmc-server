@@ -24,7 +24,7 @@ pub(in crate::peer) use timeout::*;
 pub struct PeerState {
     incoming      : PacketState,
     outgoing      : Arc<AtomicPacketState>,
-    expires       : Instant,
+    expires       : Option<Instant>,
     disconnecting : Arc<AtomicBool>
 }
 
@@ -37,7 +37,7 @@ impl PeerState {
     pub fn outgoing(&self) -> PacketState { self.outgoing.load(AtomicOrdering::SeqCst) }
 
     #[inline(always)]
-    pub fn expires(&self) -> Instant { self.expires }
+    pub fn expires(&self) -> Option<Instant> { self.expires }
 
     #[inline(always)]
     pub fn disconnecting(&self) -> bool { self.disconnecting.load(AtomicOrdering::Relaxed) }
@@ -54,46 +54,52 @@ impl PeerState {
     ) -> Self { Self {
         incoming      : PacketState::Handshake,
         outgoing      : outgoing_state,
-        expires       : Instant::now() + Duration::from_millis(250),
+        expires       : Some(Instant::now() + Duration::from_millis(250)),
         disconnecting
     } }
 
-    pub unsafe fn switch_to_status(&mut self) {
+    pub(in crate::peer) unsafe fn to_status_unchecked(&mut self) {
         self.incoming = PacketState::Status;
         self.outgoing.store(PacketState::Status, AtomicOrdering::SeqCst);
-        self.expires  = Instant::now() + Duration::from_millis(500);
+        self.expires  = Some(Instant::now() + Duration::from_millis(500));
     }
-    pub unsafe fn switch_to_login(&mut self) {
+
+    pub(in crate::peer) unsafe fn to_login_unchecked(&mut self) {
         self.incoming = PacketState::Login;
         self.outgoing.store(PacketState::Login, AtomicOrdering::SeqCst);
-        self.expires  = Instant::now() + Duration::from_millis(2500);
+        self.expires  = Some(Instant::now() + Duration::from_millis(2500));
     }
 
-    pub unsafe fn login_finish(&mut self) {
-        self.outgoing.store(PacketState::Config, AtomicOrdering::SeqCst);
-        self.expires = Instant::now() + Duration::from_millis(250);
-    }
-    pub unsafe fn login_finish_acknowledged(&mut self) {
+    pub (in crate::peer) unsafe fn incoming_to_config_unchecked(&mut self) {
         self.incoming = PacketState::Config;
-        self.expires  = Instant::now() + KEEPALIVE_TIMEOUT;
+        self.expires  = None;
     }
 
-    pub unsafe fn config_finish(&mut self) {
-        self.outgoing.store(PacketState::Play, AtomicOrdering::SeqCst);
-        self.expires = Instant::now() + Duration::from_millis(250);
-    }
-    pub unsafe fn config_finish_acknowledged(&mut self) {
-        self.incoming = PacketState::Play;
-        self.expires  = Instant::now() + KEEPALIVE_TIMEOUT;
-    }
+    // pub unsafe fn login_finish(&mut self) {
+    //     self.outgoing.store(PacketState::Config, AtomicOrdering::SeqCst);
+    //     self.expires = Instant::now() + Duration::from_millis(250);
+    // }
+    // pub unsafe fn login_finish_acknowledged(&mut self) {
+    //     self.incoming = PacketState::Config;
+    //     self.expires  = Instant::now() + KEEPALIVE_TIMEOUT;
+    // }
 
-    pub unsafe fn config_begin(&mut self) {
-        self.outgoing.store(PacketState::Config, AtomicOrdering::SeqCst);
-        self.expires = Instant::now() + Duration::from_millis(500);
-    }
-    pub unsafe fn config_begin_acknowledged(&mut self) {
-        self.incoming = PacketState::Config;
-        self.expires  = Instant::now() + KEEPALIVE_TIMEOUT;
-    }
+    // pub unsafe fn config_finish(&mut self) {
+    //     self.outgoing.store(PacketState::Play, AtomicOrdering::SeqCst);
+    //     self.expires = Instant::now() + Duration::from_millis(250);
+    // }
+    // pub unsafe fn config_finish_acknowledged(&mut self) {
+    //     self.incoming = PacketState::Play;
+    //     self.expires  = Instant::now() + KEEPALIVE_TIMEOUT;
+    // }
+
+    // pub unsafe fn config_begin(&mut self) {
+    //     self.outgoing.store(PacketState::Config, AtomicOrdering::SeqCst);
+    //     self.expires = Instant::now() + Duration::from_millis(500);
+    // }
+    // pub unsafe fn config_begin_acknowledged(&mut self) {
+    //     self.incoming = PacketState::Config;
+    //     self.expires  = Instant::now() + KEEPALIVE_TIMEOUT;
+    // }
 
 }

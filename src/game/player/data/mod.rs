@@ -1,4 +1,7 @@
-use pipeworkmc_data::game_mode::GameMode;
+use pipeworkmc_data::{
+    client_info::ClientInfo,
+    game_mode::GameMode
+};
 use core::num::NonZeroU8;
 use bevy_ecs::{
     bundle::Bundle,
@@ -7,13 +10,15 @@ use bevy_ecs::{
 
 
 pub mod dimension;
+use dimension::Dimension;
 
 
 #[derive(Bundle, Default)]
 pub struct PlayerBundle {
-    dimension : dimension::Dimension,
-    view_dist : ViewDistance,
-    game_mode : GameMode
+    client_info : ClientInfo,
+    dimension   : Dimension,
+    view_dist   : ViewDist,
+    game_mode   : GameMode
 }
 
 
@@ -33,13 +38,13 @@ pub struct NoRespawnScreen; // TODO: Detect changes and update player respawn sc
 
 
 #[derive(Component)]
-pub struct ViewDistance(NonZeroU8);
-impl ViewDistance {
+pub struct ViewDist(NonZeroU8);
+impl ViewDist {
     #[inline(always)]
     pub fn as_n0u8(&self) -> NonZeroU8 { self.0 }
     #[inline(always)]
     pub fn as_u8(&self) -> u8 { self.0.get() }
 }
-impl Default for ViewDistance {
+impl Default for ViewDist {
     fn default() -> Self { Self(unsafe { NonZeroU8::new_unchecked(8) }) }
 }

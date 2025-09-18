@@ -66,7 +66,7 @@ impl PeerStreamWriter {
         if let Some(b) = e.bytes(prev_state) {
             self.bytes_to_write.extend(b);
         } else if let Some(switch_state) = e.switch_state() {
-            todo!("switch state");
+            todo!("switch state from {prev_state:?} to {switch_state:?}");
             if let Some(b) = e.bytes(switch_state) {
                 self.bytes_to_write.extend(b);
             }
