@@ -55,7 +55,7 @@ pub(in crate::peer) fn begin_key_exchange(
             let mut verify_token   = [0u8; 4];
             rand::rng().fill_bytes(&mut verify_token);
 
-            ew_packet.write(SendPacket::new(e.entity()).with(S2CLoginEncryptRequestPacket {
+            ew_packet.write(SendPacket::new(e.entity()).with_before_switch(S2CLoginEncryptRequestPacket {
                 server_id       : r_options.server_id.clone(),
                 public_key      : Redacted::from(Cow::Owned(unsafe { public_key_der.as_ref() }.clone())),
                 verify_token,

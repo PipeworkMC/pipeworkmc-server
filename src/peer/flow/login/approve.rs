@@ -3,25 +3,28 @@ use crate::peer::{
     PeerAddress,
     PeerOptions,
     writer::PacketSender,
-    state::PeerState,
     event::{
         PacketReceived,
         SendPacket
     }
 };
-use crate::game::player::{
+use crate::game::{
     login::{
         PlayerApproveLoginEvent,
         PlayerLoggedInEvent
     },
-    data::{
-        dimension::Dimension,
-        IsHardcore,
-        ViewDist,
-        ReducedDebugInfo,
-        NoRespawnScreen
+    character::{
+        CharacterVisibility,
+        player::{
+            Dimension,
+            IsHardcore,
+            ViewDist,
+            ReducedDebugInfo,
+            NoRespawnScreen
+        }
     }
 };
+use pipeworkmc_codec::meta::PacketState;
 use pipeworkmc_data::{
     cat_variant::CatVariant,
     channel_data::ChannelData,
@@ -54,10 +57,12 @@ use pipeworkmc_packet::{
         config::{
             custom_payload::S2CConfigCustomPayloadPacket,
             known_packs::S2CConfigKnownPacksPacket,
-            registry_data::S2CConfigRegistryDataPacket,
-            finish::S2CConfigFinishPacket
+            registry_data::S2CConfigRegistryDataPacket
         },
-        play::login::S2CPlayLoginPacket
+        play::{
+            login::S2CPlayLoginPacket,
+            game_event::S2CPlayGameEventPacket
+        }
     }
 };
 use std::borrow::Cow;
@@ -86,13 +91,16 @@ pub(in crate::peer) fn alert_approved_logins(
                 continue;
             };
 
-            ew_packet.write(SendPacket::new(e.entity()).with(S2CLoginFinishPacket {
-                profile : AccountProfile {
-                    uuid     : profile.uuid,
-                    username : profile.username.clone(),
-                    skin     : None
-                }
-            }));
+            ew_packet.write(SendPacket::new(e.entity())
+                .with_before_switch(S2CLoginFinishPacket {
+                    profile : AccountProfile::new(
+                        profile.uuid,
+                        profile.username.clone(),
+                        None
+                    )
+                })
+                .with_switch_state(PacketState::Config, true)
+            );
             *flow = PeerLoginFlow::Acknowledge;
         }
     }
@@ -102,7 +110,6 @@ pub(in crate::peer) fn alert_approved_logins(
 pub(in crate::peer) fn handle_login_acknowledge(
     mut cmds      : Commands,
     mut q_peers   : Query<(
-        &mut PeerState,
         &mut PeerLoginFlow,
         &AccountProfile,
         &CharacterId,
@@ -111,7 +118,8 @@ pub(in crate::peer) fn handle_login_acknowledge(
         &ViewDist,
         Has<ReducedDebugInfo>,
         Has<NoRespawnScreen>,
-        &GameMode
+        &GameMode,
+        &mut CharacterVisibility
     ), (With<PeerAddress>,)>,
     mut er_packet : EventReader<PacketReceived>,
     mut ew_packet : EventWriter<SendPacket>,
@@ -123,7 +131,6 @@ pub(in crate::peer) fn handle_login_acknowledge(
             C2SLoginFinishAcknowledgedPacket { }
         )) = e.packet() {
             if let Ok((
-                mut state,
                 mut flow,
                 profile,
                 chid,
@@ -132,24 +139,24 @@ pub(in crate::peer) fn handle_login_acknowledge(
                 view_dist,
                 reduced_debug_info,
                 no_respawn_screen,
-                game_mode
+                game_mode,
+                mut vis,
             )) = q_peers.get_mut(e.entity()) {
                 let PeerLoginFlow::Acknowledge = &*flow else {
                     ew_packet.write(SendPacket::new(e.entity()).kick_login_failed("Login acknowledgement invalid at this time"));
                     continue;
                 };
-                unsafe { state.incoming_to_config_unchecked(); }
 
                 *flow = PeerLoginFlow::Done;
                 cmds.entity(e.entity()).remove::<PeerLoginFlow>();
 
-                ew_packet.write(SendPacket::new(e.entity()).with(
+                ew_packet.write(SendPacket::new(e.entity()).with_before_switch(
                     S2CConfigCustomPayloadPacket { data : ChannelData::Brand {
                         brand : Cow::Borrowed(&r_options.server_brand)
                     } }
                 ));
 
-                ew_packet.write(SendPacket::new(e.entity()).with(
+                ew_packet.write(SendPacket::new(e.entity()).with_before_switch(
                     S2CConfigKnownPacksPacket { known_packs : Cow::Borrowed(&[ KnownPack {
                         namespace : Cow::Borrowed("minecraft"),
                         id        : Cow::Borrowed("core"),
@@ -158,49 +165,45 @@ pub(in crate::peer) fn handle_login_acknowledge(
                 ));
 
                 // TODO: Make these customisable.
-                ew_packet.write(SendPacket::new(e.entity()).with(
+                ew_packet.write(SendPacket::new(e.entity()).with_before_switch(
                     S2CConfigRegistryDataPacket::from(CatVariant::VANILLA_REGISTRY_ENTRIES))
                 );
-                ew_packet.write(SendPacket::new(e.entity()).with(
+                ew_packet.write(SendPacket::new(e.entity()).with_before_switch(
                     S2CConfigRegistryDataPacket::from(ChickenVariant::VANILLA_REGISTRY_ENTRIES))
                 );
-                ew_packet.write(SendPacket::new(e.entity()).with(
+                ew_packet.write(SendPacket::new(e.entity()).with_before_switch(
                     S2CConfigRegistryDataPacket::from(CowVariant::VANILLA_REGISTRY_ENTRIES))
                 );
-                ew_packet.write(SendPacket::new(e.entity()).with(
+                ew_packet.write(SendPacket::new(e.entity()).with_before_switch(
                     S2CConfigRegistryDataPacket::from(DamageType::VANILLA_REGISTRY_ENTRIES))
                 );
-                ew_packet.write(SendPacket::new(e.entity()).with(
+                ew_packet.write(SendPacket::new(e.entity()).with_before_switch(
                     S2CConfigRegistryDataPacket::from(FrogVariant::VANILLA_REGISTRY_ENTRIES))
                 );
-                ew_packet.write(SendPacket::new(e.entity()).with(
+                ew_packet.write(SendPacket::new(e.entity()).with_before_switch(
                     S2CConfigRegistryDataPacket::from(PaintingVariant::VANILLA_REGISTRY_ENTRIES))
                 );
-                ew_packet.write(SendPacket::new(e.entity()).with(
+                ew_packet.write(SendPacket::new(e.entity()).with_before_switch(
                     S2CConfigRegistryDataPacket::from(PigVariant::VANILLA_REGISTRY_ENTRIES))
                 );
-                ew_packet.write(SendPacket::new(e.entity()).with(
+                ew_packet.write(SendPacket::new(e.entity()).with_before_switch(
                     S2CConfigRegistryDataPacket::from(WolfVariant::VANILLA_REGISTRY_ENTRIES))
                 );
-                ew_packet.write(SendPacket::new(e.entity()).with(
+                ew_packet.write(SendPacket::new(e.entity()).with_before_switch(
                     S2CConfigRegistryDataPacket::from(WolfSoundVariant::VANILLA_REGISTRY_ENTRIES))
                 );
-                ew_packet.write(SendPacket::new(e.entity()).with(
+                ew_packet.write(SendPacket::new(e.entity()).with_before_switch(
                     S2CConfigRegistryDataPacket::from(WorldgenBiome::VANILLA_REGISTRY_ENTRIES))
                 );
 
-                ew_packet.write(SendPacket::new(e.entity()).with(
+                ew_packet.write(SendPacket::new(e.entity()).with_before_switch(
                     S2CConfigRegistryDataPacket::from(&[
                         RegistryEntry { id : dimension.id.clone(), data : &dimension.dim_type }
                     ])
                 ));
 
                 ew_packet.write(SendPacket::new(e.entity()).with(
-                    S2CConfigFinishPacket
-                ));
-
-                ew_packet.write(SendPacket::new(e.entity()).with(
-                    S2CPlayLoginPacket { // TODO: Finish logging in.
+                    S2CPlayLoginPacket {
                         eid                  : *chid,
                         hardcore             : is_hardcore,
                         all_dim_ids          : Cow::Owned(vec![dimension.id.clone()]),
@@ -222,6 +225,10 @@ pub(in crate::peer) fn handle_login_acknowledge(
                         sea_level            : dimension.sea_level,
                         enforces_secure_chat : false
                     }
+                ));
+                vis.show_to(e.entity()); // Make sure the player can see themself.
+                ew_packet.write(SendPacket::new(e.entity()).with_before_switch(
+                    S2CPlayGameEventPacket::WaitForChunks
                 ));
 
                 ew_login.write(PlayerLoggedInEvent::new(

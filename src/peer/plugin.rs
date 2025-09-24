@@ -4,20 +4,18 @@ use crate::peer::{
     PeerBundle,
     reader::{ self, PeerStreamReader },
     writer::{ self, PeerStreamWriter },
-    state::{ self,
-        PeerState,
-        KEEPALIVE_TIMEOUT
-    },
+    state::{ self, PeerState },
     event,
     flow::{ self,
         login::PeerLoginFlow
     },
     keepalive::{ self, PeerKeepAlive }
 };
-use crate::game::player::login::{
+use crate::game::login::{
     PlayerRequestLoginEvent,
     PlayerApproveLoginEvent,
-    PlayerLoggedInEvent
+    PlayerLoggedInEvent,
+    PlayerLoggedOutEvent
 };
 use pipeworkmc_codec::meta::{
     AtomicPacketState,
@@ -25,7 +23,6 @@ use pipeworkmc_codec::meta::{
 };
 use pipeworkmc_data::{
     bounded_string::BoundedString,
-    character::NextCharacterId,
     client_info::ClientInfo
 };
 use core::{
@@ -49,7 +46,6 @@ use bevy_ecs::{
     system::{ Commands, Res }
 };
 use bevy_tasks::{ IoTaskPool, TaskPool };
-use bevy_time::common_conditions::on_timer;
 
 
 /// Enables the connection listener and peer manager on install.
@@ -110,6 +106,7 @@ impl Plugin for PeerManagerPlugin {
             .add_event::<PlayerRequestLoginEvent>()
             .add_event::<PlayerApproveLoginEvent>()
             .add_event::<PlayerLoggedInEvent>()
+            .add_event::<PlayerLoggedOutEvent>()
 
             .insert_resource(PeerListener::new(&*self.listen_addrs).unwrap()) // TODO: Error handler.
             .insert_resource(PeerOptions {
@@ -118,7 +115,6 @@ impl Plugin for PeerManagerPlugin {
                 compress_threshold : self.compress_threshold,
                 mojauth_enabled    : self.mojauth_enabled
             })
-            .insert_resource(NextCharacterId::default())
 
             .add_systems(Update, accept_new_peers)
             .add_systems(Update, reader::read_peer_bytes)
@@ -127,8 +123,6 @@ impl Plugin for PeerManagerPlugin {
             .add_systems(Update, writer::write_peer_bytes)
             .add_systems(Update, state::timeout_peers)
 
-            .add_systems(Update, flow::handshake::handle_intention
-                .before(reader::decode_peer_packets))
             .add_systems(Update, flow::status::respond_to_pings)
             .add_systems(Update, flow::login::start::begin_key_exchange)
             .add_systems(Update, flow::login::encrypt::finish_key_exchange_and_check_mojauth)
@@ -142,8 +136,6 @@ impl Plugin for PeerManagerPlugin {
 
             // .add_systems(Update, peer::event::config::handle_config
             //     .before(peer::decode_conn_peer_incoming))
-            // .add_systems(Update, peer::event::play::handle_keepalive
-            //     .run_if(on_timer(KEEPALIVE_TIMEOUT / 2)))
         ;
     }
 }

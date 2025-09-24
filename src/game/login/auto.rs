@@ -1,5 +1,5 @@
 use crate::peer::event::SendPacket;
-use crate::game::player::login::{
+use crate::game::login::{
     PlayerRequestLoginEvent,
     PlayerApproveLoginEvent
 };

@@ -15,12 +15,14 @@ use crate::peer::{
         SendPacket
     }
 };
-use crate::game::player::{
+use crate::game::{
     login::PlayerRequestLoginEvent,
-    data::PlayerBundle
+    character::{
+        player::PlayerCharacterBundle,
+        vis::VisibleCharacters
+    }
 };
 use pipeworkmc_data::{
-    character::NextCharacterId,
     profile::AccountProfile,
     redacted::Redacted,
     uuid::Uuid
@@ -55,7 +57,7 @@ use openssl::{
 };
 
 
-const OFFLINE_NAMESPACE : Uuid = Uuid::from_bytes([b'P', b'i', b'p', b'e', b'w', b'o', b'r', b'k', b'_', b'O', b'f', b'f', b'l', b'i', b'n', b'e']);
+const OFFLINE_NAMESPACE : Uuid = Uuid::from_bytes(*b"Pipework_Offline");
 
 
 pub(in crate::peer) fn finish_key_exchange_and_check_mojauth(
@@ -64,8 +66,7 @@ pub(in crate::peer) fn finish_key_exchange_and_check_mojauth(
     mut er_packet : EventReader<PacketReceived>,
     mut ew_packet : EventWriter<SendPacket>,
     mut ew_login  : EventWriter<PlayerRequestLoginEvent>,
-        r_options : Res<PeerOptions>,
-        r_chid    : Res<NextCharacterId>
+        r_options : Res<PeerOptions>
 ) {
     for e in er_packet.read() {
         if let C2SPackets::Login(C2SLoginPackets::EncryptResponse(
@@ -130,18 +131,18 @@ pub(in crate::peer) fn finish_key_exchange_and_check_mojauth(
             }
             // If mojauth disabled, skip to requesting approval.
             else {
-                let profile = AccountProfile {
-                    uuid     : Uuid::new_v3(&OFFLINE_NAMESPACE, declared_username.as_bytes()),
-                    username : declared_username.clone(),
-                    skin     : None
-                };
+                let profile = AccountProfile::new(
+                    Uuid::new_v3(&OFFLINE_NAMESPACE, declared_username.as_bytes()),
+                    declared_username.clone(),
+                    None
+                );
                 ew_login.write(PlayerRequestLoginEvent::new(
                     e.entity(), profile.uuid, profile.username.clone()
                 ));
                 cmds.entity(e.entity()).insert((
                     profile,
-                    r_chid.next(),
-                    PlayerBundle::default()
+                    PlayerCharacterBundle::default(),
+                    VisibleCharacters::default()
                 ));
                 *flow = PeerLoginFlow::Approval;
             }

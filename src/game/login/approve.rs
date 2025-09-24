@@ -1,4 +1,4 @@
-use crate::game::player::login::PlayerRequestLoginEvent;
+use crate::game::login::PlayerRequestLoginEvent;
 use bevy_ecs::{
     entity::Entity,
     event::Event

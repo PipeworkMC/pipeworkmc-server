@@ -3,12 +3,14 @@ use crate::peer::{
     PeerAddress,
     PeerOptions
 };
-use crate::game::player::{
+use crate::game::{
     login::PlayerRequestLoginEvent,
-    data::PlayerBundle
+    character::{
+        player::PlayerCharacterBundle,
+        vis::VisibleCharacters
+    }
 };
 use crate::ecs::ParallelEventWriter;
-use pipeworkmc_data::character::NextCharacterId;
 use bevy_ecs::{
     entity::Entity,
     query::With,
@@ -28,8 +30,7 @@ pub(super) use uri::*;
 pub(in crate::peer) fn poll_mojauth_tasks(
         pcmds    : ParallelCommands,
     mut q_peers  : Query<(Entity, &mut PeerLoginFlow,), (With<PeerAddress>,)>,
-        ew_login : ParallelEventWriter<PlayerRequestLoginEvent>,
-        r_chid   : Res<NextCharacterId>
+        ew_login : ParallelEventWriter<PlayerRequestLoginEvent>
 ) {
     q_peers.par_iter_mut().for_each(|(entity, mut flow,)| {
         if let PeerLoginFlow::Mojauth { task } = &mut*flow
@@ -44,8 +45,8 @@ pub(in crate::peer) fn poll_mojauth_tasks(
                         cmds.entity(entity)
                             .insert((
                                 profile,
-                                r_chid.next(),
-                                PlayerBundle::default()
+                                PlayerCharacterBundle::default(),
+                                VisibleCharacters::default()
                             ));
                     });
                     *flow = PeerLoginFlow::Approval;

@@ -18,10 +18,11 @@ pub(in crate::peer) fn timeout_peers(
         ew_packet : ParallelEventWriter<SendPacket>
 ) {
     q_peers.par_iter_mut().for_each(|(entity, state,)| {
-        if let Some(expires) = state.expires {
-            if (Instant::now() >= expires) {
-                ew_packet.write(SendPacket::new(entity).kick_timeout());
-            }
+        if (! state.disconnecting())
+            && let Some(expires) = state.expires
+            && (Instant::now() >= expires)
+        {
+            ew_packet.write(SendPacket::new(entity).kick_timeout());
         }
     });
 }

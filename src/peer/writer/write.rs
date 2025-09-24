@@ -3,8 +3,14 @@ use crate::peer::{
     writer::PeerStreamWriter,
     state::PeerState
 };
+use crate::game::login::PlayerLoggedOutEvent;
 use crate::util::VecDequeExt;
-use std::io::{ self, Write };
+use crate::ecs::ParallelEventWriter;
+use pipeworkmc_data::profile::AccountProfile;
+use std::{
+    io::{ self, Write },
+    net::Shutdown
+};
 use bevy_ecs::{
     entity::Entity,
     query::With,
@@ -19,19 +25,22 @@ const WRITE_BYTES_PER_CYCLE : usize = 256;
 
 
 pub(in crate::peer) fn write_peer_bytes(
-        pcmds   : ParallelCommands,
-    mut q_peers : Query<(Entity, &mut PeerStreamWriter, &PeerState), (With<PeerAddress>,)>
+        pcmds     : ParallelCommands,
+    mut q_peers   : Query<(Entity, &mut PeerStreamWriter, &PeerState, &AccountProfile), (With<PeerAddress>,)>,
+        ew_logout : ParallelEventWriter<PlayerLoggedOutEvent>
 ) {
-    q_peers.par_iter_mut().for_each(|(entity, mut writer, state,)| {
+    q_peers.par_iter_mut().for_each(|(entity, mut writer, state, profile,)| {
         let writer = &mut*writer;
 
         let (slice0, slice1,) = writer.bytes_to_write.as_slices();
         let mut outgoing_slice = (
             if (! slice0.is_empty()) { slice0 }
             else if (! slice1.is_empty()) { slice1 }
-            else { // All queued bytes have been sent.
+            else { // All queued bytes have been sent. Forcibly disconnect the peer.
                 if (state.disconnecting()) {
+                    _ = writer.stream.shutdown(Shutdown::Both);
                     pcmds.command_scope(|mut cmds| cmds.entity(entity).despawn());
+                    ew_logout.write(PlayerLoggedOutEvent::new(entity, profile.uuid, profile.username.clone()));
                 }
                 return;
             }
@@ -53,6 +62,5 @@ pub(in crate::peer) fn write_peer_bytes(
             Err(err) if (err.kind() == io::ErrorKind::WouldBlock) => { },
             Err(err) => panic!("{err}") // TODO: Error handler.
         }
-        // TODO: Kick if peer packet queue builds up too much.
     });
 }

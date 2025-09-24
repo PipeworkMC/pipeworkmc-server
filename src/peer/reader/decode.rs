@@ -23,10 +23,22 @@ use pipeworkmc_data::varint::{
 };
 use pipeworkmc_packet::c2s::{
     C2SPackets,
-    handshake::C2SHandshakePackets,
+    handshake::{
+        C2SHandshakePackets,
+        intention::{
+            C2SHandshakeIntentionPacket,
+            Intention
+        }
+    },
     status::C2SStatusPackets,
-    login::C2SLoginPackets,
-    config::C2SConfigPackets,
+    login::{
+        C2SLoginPackets,
+        finish_acknowledged::C2SLoginFinishAcknowledgedPacket
+    },
+    config::{
+        C2SConfigPackets,
+        finish_acknowledged::C2SConfigFinishAcknowledgedPacket
+    },
     play::C2SPlayPackets
 };
 use bevy_ecs::{
@@ -37,11 +49,11 @@ use bevy_ecs::{
 
 
 pub(in crate::peer) fn decode_peer_packets(
-    mut q_peers     : Query<(Entity, &mut PeerStreamReader, &PeerState), (With<PeerAddress>,)>,
+    mut q_peers     : Query<(Entity, &mut PeerStreamReader, &mut PeerState), (With<PeerAddress>,)>,
         ew_received : ParallelEventWriter<PacketReceived>,
         ew_send     : ParallelEventWriter<SendPacket>
 ) {
-    q_peers.par_iter_mut().for_each(|(entity, mut reader, state)| {
+    q_peers.par_iter_mut().for_each(|(entity, mut reader, mut state)| {
         if (state.disconnecting()) { return; }
 
         // Get or try to decode next packet size.
@@ -72,26 +84,49 @@ pub(in crate::peer) fn decode_peer_packets(
             let mut buf = DecodeBuf::from(&*buf);
             // TODO: Decompress
             match (state.incoming()) {
+
                 PacketState::Handshake => { match (C2SHandshakePackets::decode_prefixed(&mut buf)) {
-                    Ok(packet) => { ew_received.write(PacketReceived::new(entity, C2SPackets::Handshake(packet))); },
+                    Ok(packet) => {
+                        let C2SHandshakePackets::Intention(C2SHandshakeIntentionPacket { intent, .. }) = &packet;
+                        match (intent) {
+                            Intention::Status       => { state.to_status(); },
+                            Intention::Login { .. } => { state.to_login(); }
+                        }
+                        ew_received.write(PacketReceived::new(entity, C2SPackets::Handshake(packet)));
+                    },
                     Err(err)   => { ew_send.write(SendPacket::new(entity).kick_packet_error(format!("handshake {err}"))); }
                 } },
+
                 PacketState::Status => { match (C2SStatusPackets::decode_prefixed(&mut buf)) {
                     Ok(packet) => { ew_received.write(PacketReceived::new(entity, C2SPackets::Status(packet))); },
                     Err(err)   => { ew_send.write(SendPacket::new(entity).kick_packet_error(format!("status {err}"))); }
                 } },
+
                 PacketState::Login => { match (C2SLoginPackets::decode_prefixed(&mut buf)) {
-                    Ok(packet) => { ew_received.write(PacketReceived::new(entity, C2SPackets::Login(packet))); },
+                    Ok(packet) => {
+                        if let C2SLoginPackets::FinishAcknowledged(C2SLoginFinishAcknowledgedPacket { }) = packet {
+                            state.incoming_to_config();
+                        }
+                        ew_received.write(PacketReceived::new(entity, C2SPackets::Login(packet)));
+                    },
                     Err(err)   => { ew_send.write(SendPacket::new(entity).kick_packet_error(format!("login {err}"))); }
                 } },
+
                 PacketState::Config => { match (C2SConfigPackets::decode_prefixed(&mut buf)) {
-                    Ok(packet) => { ew_received.write(PacketReceived::new(entity, C2SPackets::Config(packet))); },
+                    Ok(packet) => {
+                        if let C2SConfigPackets::FinishAcknowledged(C2SConfigFinishAcknowledgedPacket { }) = packet {
+                            state.incoming_to_play();
+                        }
+                        ew_received.write(PacketReceived::new(entity, C2SPackets::Config(packet)));
+                    },
                     Err(err)   => { ew_send.write(SendPacket::new(entity).kick_packet_error(format!("config {err}"))); }
                 } },
+
                 PacketState::Play => { match (C2SPlayPackets::decode_prefixed(&mut buf)) {
                     Ok(packet) => { ew_received.write(PacketReceived::new(entity, C2SPackets::Play(packet))); },
                     Err(err)   => { ew_send.write(SendPacket::new(entity).kick_packet_error(format!("play {err}"))); }
                 } }
+
             };
         }
 

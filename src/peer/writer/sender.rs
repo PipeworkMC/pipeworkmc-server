@@ -3,6 +3,7 @@ use crate::peer::{
     writer::PeerStreamWriter,
     event::SendPacket
 };
+use pipeworkmc_codec::meta::PacketState;
 use pipeworkmc_data::text::{
     Text,
     TextComponent,
@@ -39,13 +40,15 @@ where
     Self : Sized
 {
 
+    fn with_before_switch<'l, T>(self, packet : T) -> Self
+    where
+        T : Into<S2CPackets<'l>>;
+
     fn with<'l, T>(self, packet : T) -> Self
     where
         T : Into<S2CPackets<'l>>;
 
-    fn with_nochange<'l, T>(self, packet : T) -> Self
-    where
-        T : Into<S2CPackets<'l>>;
+    fn with_switch_state(self, state : PacketState, skip_intermediate : bool) -> Self;
 
     #[track_caller]
     fn kick<'l, S>(self, reason : S) -> Self
@@ -53,10 +56,11 @@ where
         S : Into<&'l Text>
     {
         let reason = reason.into();
+        println!("{reason}");
         self
-            .with_nochange(S2CLoginDisconnectPacket::from(reason))
-            .with_nochange(S2CConfigDisconnectPacket::from(reason))
-            .with_nochange(S2CPlayDisconnectPacket::from(reason))
+            .with_before_switch(S2CLoginDisconnectPacket::from(reason))
+            .with_before_switch(S2CConfigDisconnectPacket::from(reason))
+            .with_before_switch(S2CPlayDisconnectPacket::from(reason))
     }
 
     #[track_caller]

@@ -44,8 +44,6 @@ impl PeerState {
 
 }
 
-pub(in crate::peer) const KEEPALIVE_TIMEOUT : Duration = Duration::from_secs(5);
-
 impl PeerState {
 
     pub(in crate::peer) unsafe fn new(
@@ -58,20 +56,25 @@ impl PeerState {
         disconnecting
     } }
 
-    pub(in crate::peer) unsafe fn to_status_unchecked(&mut self) {
+    pub(in crate::peer) fn to_status(&mut self) {
         self.incoming = PacketState::Status;
         self.outgoing.store(PacketState::Status, AtomicOrdering::SeqCst);
         self.expires  = Some(Instant::now() + Duration::from_millis(500));
     }
 
-    pub(in crate::peer) unsafe fn to_login_unchecked(&mut self) {
+    pub(in crate::peer) fn to_login(&mut self) {
         self.incoming = PacketState::Login;
         self.outgoing.store(PacketState::Login, AtomicOrdering::SeqCst);
         self.expires  = Some(Instant::now() + Duration::from_millis(2500));
     }
 
-    pub (in crate::peer) unsafe fn incoming_to_config_unchecked(&mut self) {
+    pub (in crate::peer) fn incoming_to_config(&mut self) {
         self.incoming = PacketState::Config;
+        self.expires  = None;
+    }
+
+    pub (in crate::peer) fn incoming_to_play(&mut self) {
+        self.incoming = PacketState::Play;
         self.expires  = None;
     }
 

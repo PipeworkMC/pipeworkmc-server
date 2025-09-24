@@ -25,7 +25,9 @@ pub(in crate::peer) fn respond_to_pings(
 ) {
     er_packet.par_read().for_each(|event| {
         if let C2SPackets::Status(C2SStatusPackets::Ping(C2SStatusPingPacket { timestamp })) = event.packet() {
-            ew_packet.write(SendPacket::new(event.entity()).with_nochange(S2CStatusPongPacket { timestamp : *timestamp }))
+            ew_packet.write(SendPacket::new(event.entity()).with_before_switch(
+                S2CStatusPongPacket { timestamp : *timestamp })
+            );
         }
     });
 }

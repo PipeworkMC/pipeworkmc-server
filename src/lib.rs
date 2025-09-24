@@ -4,6 +4,7 @@
     never_type,
 
     // Standard library
+    map_try_insert,
     mpmc_channel
 
 )]
@@ -28,7 +29,7 @@ pub mod prelude {
             bevy_app:::ScheduleRunnerPlugin,
             bevy_time:::TimePlugin,
             crate::peer::plugin:::PeerManagerPlugin,
-            crate::game::player::login:::AutoApproveLoginsPlugin
+            crate::game::login:::AutoApproveLoginsPlugin
         }
     }
 
@@ -40,10 +41,18 @@ pub mod prelude {
             SendPacket
         }
     };
-    pub use crate::game::player::login::{
-        PlayerRequestLoginEvent,
-        PlayerApproveLoginEvent,
-        PlayerLoggedInEvent
+    pub use crate::game::{
+        character::player::{
+            PlayerCharacterBundle,
+            PlayerCharacter
+        },
+        login::{
+            AutoApproveLoginsPlugin,
+            PlayerRequestLoginEvent,
+            PlayerApproveLoginEvent,
+            PlayerLoggedInEvent,
+            PlayerLoggedOutEvent
+        }
     };
 
     pub use pipeworkmc_data::{
@@ -96,6 +105,7 @@ pub mod prelude {
             pub use bevy_time::prelude::*;
         }
     }
+    pub use bevy_app::PluginGroup as _;
 
     #[inline(always)]
     pub fn default<D>() -> D

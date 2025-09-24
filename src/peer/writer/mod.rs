@@ -3,10 +3,16 @@ use pipeworkmc_codec::{
         EncodeBuf,
         PrefixedPacketEncode
     },
-    meta::AtomicPacketState
+    meta::{
+        PacketState,
+        AtomicPacketState
+    }
 };
 use pipeworkmc_data::redacted::Redacted;
-use pipeworkmc_packet::s2c::S2CPackets;
+use pipeworkmc_packet::s2c::{
+    S2CPackets,
+    config::finish::S2CConfigFinishPacket
+};
 use crate::peer::event::SendPacket;
 use core::sync::atomic::{
     AtomicBool,
@@ -60,14 +66,51 @@ impl PeerStreamWriter {
         self.encrypter = Some(encrypter);
     }
 
-    pub fn handle_send_packet(&mut self, e : &SendPacket) {
-        let prev_state = self.outgoing_state.load(AtomicOrdering::SeqCst);
+    fn handle_send_packet(&mut self, e : &SendPacket) {
+        if (self.disconnecting.load(AtomicOrdering::Relaxed)) { return; }
 
-        if let Some(b) = e.bytes(prev_state) {
+        let old_state = self.outgoing_state.load(AtomicOrdering::SeqCst);
+        println!("sending packet from {}:{}:{} handshake={:?} status={:?} login={:?} config={:?} play={:?} {old_state:?}",
+            e.sent_by().file(), e.sent_by().line(), e.sent_by().column(),
+            e.before_switch(PacketState::Handshake).is_some(),
+            e.before_switch(PacketState::Status).is_some(),
+            e.before_switch(PacketState::Login).is_some(),
+            e.before_switch(PacketState::Config).is_some(),
+            e.before_switch(PacketState::Play).is_some()
+        );
+        if let Some(b) = e.before_switch(old_state) {
             self.bytes_to_write.extend(b);
-        } else if let Some(switch_state) = e.switch_state() {
-            todo!("switch state from {prev_state:?} to {switch_state:?}");
-            if let Some(b) = e.bytes(switch_state) {
+        }
+
+        if let Some((new_state, b, skip_intermediate,)) = e.after_switch() {
+            if (skip_intermediate) {
+                self.outgoing_state.store(new_state, AtomicOrdering::SeqCst);
+            } else {
+                match ((old_state, new_state,)) {
+                    (PacketState::Handshake, PacketState::Handshake, ) => { },
+                    (PacketState::Status,    PacketState::Status,    ) => { },
+                    (PacketState::Login,     PacketState::Login,     ) => { },
+                    (PacketState::Config,    PacketState::Config,    ) => { },
+                    (PacketState::Play,      PacketState::Play,      ) => { },
+                    (PacketState::Config,    PacketState::Play,      ) => {
+                        let     packet = S2CConfigFinishPacket;
+                        let mut buf    = EncodeBuf::new_len_prefixed(packet.encode_prefixed_len());
+                        unsafe { packet.encode_prefixed(&mut buf); }
+                        self.bytes_to_write.extend(unsafe { buf.into_inner() });
+                        self.outgoing_state.store(PacketState::Play, AtomicOrdering::SeqCst);
+                    }
+                    _ => {
+                        #[cfg(not(debug_assertions))]
+                        unreachable!("impossible switch state from {prev_state:?} to {switch_state:?}");
+                        #[cfg(debug_assertions)]
+                        {
+                            let src = e.sent_by();
+                            unreachable!("impossible switch state from {old_state:?} to {new_state:?} sent by {}:{}:{}", src.file(), src.line(), src.column());
+                        }
+                    }
+                }
+            }
+            if let Some(b) = b {
                 self.bytes_to_write.extend(b);
             }
         }
@@ -82,30 +125,24 @@ impl PeerStreamWriter {
 
 impl PacketSender for &mut PeerStreamWriter {
 
+    fn with_before_switch<'l, T>(self, packet : T) -> Self
+    where
+        T : Into<S2CPackets<'l>>
+    {
+        self.handle_send_packet(&SendPacket::new(Entity::PLACEHOLDER).with_before_switch(packet));
+        self
+    }
+
     fn with<'l, T>(self, packet : T) -> Self
     where
         T : Into<S2CPackets<'l>>
     {
-        if (self.disconnecting.load(AtomicOrdering::Relaxed)) { return self; }
         self.handle_send_packet(&SendPacket::new(Entity::PLACEHOLDER).with(packet));
         self
     }
 
-    #[track_caller]
-    fn with_nochange<'l, T>(self, packet : T) -> Self
-    where
-        T : Into<S2CPackets<'l>>
-    {
-        if (self.disconnecting.load(AtomicOrdering::Relaxed)) { return self; }
-        let packet            = packet.into();
-        let (state, _, kick,) = packet.meta();
-        if (state != self.outgoing_state.load(AtomicOrdering::SeqCst)) {
-            panic!("can not send {state:?}");
-        }
-        if (kick) { self.disconnecting.store(true, AtomicOrdering::Relaxed); }
-        let mut buf = EncodeBuf::new(packet.encode_prefixed_len());
-        unsafe { packet.encode_prefixed(&mut buf); }
-        self.bytes_to_write.extend(buf.as_slice());
+    fn with_switch_state(self, state : PacketState, skip_intermediate : bool) -> Self {
+        self.handle_send_packet(&SendPacket::new(Entity::PLACEHOLDER).with_switch_state(state, skip_intermediate));
         self
     }
 
