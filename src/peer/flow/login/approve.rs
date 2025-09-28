@@ -210,26 +210,26 @@ pub(in crate::peer) fn handle_login_acknowledge(
             // Finalise login.
             ew_packet.write(SendPacket::new(e.entity).with(
                 S2CPlayLoginPacket {
-                    eid                  : *chid,
-                    hardcore             : is_hardcore,
-                    all_dim_ids          : Cow::Owned(vec![dimension.id.clone()]),
-                    max_players          : 0,
-                    view_dist            : view_dist.as_u8() as u32,
-                    sim_dist             : 32,
+                    eid                   : *chid,
+                    hardcore              : is_hardcore,
+                    all_dim_ids           : Cow::Owned(vec![dimension.id.clone()]),
+                    max_players           : 0,
+                    view_dist             : view_dist.as_u8() as u32,
+                    sim_dist              : 32,
                     reduced_debug_info,
-                    respawn_screen       : ! no_respawn_screen,
-                    limited_crafting     : true,
-                    dim_type             : 0,
-                    dim_id               : dimension.id.clone(),
-                    hashed_seed          : dimension.hashed_seed,
-                    game_mode            : *game_mode,
-                    prev_game_mode       : None,
-                    is_debug_world       : dimension.is_debug,
-                    is_flat_world        : dimension.is_flat,
-                    death_location       : None,
-                    portal_cooldown      : 0,
-                    sea_level            : dimension.sea_level,
-                    enforces_secure_chat : false
+                    respawn_screen        : ! no_respawn_screen,
+                    limited_crafting      : true,
+                    dim_type              : 0,
+                    dim_id                : dimension.id.clone(),
+                    hashed_seed           : dimension.hashed_seed,
+                    game_mode             : *game_mode,
+                    prev_game_mode        : None,
+                    is_debug_world        : dimension.is_debug,
+                    is_flat_world         : dimension.is_flat,
+                    death_location        : None,
+                    portal_cooldown       : 0,
+                    sea_level             : dimension.sea_level,
+                    requires_chat_signing : false
                 }
             ));
             vis.show_to(e.entity); // Make sure the player can see themself.
