@@ -43,7 +43,7 @@ fn login(
     mut er_loggedin : EventReader<PlayerLoggedInEvent>
 ) {
     for e in er_loggedin.read() {
-        println!("Player {} logged in as {} ({}).", e.peer, e.username, e.uuid);
+        println!("Player {} {} ({}) logged in.", e.peer, e.username, e.uuid);
     }
 }
 
@@ -51,6 +51,6 @@ fn logout(
     mut er_loggedout : EventReader<PlayerLoggedOutEvent>
 ) {
     for e in er_loggedout.read() {
-        println!("Player {} logged out as {} ({}).", e.peer, e.username, e.uuid);
+        println!("Player {} {} ({}) logged out.", e.peer, e.username, e.uuid);
     }
 }

@@ -70,14 +70,14 @@ impl PeerStreamWriter {
         if (self.disconnecting.load(AtomicOrdering::Relaxed)) { return; }
 
         let old_state = self.outgoing_state.load(AtomicOrdering::SeqCst);
-        println!("sending packet from {}:{}:{} handshake={:?} status={:?} login={:?} config={:?} play={:?} {old_state:?}", // TODO: Remove
-            e.sent_by().file(), e.sent_by().line(), e.sent_by().column(),
-            e.before_switch(PacketState::Handshake).is_some(),
-            e.before_switch(PacketState::Status).is_some(),
-            e.before_switch(PacketState::Login).is_some(),
-            e.before_switch(PacketState::Config).is_some(),
-            e.before_switch(PacketState::Play).is_some()
-        );
+        // println!("sending packet from {}:{}:{} handshake={:?} status={:?} login={:?} config={:?} play={:?} {old_state:?}", // TODO: Remove
+        //     e.sent_by().file(), e.sent_by().line(), e.sent_by().column(),
+        //     e.before_switch(PacketState::Handshake).is_some(),
+        //     e.before_switch(PacketState::Status).is_some(),
+        //     e.before_switch(PacketState::Login).is_some(),
+        //     e.before_switch(PacketState::Config).is_some(),
+        //     e.before_switch(PacketState::Play).is_some()
+        // );
         if let Some(b) = e.before_switch(old_state) {
             self.bytes_to_write.extend(b);
         }
