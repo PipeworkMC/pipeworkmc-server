@@ -1,6 +1,6 @@
 use super::PeerLoginFlow;
 use crate::peer::{
-    PeerAddress,
+    Peer,
     PeerOptions
 };
 use crate::game::{
@@ -27,9 +27,10 @@ mod uri;
 pub(super) use uri::*;
 
 
+/// Polls running mojauth tasks, requesting login approval once completed successfully.
 pub(in crate::peer) fn poll_mojauth_tasks(
         pcmds    : ParallelCommands,
-    mut q_peers  : Query<(Entity, &mut PeerLoginFlow,), (With<PeerAddress>,)>,
+    mut q_peers  : Query<(Entity, &mut PeerLoginFlow,), (With<Peer>,)>,
         ew_login : ParallelEventWriter<PlayerRequestLoginEvent>
 ) {
     q_peers.par_iter_mut().for_each(|(entity, mut flow,)| {
@@ -58,6 +59,7 @@ pub(in crate::peer) fn poll_mojauth_tasks(
 }
 
 
+/// Returns `true` if mojauth is enabled.
 pub(in crate::peer) fn is_mojauth_enabled(
     r_options : Res<PeerOptions>
 ) -> bool { r_options.mojauth_enabled }

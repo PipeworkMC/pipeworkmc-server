@@ -13,6 +13,7 @@ use bevy_ecs::{
 };
 
 
+/// An [`Event`] which can be emitted to send a packet to a peer.
 #[derive(Event)]
 pub struct SendPacket {
     entity        : Entity,
@@ -28,27 +29,34 @@ pub struct SendPacket {
 
 impl SendPacket {
 
+    /// The [`Entity`] of the peer to send the packet to.
     #[inline(always)]
     pub fn entity(&self) -> Entity { self.entity }
 
+    /// Bytes of the packet to send before switching state.
     pub fn before_switch(&self, state : PacketState) -> Option<&[u8]> {
         match (state) {
             PacketState::Handshake => None,
-            PacketState::Status    => self.status_before.as_ref().map(|b| &**b),
-            PacketState::Login     => self.login_before.as_ref().map(|b| &**b),
-            PacketState::Config    => self.config_before.as_ref().map(|b| &**b),
-            PacketState::Play      => self.play_before.as_ref().map(|b| &**b)
+            PacketState::Status    => self.status_before.as_deref(),
+            PacketState::Login     => self.login_before.as_deref(),
+            PacketState::Config    => self.config_before.as_deref(),
+            PacketState::Play      => self.play_before.as_deref()
         }
     }
 
+    /// State and bytes of the packet to send after switching state.
     #[inline]
     pub fn after_switch(&self) -> Option<(PacketState, Option<&[u8]>, bool,)> {
         self.switch_state.as_ref().map(|(new_state, b, skip_intermediate,)| (*new_state, b.as_ref().map(|b| &**b), *skip_intermediate,))
     }
 
+    /// Whether this is a packet which will kick the peer.
     #[inline(always)]
     pub fn is_kick(&self) -> bool { self.kick.is_some_and(|k| k) }
 
+    /// The [`Location`](core::panic:Location) where this [`SendPacket`] was created.
+    ///
+    /// Only available with `#[cfg(debug_assertions)]`.
     #[cfg(debug_assertions)]
     #[inline(always)]
     pub fn sent_by(&self) -> &'static core::panic::Location<'static> { self.sent_by }
@@ -57,6 +65,7 @@ impl SendPacket {
 
 impl SendPacket {
 
+    /// Create a new [`SendPacket`] event which can be sent to a peer.
     #[cfg_attr(debug_assertions, track_caller)]
     pub fn new(entity : Entity) -> Self { Self {
         entity,
@@ -99,7 +108,9 @@ impl PacketSender for &mut SendPacket {
         self.kick = Some(kick);
 
         let mut buf = EncodeBuf::new_len_prefixed(packet.encode_prefixed_len());
+        // SAFETY: `buf` has space for `packet.encode_prefixed_len()` bytes.
         unsafe { packet.encode_prefixed(&mut buf); }
+        // SAFETY: `packet.encode_prefixed()` is required to fill the entire buffer.
         *slot = Some(unsafe { buf.into_inner() });
 
         self

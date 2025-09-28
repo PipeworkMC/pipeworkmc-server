@@ -5,6 +5,7 @@ use bevy_ecs::{
 };
 
 
+/// An [`Event`] which can be emitted to approve a player login.
 #[derive(Event, Debug)]
 pub struct PlayerApproveLoginEvent {
     entity : Entity
@@ -18,6 +19,7 @@ impl PlayerApproveLoginEvent {
 }
 
 impl PlayerApproveLoginEvent {
+    /// The [`Entity`] of the peer to approve.
     #[inline(always)]
     pub fn entity(&self) -> Entity { self.entity }
 }
@@ -25,7 +27,7 @@ impl PlayerApproveLoginEvent {
 impl From<&PlayerRequestLoginEvent> for PlayerApproveLoginEvent {
     #[inline]
     fn from(value : &PlayerRequestLoginEvent) -> Self {
-        Self::new(value.peer())
+        Self::new(value.peer)
     }
 }
 impl From<PlayerRequestLoginEvent> for PlayerApproveLoginEvent {

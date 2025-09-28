@@ -1,5 +1,5 @@
 use crate::peer::{
-    PeerAddress,
+    Peer,
     writer::PacketSender,
     event::{
         SendPacket,
@@ -69,7 +69,7 @@ impl PeerKeepAlive {
 
 
 pub(in crate::peer) fn handle_keepalive_expiration(
-    mut q_peers   : Query<(Entity, &mut PeerKeepAlive,), (With<PeerAddress>,)>,
+    mut q_peers   : Query<(Entity, &mut PeerKeepAlive,), (With<Peer>,)>,
         ew_packet : ParallelEventWriter<SendPacket>
 ) {
     q_peers.par_iter_mut().for_each(|(entity, mut keepalive,)| {
@@ -95,16 +95,15 @@ pub(in crate::peer) fn handle_keepalive_expiration(
 
 
 pub(in crate::peer) fn handle_keepalive_response(
-    mut q_peers   : Query<(&mut PeerKeepAlive,), (With<PeerAddress>,)>,
+    mut q_peers   : Query<(&mut PeerKeepAlive,), (With<Peer>,)>,
     mut er_packet : EventReader<PacketReceived>
 ) {
     for e in er_packet.read() {
-        if let C2SPackets::Config(C2SConfigPackets::KeepAlive(C2SConfigKeepAlivePacket { .. }))
-            | C2SPackets::Play(C2SPlayPackets::KeepAlive(C2SPlayKeepAlivePacket { .. }))
-        = e.packet() {
-            if let Ok((mut keepalive,)) = q_peers.get_mut(e.entity()) {
-                keepalive.received_c2s();
-            }
-        }
+        if
+            let C2SPackets::Config(C2SConfigPackets::KeepAlive(C2SConfigKeepAlivePacket { .. }))
+                | C2SPackets::Play(C2SPlayPackets::KeepAlive(C2SPlayKeepAlivePacket { .. }))
+                = &e.packet
+            && let Ok((mut keepalive,)) = q_peers.get_mut(e.entity)
+        { keepalive.received_c2s(); }
     }
 }

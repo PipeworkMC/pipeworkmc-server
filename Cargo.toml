@@ -5,9 +5,10 @@ edition = "2024"
 
 [lints.rust]
 unused_parens = "allow"
-# TODO: missing_docs = "deny"
+missing_docs  = "deny"
 [lints.clippy]
-missing_safety_doc = "allow" # TODO: Remove
+double_parens   = "allow"
+type_complexity = "allow"
 
 
 [dependencies.pipeworkmc-codec]

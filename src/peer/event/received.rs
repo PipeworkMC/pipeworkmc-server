@@ -6,27 +6,16 @@ use bevy_ecs::{
 };
 
 
+/// An [`Event`] which is emitted when the server receives a packet from a peer.
 #[derive(Event)]
+#[non_exhaustive]
 pub struct PacketReceived {
-    entity    : Entity,
-    packet    : C2SPackets,
-    timestamp : Instant
-}
-
-impl PacketReceived {
-
-    #[inline(always)]
-    pub fn entity(&self) -> Entity { self.entity }
-
-    #[inline(always)]
-    pub fn packet(&self) -> &C2SPackets { &self.packet }
-
-    #[inline(always)]
-    pub fn take_packet(self) -> C2SPackets { self.packet }
-
-    #[inline(always)]
-    pub fn timestamp(&self) -> Instant { self.timestamp }
-
+    /// The [`Entity`] of the peer which sent the packet.
+    pub entity    : Entity,
+    /// The packet which was received.
+    pub packet    : C2SPackets,
+    /// The timestamp when the packet was received.
+    pub timestamp : Instant
 }
 
 impl PacketReceived {

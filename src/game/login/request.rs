@@ -8,28 +8,21 @@ use bevy_ecs::{
 };
 
 
+/// An [`Event`] which is emitted when a player attempts to log in.
 #[derive(Event, Debug)]
+#[non_exhaustive]
 pub struct PlayerRequestLoginEvent {
-    peer     : Entity,
-    uuid     : Uuid,
-    username : BoundedString<16>
+    /// The [`Entity`] of the peer who is trying to log in.
+    pub peer     : Entity,
+    /// The UUID of the player who is trying to log in.
+    pub uuid     : Uuid,
+    /// The username of the player who is trying to log in.
+    pub username : BoundedString<16>
 }
 
 impl PlayerRequestLoginEvent {
     #[inline(always)]
-    pub(crate) fn new(peer : Entity, uuid : Uuid, username : BoundedString<16>) -> Self { Self {
-        peer, uuid, username
-    } }
-}
-
-impl PlayerRequestLoginEvent {
-
-    #[inline(always)]
-    pub fn peer(&self) -> Entity { self.peer }
-
-    #[inline(always)]
-    pub fn uuid(&self) -> Uuid { self.uuid }
-    #[inline(always)]
-    pub fn username(&self) -> &BoundedString<16> { &self.username }
-
+    pub(crate) fn new(peer : Entity, uuid : Uuid, username : BoundedString<16>) -> Self {
+        Self { peer, uuid, username }
+    }
 }

@@ -1,6 +1,6 @@
 use crate::peer::{
     PeerOptions,
-    PeerAddress,
+    Peer,
     PeerBundle,
     reader::{ self, PeerStreamReader },
     writer::{ self, PeerStreamWriter },
@@ -23,7 +23,8 @@ use pipeworkmc_codec::meta::{
 };
 use pipeworkmc_data::{
     bounded_string::BoundedString,
-    client_info::ClientInfo
+    client_info::ClientInfo,
+    redacted::Redacted
 };
 use core::{
     net::{
@@ -57,8 +58,10 @@ pub struct PeerManagerPlugin {
     /// The default port the game uses is `25565`.
     pub listen_addrs       : Cow<'static, [SocketAddr]>,
 
+    /// The server ID to use in the hash when authenticating.
     pub server_id          : BoundedString<20>,
 
+    /// The server brand which is shown in the client F3 debug screen.
     pub server_brand       : String,
 
     /// How large packets need to be before being compressed.
@@ -168,9 +171,9 @@ fn accept_new_peers(
             let read_stream    = write_stream.try_clone().unwrap(); // TODO: Error handler.
             let outgoing_state = Arc::new(AtomicPacketState::new(PacketState::Handshake));
             let disconnecting  = Arc::new(AtomicBool::new(false));
-            let state          = unsafe { PeerState::new(Arc::clone(&outgoing_state), Arc::clone(&disconnecting)) };
+            let state          = PeerState::new(Arc::clone(&outgoing_state), Arc::clone(&disconnecting));
             cmds.spawn(PeerBundle {
-                address    : PeerAddress::from(addr),
+                peer       : Peer { remote_addr : Redacted::from(addr) },
                 reader     : PeerStreamReader::new(read_stream),
                 writer     : PeerStreamWriter::new(write_stream, outgoing_state, disconnecting),
                 state,

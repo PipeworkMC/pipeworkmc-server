@@ -1,10 +1,12 @@
-use crate::peer::event::SendPacket;
+use crate::peer::{
+    PacketSender,
+    SendPacket
+};
 use crate::game::login::{
     PlayerRequestLoginEvent,
     PlayerApproveLoginEvent
 };
 use crate::ecs::ParallelEventWriter;
-use crate::peer::writer::PacketSender;
 use pipeworkmc_data::profile::AccountProfile;
 use bevy_app::{ App, Plugin, Update };
 use bevy_ecs::{
@@ -14,16 +16,22 @@ use bevy_ecs::{
 };
 
 
+/// A [`Plugin`] which automatically handles duplicate logins on the server.
 #[derive(Default)]
 pub struct AutoApproveLoginsPlugin {
+    /// How to handle duplicate logins on the server.
     pub duplicate_strategy : DuplicateStrategy
 }
 
+/// How to handle duplicate logins on the server.
 #[derive(Default)]
 pub enum DuplicateStrategy {
+    /// Allow duplicate UUIDs.
     Allow,
+    /// When a new player with the same UUID as an existing player joins, kick the older connection.
     #[default]
     KickOld,
+    /// When a new player with the same UUID as an existing player joins, kick the newer connection.
     RejectNew
 }
 
@@ -43,6 +51,7 @@ impl Plugin for AutoApproveLoginsPlugin {
 }
 
 
+/// Unconditionally approves login requests.
 fn allow_duplicates(
     mut er_request : EventReader<PlayerRequestLoginEvent>,
         ew_approve : ParallelEventWriter<PlayerApproveLoginEvent>
@@ -52,6 +61,7 @@ fn allow_duplicates(
     });
 }
 
+/// Approves login requests, kicking any existing logins with the same UUID.
 fn kick_old_duplicates(
         q_peers    : Query<(Entity, &AccountProfile)>,
     mut er_request : EventReader<PlayerRequestLoginEvent>,
@@ -60,7 +70,7 @@ fn kick_old_duplicates(
 ) {
     er_request.par_read().for_each(|e| {
         for (entity, profile,) in &q_peers {
-            if (e.peer() != entity && e.uuid() != profile.uuid) {
+            if (e.peer != entity && e.uuid != profile.uuid) {
                 ew_packet.write(SendPacket::new(entity).kick_duplicate_login());
                 return;
             }
@@ -69,6 +79,7 @@ fn kick_old_duplicates(
     });
 }
 
+/// Approves login requests, as long as no existing logins have the same UUID.
 fn reject_new_duplicates(
         q_peers    : Query<(Entity, &AccountProfile)>,
     mut er_request : EventReader<PlayerRequestLoginEvent>,
@@ -76,8 +87,8 @@ fn reject_new_duplicates(
         ew_approve : ParallelEventWriter<PlayerApproveLoginEvent>
 ) {
     er_request.par_read().for_each(|e| {
-        if (q_peers.iter().any(|(entity, profile,)| e.peer() != entity && e.uuid() == profile.uuid)) {
-            ew_packet.write(SendPacket::new(e.peer()).kick_name_taken());
+        if (q_peers.iter().any(|(entity, profile,)| e.peer != entity && e.uuid == profile.uuid)) {
+            ew_packet.write(SendPacket::new(e.peer).kick_name_taken());
         } else {
             ew_approve.write(PlayerApproveLoginEvent::from(e));
         }

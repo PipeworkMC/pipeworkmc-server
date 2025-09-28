@@ -38,7 +38,7 @@ pub use sender::*;
 
 
 #[derive(Component)]
-pub struct PeerStreamWriter {
+pub(in crate::peer) struct PeerStreamWriter {
     stream         : TcpStream,
     encrypter      : Option<Redacted<Crypter>>,
     bytes_to_write : VecDeque<u8>,
@@ -70,7 +70,7 @@ impl PeerStreamWriter {
         if (self.disconnecting.load(AtomicOrdering::Relaxed)) { return; }
 
         let old_state = self.outgoing_state.load(AtomicOrdering::SeqCst);
-        println!("sending packet from {}:{}:{} handshake={:?} status={:?} login={:?} config={:?} play={:?} {old_state:?}",
+        println!("sending packet from {}:{}:{} handshake={:?} status={:?} login={:?} config={:?} play={:?} {old_state:?}", // TODO: Remove
             e.sent_by().file(), e.sent_by().line(), e.sent_by().column(),
             e.before_switch(PacketState::Handshake).is_some(),
             e.before_switch(PacketState::Status).is_some(),
@@ -95,7 +95,9 @@ impl PeerStreamWriter {
                     (PacketState::Config,    PacketState::Play,      ) => {
                         let     packet = S2CConfigFinishPacket;
                         let mut buf    = EncodeBuf::new_len_prefixed(packet.encode_prefixed_len());
+                        // SAFETY: `buf` has enough room for `packet.encode_prefixed_len()` bytes.
                         unsafe { packet.encode_prefixed(&mut buf); }
+                        // SAFETY: `packet.encode_prefixed()` is required to fill the entire buffer.
                         self.bytes_to_write.extend(unsafe { buf.into_inner() });
                         self.outgoing_state.store(PacketState::Play, AtomicOrdering::SeqCst);
                     }

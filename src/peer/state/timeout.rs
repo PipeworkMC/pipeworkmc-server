@@ -1,5 +1,5 @@
 use crate::peer::{
-    PeerAddress,
+    Peer,
     state::PeerState,
     writer::PacketSender,
     event::SendPacket
@@ -14,7 +14,7 @@ use bevy_ecs::{
 
 
 pub(in crate::peer) fn timeout_peers(
-    mut q_peers   : Query<(Entity, &PeerState,), (With<PeerAddress>,)>,
+    mut q_peers   : Query<(Entity, &PeerState,), (With<Peer>,)>,
         ew_packet : ParallelEventWriter<SendPacket>
 ) {
     q_peers.par_iter_mut().for_each(|(entity, state,)| {

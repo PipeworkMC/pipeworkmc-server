@@ -1,6 +1,6 @@
 use super::PeerLoginFlow;
 use crate::peer::{
-    PeerAddress,
+    Peer,
     PeerOptions,
     writer::PacketSender,
     event::{
@@ -33,8 +33,9 @@ use openssl::rsa::Rsa;
 use rand::RngCore;
 
 
+/// Responds to login start requests.
 pub(in crate::peer) fn begin_key_exchange(
-    mut q_packet  : Query<(&mut PeerLoginFlow,), (With<PeerAddress>,)>,
+    mut q_packet  : Query<(&mut PeerLoginFlow,), (With<Peer>,)>,
     mut er_packet : EventReader<PacketReceived>,
         ew_packet : ParallelEventWriter<SendPacket>,
         r_options : Res<PeerOptions>
@@ -42,20 +43,23 @@ pub(in crate::peer) fn begin_key_exchange(
     for e in er_packet.read() {
         if let C2SPackets::Login(C2SLoginPackets::Start(
             C2SLoginStartPacket { username, uuid : _ }
-        )) = e.packet()
-            && let Ok((mut flow,)) = q_packet.get_mut(e.entity())
+        )) = &e.packet
+            && let Ok((mut flow,)) = q_packet.get_mut(e.entity)
         {
             let PeerLoginFlow::Unstarted = &*flow else {
-                ew_packet.write(SendPacket::new(e.entity()).kick_login_failed("Login start invalid at this time"));
+                ew_packet.write(SendPacket::new(e.entity).kick_login_failed("Login start invalid at this time"));
                 continue;
             };
 
+            // Create a new key pair which will be used to share a secret key.
             let     private_key    = Redacted::from(Rsa::generate(2048).unwrap());
             let     public_key_der = Redacted::from(unsafe { private_key.as_ref() }.public_key_to_der().unwrap());
+            // Create a verify token which will be used to ensure that the secret key was exchanged properly.
             let mut verify_token   = [0u8; 4];
             rand::rng().fill_bytes(&mut verify_token);
 
-            ew_packet.write(SendPacket::new(e.entity()).with_before_switch(S2CLoginEncryptRequestPacket {
+            // Begin the key exchange process.
+            ew_packet.write(SendPacket::new(e.entity).with_before_switch(S2CLoginEncryptRequestPacket {
                 server_id       : r_options.server_id.clone(),
                 public_key      : Redacted::from(Cow::Owned(unsafe { public_key_der.as_ref() }.clone())),
                 verify_token,

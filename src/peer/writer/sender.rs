@@ -1,5 +1,5 @@
 use crate::peer::{
-    PeerAddress,
+    Peer,
     writer::PeerStreamWriter,
     event::SendPacket
 };
@@ -24,7 +24,7 @@ use bevy_ecs::{
 
 
 pub(in crate::peer) fn handle_send_events(
-    mut q_peers   : Query<(&mut PeerStreamWriter,), (With<PeerAddress>,)>,
+    mut q_peers   : Query<(&mut PeerStreamWriter,), (With<Peer>,)>,
     mut er_packet : EventReader<SendPacket>
 ) {
     for e in er_packet.read() {
@@ -35,34 +35,43 @@ pub(in crate::peer) fn handle_send_events(
 }
 
 
+/// A type which can be used to send packets to peers.
 pub trait PacketSender
 where
     Self : Sized
 {
 
+    /// Sends a packet without switching states.
+    ///
+    /// One packet for each state can be added.
+    ///
+    /// If the outgoing state of the peer does not match the state of this packet, it is not sent.
     fn with_before_switch<'l, T>(self, packet : T) -> Self
     where
         T : Into<S2CPackets<'l>>;
 
+    /// Sends a packet after switching state if needed.
     fn with<'l, T>(self, packet : T) -> Self
     where
         T : Into<S2CPackets<'l>>;
 
+    /// Switches the peer to the given state.
     fn with_switch_state(self, state : PacketState, skip_intermediate : bool) -> Self;
 
+    /// Sends a kick packet to the peer.
     #[track_caller]
     fn kick<'l, S>(self, reason : S) -> Self
     where
         S : Into<&'l Text>
     {
         let reason = reason.into();
-        println!("{reason}");
         self
             .with_before_switch(S2CLoginDisconnectPacket::from(reason))
             .with_before_switch(S2CConfigDisconnectPacket::from(reason))
             .with_before_switch(S2CPlayDisconnectPacket::from(reason))
     }
 
+    /// Sends a generic disconnect kick packet to the peer.
     #[track_caller]
     #[inline]
     fn kick_generic(self) -> Self {
@@ -71,6 +80,7 @@ where
         }, ..TextComponent::EMPTY } ]) })
     }
 
+    /// Sends an end of stream kick packet to the peer.
     #[track_caller]
     #[inline]
     fn kick_end_of_stream(self) -> Self {
@@ -79,6 +89,7 @@ where
         }, ..TextComponent::EMPTY } ]) })
     }
 
+    /// Sends a network protocol error kick packet to the peer.
     #[track_caller]
     #[inline]
     fn kick_packet_error<S>(self, message : S) -> Self
@@ -95,6 +106,7 @@ where
         ]) } + message))
     }
 
+    /// Sends a login error kick packet to the peer.
     #[track_caller]
     #[inline]
     fn kick_login_failed<S>(self, message : S) -> Self
@@ -106,6 +118,7 @@ where
         }, ..TextComponent::EMPTY } ]) })
     }
 
+    /// Sends a timeout kick packet to the peer.
     #[track_caller]
     #[inline]
     fn kick_timeout(self) -> Self {
@@ -114,6 +127,7 @@ where
         }, ..TextComponent::EMPTY } ]) })
     }
 
+    /// Sends a duplicate login kick packet to the peer.
     #[track_caller]
     #[inline]
     fn kick_duplicate_login(self) -> Self {
@@ -122,6 +136,7 @@ where
         }, ..TextComponent::EMPTY } ]) })
     }
 
+    /// Sends a name taken kick packet to the peer.
     #[track_caller]
     #[inline]
     fn kick_name_taken(self) -> Self {

@@ -14,6 +14,12 @@ use core::iter;
 use std::sync::mpmc;
 
 
+/// A parallel event writer.
+///
+/// Unlike [`EventWriter`](bevy_ecs::event::EventWriter), this can be used in with
+///  [`EventReader::par_read`](bevy_ecs::event::EventReader::par_read),
+///  [`Query::par_iter`](bevy_ecs::system::Query::par_iter),
+///  etc.
 pub struct ParallelEventWriter<'state, E>
 where
     E : Event
@@ -26,11 +32,13 @@ where
     E : Event
 {
 
+    /// Send an event, which can later be read by [`EventReader`](bevy_ecs::event::EventReader)s.
     #[inline]
     pub fn write(&self, event : E) {
         _ = self.sender.send(event);
     }
 
+    /// Sends multiple events all at once, which can later be read by [`EventReader`](bevy_ecs::event::EventReader)s.
     #[inline]
     pub fn write_batch(&self, events : impl IntoIterator<Item = E>) {
         for event in events {
@@ -38,6 +46,7 @@ where
         }
     }
 
+    /// Sends the default value of the event. Useful when the event is an empty struct.
     #[inline(always)]
     pub fn write_default(&self)
     where

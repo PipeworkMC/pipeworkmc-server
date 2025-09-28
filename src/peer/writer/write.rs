@@ -1,5 +1,5 @@
 use crate::peer::{
-    PeerAddress,
+    Peer,
     writer::PeerStreamWriter,
     state::PeerState
 };
@@ -24,9 +24,10 @@ use bevy_ecs::{
 const WRITE_BYTES_PER_CYCLE : usize = 256;
 
 
+/// Encrypts and writes bytes to the stream.
 pub(in crate::peer) fn write_peer_bytes(
         pcmds     : ParallelCommands,
-    mut q_peers   : Query<(Entity, &mut PeerStreamWriter, &PeerState, &AccountProfile), (With<PeerAddress>,)>,
+    mut q_peers   : Query<(Entity, &mut PeerStreamWriter, &PeerState, Option<&AccountProfile>), (With<Peer>,)>,
         ew_logout : ParallelEventWriter<PlayerLoggedOutEvent>
 ) {
     q_peers.par_iter_mut().for_each(|(entity, mut writer, state, profile,)| {
@@ -36,11 +37,14 @@ pub(in crate::peer) fn write_peer_bytes(
         let mut outgoing_slice = (
             if (! slice0.is_empty()) { slice0 }
             else if (! slice1.is_empty()) { slice1 }
-            else { // All queued bytes have been sent. Forcibly disconnect the peer.
+            else {
                 if (state.disconnecting()) {
+                    // All queued bytes have been sent. Shut down the connection.
                     _ = writer.stream.shutdown(Shutdown::Both);
                     pcmds.command_scope(|mut cmds| cmds.entity(entity).despawn());
-                    ew_logout.write(PlayerLoggedOutEvent::new(entity, profile.uuid, profile.username.clone()));
+                    if let Some(profile) = profile {
+                        ew_logout.write(PlayerLoggedOutEvent::new(entity, profile.uuid, profile.username.clone()));
+                    }
                 }
                 return;
             }
@@ -53,13 +57,17 @@ pub(in crate::peer) fn write_peer_bytes(
 
         let mut encrypted_buf = [0u8; WRITE_BYTES_PER_CYCLE + 1];
         if let Some(encrypter) = &mut writer.encrypter {
+            // SAFETY: `outgoing_slice` is never larger than `WRITE_BYTES_PER_CYCLE`.
             let count = unsafe { encrypter.as_mut().update_unchecked(outgoing_slice, &mut encrypted_buf) }.unwrap(); // TODO: Error handler.
             outgoing_slice = &encrypted_buf[0..count];
         }
 
         match (writer.stream.write(outgoing_slice)) {
+            // Some bytes were sent. Remove them from the queue.
             Ok(count) => { writer.bytes_to_write.pop_many_front(count); },
+            // No bytes were sent. Try again later.
             Err(err) if (err.kind() == io::ErrorKind::WouldBlock) => { },
+            // Some other error occured.
             Err(err) => panic!("{err}") // TODO: Error handler.
         }
     });

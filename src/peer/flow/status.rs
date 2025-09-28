@@ -19,13 +19,14 @@ use pipeworkmc_packet::{
 use bevy_ecs::event::EventReader;
 
 
+/// Automatically responds to status ping requests.
 pub(in crate::peer) fn respond_to_pings(
     mut er_packet : EventReader<PacketReceived>,
         ew_packet : ParallelEventWriter<SendPacket>
 ) {
     er_packet.par_read().for_each(|event| {
-        if let C2SPackets::Status(C2SStatusPackets::Ping(C2SStatusPingPacket { timestamp })) = event.packet() {
-            ew_packet.write(SendPacket::new(event.entity()).with_before_switch(
+        if let C2SPackets::Status(C2SStatusPackets::Ping(C2SStatusPingPacket { timestamp })) = &event.packet {
+            ew_packet.write(SendPacket::new(event.entity).with_before_switch(
                 S2CStatusPongPacket { timestamp : *timestamp })
             );
         }

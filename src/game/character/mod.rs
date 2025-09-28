@@ -1,3 +1,6 @@
+//! Character data and systems.
+
+
 use pipeworkmc_data::{
     character::{
         CharacterId,
@@ -24,32 +27,42 @@ pub use vis::CharacterVisibility;
 pub mod player;
 
 
+/// A [`Bundle`] of [`Component`]s required to create any character.
+///
+/// It is not recommended that this is used by itself.
 #[derive(Bundle, Default)]
 pub struct CharacterBundle {
-    pub eid        : CharacterId,
+    /// The networked character ID, used to track and update this character later.
+    pub eid        : CharacterId, // TODO: Get rid of character IDs here and move it to vis
+    /// The position of this character.
     pub pos        : CharacterPos,
+    /// The rotation of this character.
     pub rot        : CharacterRot,
+    /// The velocity of this character.
     pub vel        : CharacterVel,
+    /// What players this character is visible to.
     pub visibility : CharacterVisibility
 }
 
+/// A marker for all characters.
+///
+/// Can not be changed after spawning.
 #[derive(Component)]
 #[component(immutable)]
+#[non_exhaustive]
 pub struct Character {
-    ty   : CharacterType,
-    uuid : Uuid,
-    data : u32
-}
-impl Character {
-    #[inline(always)]
-    pub fn ty(&self) -> CharacterType { self.ty }
-    #[inline(always)]
-    pub fn uuid(&self) -> Uuid { self.uuid }
-    #[inline(always)]
-    pub fn data(&self) -> u32 { self.data }
+    /// The type of character.
+    pub ty   : CharacterType,
+    /// The UUID of this character.
+    pub uuid : Uuid,
+    /// Special data used when spawning this character.
+    ///
+    /// [https://minecraft.wiki/w/Java_Edition_protocol/Object_data]
+    pub data : u32
 }
 
 
+/// A [`Plugin`] which manages spawning and tracking of characters.
 pub struct CharactersPlugin;
 impl Plugin for CharactersPlugin {
     fn build(&self, app : &mut App) {
