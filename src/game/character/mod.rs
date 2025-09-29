@@ -71,6 +71,7 @@ impl Plugin for CharactersPlugin {
             .add_systems(Update, vis::on_remove_character)
 
             .add_systems(PreUpdate, player::set_character)
+            .add_systems(PreUpdate, player::update_game_mode)
         ;
     }
 }

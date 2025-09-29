@@ -16,6 +16,7 @@ use crate::game::{
     character::{
         CharacterVisibility,
         player::{
+            ReadyPlayerCharacter,
             Dimension,
             IsHardcore,
             ViewDist,
@@ -240,6 +241,7 @@ pub(in crate::peer) fn handle_login_acknowledge(
             ew_login.write(PlayerLoggedInEvent::new(
                 e.entity, profile.uuid, profile.username.clone()
             ));
+            cmds.entity(e.entity).insert(ReadyPlayerCharacter);
 
         }
     }

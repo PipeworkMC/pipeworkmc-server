@@ -2,18 +2,25 @@
 
 
 use super::Character;
+use crate::peer::{
+    Peer,
+    PacketSender,
+    SendPacket
+};
 use pipeworkmc_data::{
     character::CharacterType,
     client_info::ClientInfo,
     game_mode::GameMode,
     profile::AccountProfile
 };
+use pipeworkmc_packet::s2c::play::game_event::S2CPlayGameEventPacket;
 use core::num::NonZeroU8;
 use bevy_ecs::{
     bundle::Bundle,
     component::Component,
     entity::Entity,
-    query::Added,
+    event::EventWriter,
+    query::{ Added, Changed, With },
     system::{ Commands, Query }
 };
 
@@ -45,6 +52,12 @@ pub struct PlayerCharacterBundle {
 #[component(immutable)]
 #[non_exhaustive]
 pub struct PlayerCharacter;
+
+/// A marker for player-type characters who have finished logging in and should respond to [`Component`] changes.
+#[derive(Component, Default)]
+#[component(immutable)]
+#[non_exhaustive]
+pub struct ReadyPlayerCharacter;
 
 /// Iterates through all characters marked as player-type, and sets data used by entity spawners.
 pub(in crate::game::character) fn set_character(
@@ -101,4 +114,15 @@ impl Default for ViewDist {
         // SAFETY: 8 is not 0.
         Self(unsafe { NonZeroU8::new_unchecked(8) })
     }
+}
+
+
+/// Sends game mode updates to players on change.
+pub(in crate::game::character) fn update_game_mode(
+        q_players : Query<(Entity, &GameMode), (With<Peer>, With<PlayerCharacter>, With<ReadyPlayerCharacter>, Changed<GameMode>,)>,
+    mut ew_packet : EventWriter<SendPacket>
+) {
+    ew_packet.write_batch(q_players.iter().map(|(entity, &game_mode,)| {
+        SendPacket::new(entity).with(S2CPlayGameEventPacket::ChangeGameMode { to : game_mode })
+    }));
 }
