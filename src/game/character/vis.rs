@@ -62,7 +62,7 @@ impl CharacterVisibility {
 impl CharacterVisibility {
 
     /// Returns whether this character will be visible to a player if in range.
-    #[inline(always)]
+    #[inline]
     pub fn should_be_visible_to(&self, player : Entity) -> bool {
         self.should_be_visible_to.contains(&player)
     }

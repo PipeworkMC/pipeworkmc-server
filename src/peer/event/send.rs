@@ -30,7 +30,7 @@ pub struct SendPacket {
 impl SendPacket {
 
     /// The [`Entity`] of the peer to send the packet to.
-    #[inline(always)]
+    #[inline]
     pub fn entity(&self) -> Entity { self.entity }
 
     /// Bytes of the packet to send before switching state.
@@ -51,14 +51,14 @@ impl SendPacket {
     }
 
     /// Whether this is a packet which will kick the peer.
-    #[inline(always)]
+    #[inline]
     pub fn is_kick(&self) -> bool { self.kick.is_some_and(|k| k) }
 
     /// The [`Location`](core::panic:Location) where this [`SendPacket`] was created.
     ///
     /// Only available with `#[cfg(debug_assertions)]`.
     #[cfg(debug_assertions)]
-    #[inline(always)]
+    #[inline]
     pub fn sent_by(&self) -> &'static core::panic::Location<'static> { self.sent_by }
 
 }
@@ -156,7 +156,7 @@ impl PacketSender for &mut SendPacket {
 impl PacketSender for SendPacket {
 
     #[track_caller]
-    #[inline(always)]
+    #[inline]
     fn with_before_switch<'l, T>(mut self, packet : T) -> Self
     where
         T : Into<S2CPackets<'l>>
@@ -166,7 +166,7 @@ impl PacketSender for SendPacket {
     }
 
     #[track_caller]
-    #[inline(always)]
+    #[inline]
     fn with<'l, T>(mut self, packet : T) -> Self
     where
         T : Into<S2CPackets<'l>>
@@ -176,7 +176,7 @@ impl PacketSender for SendPacket {
     }
 
     #[track_caller]
-    #[inline(always)]
+    #[inline]
     fn with_switch_state(mut self, state : PacketState, skip_intermediate : bool) -> Self {
         (&mut self).with_switch_state(state, skip_intermediate);
         self

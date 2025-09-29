@@ -12,7 +12,7 @@ pub struct PlayerApproveLoginEvent {
 }
 
 impl PlayerApproveLoginEvent {
-    #[inline(always)]
+    #[inline]
     pub(in super) fn new(entity : Entity) -> Self {
         Self { entity }
     }
@@ -20,7 +20,7 @@ impl PlayerApproveLoginEvent {
 
 impl PlayerApproveLoginEvent {
     /// The [`Entity`] of the peer to approve.
-    #[inline(always)]
+    #[inline]
     pub fn entity(&self) -> Entity { self.entity }
 }
 
@@ -31,6 +31,6 @@ impl From<&PlayerRequestLoginEvent> for PlayerApproveLoginEvent {
     }
 }
 impl From<PlayerRequestLoginEvent> for PlayerApproveLoginEvent {
-    #[inline(always)]
+    #[inline]
     fn from(value : PlayerRequestLoginEvent) -> Self { Self::from(&value) }
 }

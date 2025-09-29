@@ -23,7 +23,7 @@ pub(in crate::peer) struct PeerStreamReader {
 
 impl PeerStreamReader {
 
-    #[inline(always)]
+    #[inline]
     pub(in crate::peer) fn new(stream : TcpStream) -> Self { Self {
         stream,
         decrypter        : None,
@@ -31,7 +31,7 @@ impl PeerStreamReader {
         next_packet_size : None
     } }
 
-    #[inline(always)]
+    #[inline]
     pub(in crate::peer) fn set_decrypter(&mut self, decrypter : Redacted<Crypter>) {
         self.decrypter = Some(decrypter);
     }

@@ -48,7 +48,7 @@ pub(in crate::peer) struct PeerStreamWriter {
 
 impl PeerStreamWriter {
 
-    #[inline(always)]
+    #[inline]
     pub(in crate::peer) fn new(
         stream         : TcpStream,
         outgoing_state : Arc<AtomicPacketState>,
@@ -61,7 +61,7 @@ impl PeerStreamWriter {
         disconnecting
     } }
 
-    #[inline(always)]
+    #[inline]
     pub(in crate::peer) fn set_encrypter(&mut self, encrypter : Redacted<Crypter>) {
         self.encrypter = Some(encrypter);
     }

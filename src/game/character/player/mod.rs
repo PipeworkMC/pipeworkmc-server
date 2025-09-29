@@ -89,14 +89,14 @@ pub struct NoRespawnScreen; // TODO: Detect changes and update player respawn sc
 pub struct ViewDist(NonZeroU8);
 impl ViewDist {
     /// Returns the inner value as a [`NonZeroU8`].
-    #[inline(always)]
+    #[inline]
     pub fn as_n0u8(&self) -> NonZeroU8 { self.0 }
     /// Returns the inner value as a [`u8`].
-    #[inline(always)]
+    #[inline]
     pub fn as_u8(&self) -> u8 { self.0.get() }
 }
 impl Default for ViewDist {
-    #[inline(always)]
+    #[inline]
     fn default() -> Self {
         // SAFETY: 8 is not 0.
         Self(unsafe { NonZeroU8::new_unchecked(8) })

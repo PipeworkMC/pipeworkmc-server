@@ -21,7 +21,7 @@ pub struct PlayerLoggedInEvent {
 }
 
 impl PlayerLoggedInEvent {
-    #[inline(always)]
+    #[inline]
     pub(crate) fn new(peer : Entity, uuid : Uuid, username : BoundedString<16>) -> Self {
         Self { peer, uuid, username }
     }

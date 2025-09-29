@@ -35,6 +35,6 @@ impl Dimension {
 }
 
 impl Default for Dimension {
-    #[inline(always)]
+    #[inline]
     fn default() -> Self { Self::OVERWORLD }
 }

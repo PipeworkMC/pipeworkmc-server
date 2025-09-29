@@ -92,7 +92,7 @@ pub mod prelude {
     pub use bevy_app::PluginGroup as _;
 
     /// Shorthand for [`Default::default`].
-    #[inline(always)]
+    #[inline]
     pub fn default<D>() -> D
     where
         D : Default

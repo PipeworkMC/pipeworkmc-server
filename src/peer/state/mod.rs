@@ -33,20 +33,20 @@ impl PeerState {
 
     /// The incoming packet state of the peer.
     /// This is what state to interpret serverbound packets as.
-    #[inline(always)]
+    #[inline]
     pub fn incoming(&self) -> PacketState { self.incoming }
 
     /// The outgoing packet state of the peer.
     /// This is what state to send clientbound packets as.
-    #[inline(always)]
+    #[inline]
     pub fn outgoing(&self) -> PacketState { self.outgoing.load(AtomicOrdering::SeqCst) }
 
     /// When the current state will expire, kicking the peer.
-    #[inline(always)]
+    #[inline]
     pub fn expires(&self) -> Option<Instant> { self.expires }
 
     /// Whether this peer is currently disconnecting.
-    #[inline(always)]
+    #[inline]
     pub fn disconnecting(&self) -> bool { self.disconnecting.load(AtomicOrdering::Relaxed) }
 
 }

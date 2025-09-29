@@ -47,7 +47,7 @@ where
     }
 
     /// Sends the default value of the event. Useful when the event is an empty struct.
-    #[inline(always)]
+    #[inline]
     pub fn write_default(&self)
     where
         E : Default
@@ -63,12 +63,12 @@ where
     type State                = (mpmc::Sender<E>, mpmc::Receiver<E>,);
     type Item<'world, 'state> = ParallelEventWriter<'state, E>;
 
-    #[inline(always)]
+    #[inline]
     fn init_state(_ : &mut World, _ : &mut SystemMeta) -> Self::State {
         mpmc::channel()
     }
 
-    #[inline(always)]
+    #[inline]
     unsafe fn get_param<'world, 'state>(
         (sender, _,) : &'state mut Self::State,
         _            : &SystemMeta,
