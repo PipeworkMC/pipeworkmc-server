@@ -21,5 +21,5 @@ pub struct StatusRequest {
 }
 
 impl Request for StatusRequest {
-    type Response = Status<'static>; // TODO: Make this maybeowned.
+    type Response = Status<'static>;
 }

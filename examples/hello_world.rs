@@ -13,6 +13,10 @@ fn main() -> AppExit {
     App::new()
         .add_plugins(DefaultPlugins
             .set(ScheduleRunnerPlugin::run_loop(Duration::from_millis(1)))
+            .set(AutoStatusPlugin {
+                motd : "#".dark_red().obfuscate() + " " + ("Hello".red().underline() + " " + "World!".orange().italic()).bold() + " " + "#".dark_red().obfuscate(),
+                ..default()
+            })
         )
         .add_systems(Update, login)
         .add_systems(Update, logout)

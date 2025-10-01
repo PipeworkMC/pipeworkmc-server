@@ -20,7 +20,7 @@ use pipeworkmc_packet::{
         response::S2CStatusResponsePacket
     }
 };
-use bevy_callback::Callback;
+use bevy_callback::OptionCallback;
 use bevy_ecs::event::{
     EventReader,
     EventWriter
@@ -31,13 +31,15 @@ use bevy_pareventwriter::ParallelEventWriter;
 pub(in crate::peer) fn respond_to_requests(
     mut er_packet : EventReader<PacketReceived>,
     mut ew_packet : EventWriter<SendPacket>,
-    mut c_status  : Callback<StatusRequest>
+        c_status  : OptionCallback<StatusRequest>
 ) {
-    for event in er_packet.read() {
-        if let C2SPackets::Status(C2SStatusPackets::Request(C2SStatusRequestPacket {})) = &event.packet {
-            ew_packet.write(SendPacket::new(event.peer).with_before_switch(
-                S2CStatusResponsePacket::from(c_status.request(StatusRequest { peer : event.peer }))
-            ));
+    if let Some(mut c_status) = c_status.0 {
+        for event in er_packet.read() {
+            if let C2SPackets::Status(C2SStatusPackets::Request(C2SStatusRequestPacket {})) = &event.packet {
+                ew_packet.write(SendPacket::new(event.peer).with_before_switch(
+                    S2CStatusResponsePacket::from(c_status.request(StatusRequest { peer : event.peer }) )
+                ));
+            }
         }
     }
 }

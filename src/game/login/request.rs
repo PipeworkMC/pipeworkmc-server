@@ -20,5 +20,5 @@ pub struct PlayerLoginRequest {
 }
 
 impl Request for PlayerLoginRequest {
-    type Response = Result<(), Text>; // TODO: Make this maybeowned.
+    type Response = Result<(), Text>;
 }
