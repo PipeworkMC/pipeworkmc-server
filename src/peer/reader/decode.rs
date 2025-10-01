@@ -8,7 +8,6 @@ use crate::peer::{
         SendPacket
     }
 };
-use crate::ecs::ParallelEventWriter;
 use crate::util::VecDequeExt;
 use pipeworkmc_codec::{
     decode::{
@@ -46,6 +45,7 @@ use bevy_ecs::{
     query::With,
     system::Query
 };
+use bevy_pareventwriter::ParallelEventWriter;
 
 
 /// Decodes bytes that have been read from the stream into packets, sending them out as events.

@@ -14,7 +14,7 @@ use openssl::{
 pub(in crate::peer) mod start;
 pub(in crate::peer) mod encrypt;
 pub(in crate::peer) mod mojauth;
-pub(in crate::peer) mod approve;
+pub(in crate::peer) mod finish;
 
 
 #[derive(Component, Default)]
@@ -40,15 +40,11 @@ pub(in crate::peer) enum PeerLoginFlow {
         task : Task<surf::Result<AccountProfile>>
     },
 
-    // Session validated.
-    // Server is deciding whether to approve or reject profile.
-    Approval,
-
     // Server has approved the profile.
     // Server is waiting for peer to send a `C2SLoginFinishAcknowledgedPacket`.
     Acknowledge,
 
-    // Login flow is complete.
+    // Login flow is complete or cancelled.
     // This `Component` is queued for removal.
     Done
 

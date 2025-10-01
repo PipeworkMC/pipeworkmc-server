@@ -26,9 +26,19 @@ path = "../pipeworkmc-packet"
 [dependencies.bevy_app]
 version = "0.16"
 
+[dependencies.bevy_callback]
+git    = "https://github.com/Totobird-Creations/bevy_callback"
+branch = "main"
+
 [dependencies.bevy_ecs]
 version  = "0.16"
 features = [ "multi_threaded" ]
+
+[dependencies.bevy_eqchanged]
+version = "0.1"
+
+[dependencies.bevy_pareventwriter]
+version = "0.1"
 
 [dependencies.bevy_tasks]
 version = "0.16"

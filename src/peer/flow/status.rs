@@ -5,18 +5,42 @@ use crate::peer::{
         SendPacket
     }
 };
-use crate::ecs::ParallelEventWriter;
+use crate::game::status::StatusRequest;
 use pipeworkmc_packet::{
     c2s::{
         C2SPackets,
         status::{
             C2SStatusPackets,
-            ping::C2SStatusPingPacket
+            ping::C2SStatusPingPacket,
+            request::C2SStatusRequestPacket
         }
     },
-    s2c::status::pong::S2CStatusPongPacket
+    s2c::status::{
+        pong::S2CStatusPongPacket,
+        response::S2CStatusResponsePacket
+    }
 };
-use bevy_ecs::event::EventReader;
+use bevy_callback::Callback;
+use bevy_ecs::event::{
+    EventReader,
+    EventWriter
+};
+use bevy_pareventwriter::ParallelEventWriter;
+
+
+pub(in crate::peer) fn respond_to_requests(
+    mut er_packet : EventReader<PacketReceived>,
+    mut ew_packet : EventWriter<SendPacket>,
+    mut c_status  : Callback<StatusRequest>
+) {
+    for event in er_packet.read() {
+        if let C2SPackets::Status(C2SStatusPackets::Request(C2SStatusRequestPacket {})) = &event.packet {
+            ew_packet.write(SendPacket::new(event.peer).with_before_switch(
+                S2CStatusResponsePacket::from(c_status.request(StatusRequest { peer : event.peer }))
+            ));
+        }
+    }
+}
 
 
 /// Automatically responds to status ping requests.
@@ -26,9 +50,9 @@ pub(in crate::peer) fn respond_to_pings(
 ) {
     er_packet.par_read().for_each(|event| {
         if let C2SPackets::Status(C2SStatusPackets::Ping(C2SStatusPingPacket { timestamp })) = &event.packet {
-            ew_packet.write(SendPacket::new(event.entity).with_before_switch(
-                S2CStatusPongPacket { timestamp : *timestamp })
-            );
+            ew_packet.write(SendPacket::new(event.peer).with_before_switch(
+                S2CStatusPongPacket { timestamp : *timestamp }
+            ));
         }
     });
 }

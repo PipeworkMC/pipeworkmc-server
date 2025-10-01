@@ -21,8 +21,6 @@ pub mod game;
 
 mod util;
 
-pub mod ecs;
-
 
 /// Commonly used types.
 pub mod prelude {
@@ -33,6 +31,7 @@ pub mod prelude {
             bevy_app:::ScheduleRunnerPlugin,
             bevy_time:::TimePlugin,
             crate::peer:::PeerManagerPlugin,
+            crate::game::status:::AutoStatusPlugin,
             crate::game::login:::AutoApproveLoginsPlugin
         }
     }
@@ -48,10 +47,14 @@ pub mod prelude {
             PlayerCharacterBundle,
             PlayerCharacter
         },
+        status::{
+            AutoStatusPlugin,
+            StatusRequest,
+            Status, StatusVersion, StatusPlayers, StatusPlayer
+        },
         login::{
             AutoApproveLoginsPlugin,
-            PlayerRequestLoginEvent,
-            PlayerApproveLoginEvent,
+            PlayerLoginRequest,
             PlayerLoggedInEvent,
             PlayerLoggedOutEvent
         }
@@ -68,23 +71,31 @@ pub mod prelude {
         text::{ Text, TextFormatted as _ },
         uuid::Uuid
     };
-    pub use pipeworkmc_packet::{ self as packet,
-        s2c::status::response::{
-            Status, StatusVersion, StatusPlayers, StatusPlayer
-        }
-    };
+    pub use pipeworkmc_packet as packet;
 
     /// Bevy
     pub mod bevy {
         pub use bevy_app as app;
-        pub use bevy_ecs as ecs;
+        pub use bevy_callback as callback;
+        #[expect(missing_docs)]
+        pub mod ecs {
+            pub use bevy_ecs::*;
+            #[expect(missing_docs)]
+            pub mod query {
+                pub use bevy_ecs::query::*;
+                pub use bevy_eqchanged::EqChanged;
+            }
+        }
+        pub use bevy_pareventwriter as pareventwriter;
         pub use bevy_tasks as tasks;
         pub use bevy_time as time;
         /// Bevy prelude.
         pub mod prelude {
-            pub use crate::ecs::ParallelEventWriter;
             pub use bevy_app::prelude::*;
+            pub use bevy_callback::prelude::*;
             pub use bevy_ecs::prelude::*;
+            pub use bevy_eqchanged::EqChanged;
+            pub use bevy_pareventwriter::ParallelEventWriter;
             pub use bevy_tasks::prelude::*;
             pub use bevy_time::prelude::*;
         }

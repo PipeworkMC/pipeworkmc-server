@@ -20,9 +20,10 @@ use bevy_ecs::{
     component::Component,
     entity::Entity,
     event::EventWriter,
-    query::{ Added, Changed, With },
+    query::{ Added, With },
     system::{ Commands, Query }
 };
+use bevy_eqchanged::EqChanged;
 
 
 mod dimension;
@@ -119,7 +120,7 @@ impl Default for ViewDist {
 
 /// Sends game mode updates to players on change.
 pub(in crate::game::character) fn update_game_mode(
-        q_players : Query<(Entity, &GameMode), (With<Peer>, With<PlayerCharacter>, With<ReadyPlayerCharacter>, Changed<GameMode>,)>,
+        q_players : Query<(Entity, &GameMode), (With<Peer>, With<PlayerCharacter>, With<ReadyPlayerCharacter>, EqChanged<GameMode>,)>,
     mut ew_packet : EventWriter<SendPacket>
 ) {
     ew_packet.write_batch(q_players.iter().map(|(entity, &game_mode,)| {

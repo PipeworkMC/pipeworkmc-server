@@ -12,8 +12,6 @@ use crate::peer::{
     keepalive::{ self, PeerKeepAlive }
 };
 use crate::game::login::{
-    PlayerRequestLoginEvent,
-    PlayerApproveLoginEvent,
     PlayerLoggedInEvent,
     PlayerLoggedOutEvent
 };
@@ -106,8 +104,6 @@ impl Plugin for PeerManagerPlugin {
 
         app .add_event::<event::PacketReceived>()
             .add_event::<event::SendPacket>()
-            .add_event::<PlayerRequestLoginEvent>()
-            .add_event::<PlayerApproveLoginEvent>()
             .add_event::<PlayerLoggedInEvent>()
             .add_event::<PlayerLoggedOutEvent>()
 
@@ -126,13 +122,13 @@ impl Plugin for PeerManagerPlugin {
             .add_systems(Update, writer::write_peer_bytes)
             .add_systems(Update, state::timeout_peers)
 
+            .add_systems(Update, flow::status::respond_to_requests)
             .add_systems(Update, flow::status::respond_to_pings)
             .add_systems(Update, flow::login::start::begin_key_exchange)
             .add_systems(Update, flow::login::encrypt::finish_key_exchange_and_check_mojauth)
             .add_systems(Update, flow::login::mojauth::poll_mojauth_tasks
                 .run_if(flow::login::mojauth::is_mojauth_enabled))
-            .add_systems(Update, flow::login::approve::alert_approved_logins)
-            .add_systems(Update, flow::login::approve::handle_login_acknowledge)
+            .add_systems(Update, flow::login::finish::handle_login_acknowledge)
 
             .add_systems(Update, keepalive::handle_keepalive_expiration)
             .add_systems(Update, keepalive::handle_keepalive_response)

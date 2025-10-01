@@ -5,7 +5,6 @@ use crate::peer::{
 };
 use crate::game::login::PlayerLoggedOutEvent;
 use crate::util::VecDequeExt;
-use crate::ecs::ParallelEventWriter;
 use pipeworkmc_data::profile::AccountProfile;
 use std::{
     io::{ self, Write },
@@ -19,6 +18,7 @@ use bevy_ecs::{
         Query
     }
 };
+use bevy_pareventwriter::ParallelEventWriter;
 
 
 const WRITE_BYTES_PER_CYCLE : usize = 256;

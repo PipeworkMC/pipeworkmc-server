@@ -4,13 +4,13 @@ use crate::peer::{
     writer::PacketSender,
     event::SendPacket
 };
-use crate::ecs::ParallelEventWriter;
 use std::time::Instant;
 use bevy_ecs::{
     entity::Entity,
     query::With,
     system::Query
 };
+use bevy_pareventwriter::ParallelEventWriter;
 
 
 pub(in crate::peer) fn timeout_peers(

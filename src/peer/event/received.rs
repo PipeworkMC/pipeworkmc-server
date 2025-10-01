@@ -11,7 +11,7 @@ use bevy_ecs::{
 #[non_exhaustive]
 pub struct PacketReceived {
     /// The [`Entity`] of the peer which sent the packet.
-    pub entity    : Entity,
+    pub peer      : Entity,
     /// The packet which was received.
     pub packet    : C2SPackets,
     /// The timestamp when the packet was received.
@@ -19,9 +19,10 @@ pub struct PacketReceived {
 }
 
 impl PacketReceived {
-
-    pub(in crate::peer) fn new(entity : Entity, packet : C2SPackets) -> Self {
-        Self { entity, packet, timestamp : Instant::now() }
+    pub(crate) fn new<P>(peer : Entity, packet : P) -> Self
+    where
+        P : Into<C2SPackets>
+    {
+        Self { peer, packet : packet.into(), timestamp : Instant::now() }
     }
-
 }

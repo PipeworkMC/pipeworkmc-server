@@ -8,7 +8,6 @@ use crate::peer::{
         SendPacket
     }
 };
-use crate::ecs::ParallelEventWriter;
 use pipeworkmc_data::redacted::Redacted;
 use pipeworkmc_packet::{
     c2s::{
@@ -29,6 +28,7 @@ use bevy_ecs::{
         Res
     }
 };
+use bevy_pareventwriter::ParallelEventWriter;
 use openssl::rsa::Rsa;
 use rand::RngCore;
 
@@ -44,10 +44,10 @@ pub(in crate::peer) fn begin_key_exchange(
         if let C2SPackets::Login(C2SLoginPackets::Start(
             C2SLoginStartPacket { username, uuid : _ }
         )) = &e.packet
-            && let Ok((mut flow,)) = q_packet.get_mut(e.entity)
+            && let Ok((mut flow,)) = q_packet.get_mut(e.peer)
         {
             let PeerLoginFlow::Unstarted = &*flow else {
-                ew_packet.write(SendPacket::new(e.entity).kick_login_failed("Login start invalid at this time"));
+                ew_packet.write(SendPacket::new(e.peer).kick_login_failed("Login start invalid at this time"));
                 continue;
             };
 
@@ -59,7 +59,7 @@ pub(in crate::peer) fn begin_key_exchange(
             rand::rng().fill_bytes(&mut verify_token);
 
             // Begin the key exchange process.
-            ew_packet.write(SendPacket::new(e.entity).with_before_switch(S2CLoginEncryptRequestPacket {
+            ew_packet.write(SendPacket::new(e.peer).with_before_switch(S2CLoginEncryptRequestPacket {
                 server_id       : r_options.server_id.clone(),
                 public_key      : Redacted::from(Cow::Owned(unsafe { public_key_der.as_ref() }.clone())),
                 verify_token,

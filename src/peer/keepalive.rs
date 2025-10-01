@@ -6,7 +6,6 @@ use crate::peer::{
         PacketReceived
     }
 };
-use crate::ecs::ParallelEventWriter;
 use pipeworkmc_codec::meta::PacketBound;
 use pipeworkmc_packet::{
     c2s::{
@@ -33,6 +32,7 @@ use bevy_ecs::{
     query::With,
     system::Query
 };
+use bevy_pareventwriter::ParallelEventWriter;
 use bevy_time::{
     Timer,
     TimerMode
@@ -103,7 +103,7 @@ pub(in crate::peer) fn handle_keepalive_response(
             let C2SPackets::Config(C2SConfigPackets::KeepAlive(C2SConfigKeepAlivePacket { .. }))
                 | C2SPackets::Play(C2SPlayPackets::KeepAlive(C2SPlayKeepAlivePacket { .. }))
                 = &e.packet
-            && let Ok((mut keepalive,)) = q_peers.get_mut(e.entity)
+            && let Ok((mut keepalive,)) = q_peers.get_mut(e.peer)
         { keepalive.received_c2s(); }
     }
 }

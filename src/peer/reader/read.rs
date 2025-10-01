@@ -5,13 +5,13 @@ use crate::peer::{
     state::PeerState,
     event::SendPacket
 };
-use crate::ecs::ParallelEventWriter;
 use std::io::{ self, Read };
 use bevy_ecs::{
     entity::Entity,
     query::With,
     system::Query
 };
+use bevy_pareventwriter::ParallelEventWriter;
 
 
 const READ_BYTES_PER_CYCLE : usize = 256;

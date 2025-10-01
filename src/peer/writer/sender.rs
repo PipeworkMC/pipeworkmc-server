@@ -127,22 +127,4 @@ where
         }, ..TextComponent::EMPTY } ]) })
     }
 
-    /// Sends a duplicate login kick packet to the peer.
-    #[track_caller]
-    #[inline]
-    fn kick_duplicate_login(self) -> Self {
-        self.kick(&Text { components : Cow::Borrowed(&[ TextComponent { content : TextContent::Translate {
-            key : Cow::Borrowed("multiplayer.disconnect.duplicate_login"), fallback : None, with : Cow::Borrowed(&[])
-        }, ..TextComponent::EMPTY } ]) })
-    }
-
-    /// Sends a name taken kick packet to the peer.
-    #[track_caller]
-    #[inline]
-    fn kick_name_taken(self) -> Self {
-        self.kick(&Text { components : Cow::Borrowed(&[ TextComponent { content : TextContent::Translate {
-            key : Cow::Borrowed("multiplayer.disconnect.name_taken"), fallback : None, with : Cow::Borrowed(&[])
-        }, ..TextComponent::EMPTY } ]) })
-    }
-
 }

@@ -1,21 +1,26 @@
 use super::PeerLoginFlow;
 use crate::peer::{
     Peer,
-    PeerOptions
+    PeerOptions,
+    PacketSender,
+    SendPacket
 };
 use crate::game::{
-    login::PlayerRequestLoginEvent,
+    login::PlayerLoginRequest,
     character::{
         player::PlayerCharacterBundle,
         vis::VisibleCharacters
     }
 };
-use crate::ecs::ParallelEventWriter;
+use pipeworkmc_codec::meta::PacketState;
+use pipeworkmc_packet::s2c::login::finish::S2CLoginFinishPacket;
+use bevy_callback::Callback;
 use bevy_ecs::{
     entity::Entity,
+    event::EventWriter,
     query::With,
     system::{
-        ParallelCommands,
+        Commands,
         Query,
         Res
     }
@@ -29,33 +34,47 @@ pub(super) use uri::*;
 
 /// Polls running mojauth tasks, requesting login approval once completed successfully.
 pub(in crate::peer) fn poll_mojauth_tasks(
-        pcmds    : ParallelCommands,
-    mut q_peers  : Query<(Entity, &mut PeerLoginFlow,), (With<Peer>,)>,
-        ew_login : ParallelEventWriter<PlayerRequestLoginEvent>
+    mut cmds      : Commands,
+    mut q_peers   : Query<(Entity, &mut PeerLoginFlow,), (With<Peer>,)>,
+    mut ew_packet : EventWriter<SendPacket>,
+    mut c_login   : Callback<PlayerLoginRequest>,
 ) {
-    q_peers.par_iter_mut().for_each(|(entity, mut flow,)| {
+    for (entity, mut flow,) in &mut q_peers {
         if let PeerLoginFlow::Mojauth { task } = &mut*flow
             && let Some(response) = futures::check_ready(task)
         {
             match (response) {
                 Ok(profile) => {
-                    ew_login.write(PlayerRequestLoginEvent::new(
-                        entity, profile.uuid, profile.username.clone()
-                    ));
-                    pcmds.command_scope(|mut cmds| {
-                        cmds.entity(entity)
-                            .insert((
+                    let approval = c_login.request(PlayerLoginRequest {
+                        peer     : entity,
+                        uuid     : profile.uuid,
+                        username : profile.username.clone()
+                    });
+                    match (approval) {
+                        Ok(()) => {
+                            ew_packet.write(SendPacket::new(entity)
+                                .with_before_switch(S2CLoginFinishPacket {
+                                    profile : profile.clone()
+                                })
+                                .with_switch_state(PacketState::Config, true)
+                            );
+                            cmds.entity(entity).insert((
                                 profile,
                                 PlayerCharacterBundle::default(),
                                 VisibleCharacters::default()
                             ));
-                    });
-                    *flow = PeerLoginFlow::Approval;
+                            *flow = PeerLoginFlow::Acknowledge;
+                        },
+                        Err(reason) => {
+                            ew_packet.write(SendPacket::new(entity).kick(&reason));
+                            *flow = PeerLoginFlow::Done;
+                        }
+                    }
                 },
                 Err(err) => panic!("{err:?}") // TODO: Error handler.
             };
         }
-    });
+    }
 }
 
 

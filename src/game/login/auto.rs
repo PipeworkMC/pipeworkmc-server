@@ -1,17 +1,17 @@
-use crate::peer::{
-    PacketSender,
-    SendPacket
+use crate::game::login::PlayerLoginRequest;
+use pipeworkmc_data::{
+    profile::AccountProfile,
+    text::{
+        Text,
+        TextComponent,
+        TextContent
+    }
 };
-use crate::game::login::{
-    PlayerRequestLoginEvent,
-    PlayerApproveLoginEvent
-};
-use crate::ecs::ParallelEventWriter;
-use pipeworkmc_data::profile::AccountProfile;
-use bevy_app::{ App, Plugin, Update };
+use std::borrow::Cow;
+use bevy_app::{ App, Plugin };
+use bevy_callback::{ AppExt, Req };
 use bevy_ecs::{
     entity::Entity,
-    event::EventReader,
     system::Query
 };
 
@@ -39,13 +39,9 @@ pub enum DuplicateStrategy {
 impl Plugin for AutoApproveLoginsPlugin {
     fn build(&self, app : &mut App) {
         match (self.duplicate_strategy) {
-
-            DuplicateStrategy::Allow => { app.add_systems(Update, allow_duplicates); },
-
-            DuplicateStrategy::KickOld => { app.add_systems(Update, kick_old_duplicates); },
-
-            DuplicateStrategy::RejectNew => { app.add_systems(Update, reject_new_duplicates); }
-
+            DuplicateStrategy::Allow     => { app.add_callback(allow_duplicates); },
+            DuplicateStrategy::KickOld   => { app.add_callback(kick_old_duplicates); },
+            DuplicateStrategy::RejectNew => { app.add_callback(reject_new_duplicates); }
         }
     }
 }
@@ -53,44 +49,39 @@ impl Plugin for AutoApproveLoginsPlugin {
 
 /// Unconditionally approves login requests.
 fn allow_duplicates(
-    mut er_request : EventReader<PlayerRequestLoginEvent>,
-        ew_approve : ParallelEventWriter<PlayerApproveLoginEvent>
-) {
-    er_request.par_read().for_each(|e| {
-        ew_approve.write(PlayerApproveLoginEvent::from(e));
-    });
-}
+    _ : Req<PlayerLoginRequest>
+) -> Result<(), Text> { Ok(()) }
+
+
+const DUPLICATE_LOGIN : Text = Text { components : Cow::Borrowed(&[ TextComponent { content : TextContent::Translate {
+    key : Cow::Borrowed("multiplayer.disconnect.duplicate_login"), fallback : None, with : Cow::Borrowed(&[])
+}, ..TextComponent::EMPTY } ]) };
 
 /// Approves login requests, kicking any existing logins with the same UUID.
 fn kick_old_duplicates(
-        q_peers    : Query<(Entity, &AccountProfile)>,
-    mut er_request : EventReader<PlayerRequestLoginEvent>,
-        ew_packet  : ParallelEventWriter<SendPacket>,
-        ew_approve : ParallelEventWriter<PlayerApproveLoginEvent>
-) {
-    er_request.par_read().for_each(|e| {
-        for (entity, profile,) in &q_peers {
-            if (e.peer != entity && e.uuid != profile.uuid) {
-                ew_packet.write(SendPacket::new(entity).kick_duplicate_login());
-                return;
-            }
+    req     : Req<PlayerLoginRequest>,
+    q_peers : Query<(Entity, &AccountProfile,)>
+) -> Result<(), Text> {
+    for (entity, profile,) in &q_peers {
+        if (req.peer != entity && req.uuid != profile.uuid) {
+            return Err(DUPLICATE_LOGIN);
         }
-        ew_approve.write(PlayerApproveLoginEvent::from(e));
-    });
+    }
+    Ok(())
 }
+
+
+const NAME_TAKEN : Text = Text { components : Cow::Borrowed(&[ TextComponent { content : TextContent::Translate {
+    key : Cow::Borrowed("multiplayer.disconnect.name_taken"), fallback : None, with : Cow::Borrowed(&[])
+}, ..TextComponent::EMPTY } ]) };
 
 /// Approves login requests, as long as no existing logins have the same UUID.
 fn reject_new_duplicates(
-        q_peers    : Query<(Entity, &AccountProfile)>,
-    mut er_request : EventReader<PlayerRequestLoginEvent>,
-        ew_packet  : ParallelEventWriter<SendPacket>,
-        ew_approve : ParallelEventWriter<PlayerApproveLoginEvent>
-) {
-    er_request.par_read().for_each(|e| {
-        if (q_peers.iter().any(|(entity, profile,)| e.peer != entity && e.uuid == profile.uuid)) {
-            ew_packet.write(SendPacket::new(e.peer).kick_name_taken());
-        } else {
-            ew_approve.write(PlayerApproveLoginEvent::from(e));
-        }
-    });
+    req     : Req<PlayerLoginRequest>,
+    q_peers : Query<(Entity, &AccountProfile,)>
+) -> Result<(), Text> {
+    if (q_peers.iter().any(|(entity, profile,)| req.peer != entity && req.uuid == profile.uuid)) {
+        return Err(NAME_TAKEN);
+    }
+    Ok(())
 }
