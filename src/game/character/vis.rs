@@ -3,7 +3,10 @@ use crate::peer::{
     PacketSender,
     SendPacket
 };
-use crate::game::character::Character;
+use crate::game::character::{
+    Character,
+    player::ViewDist
+};
 use pipeworkmc_data::character::{
     CharacterId,
     CharacterPos,
@@ -79,8 +82,12 @@ pub(crate) struct VisibleCharacters {
 
 /// Updates character visibilities for players when the [`CharacterVisibility`] [`Component`] is modified.
 pub(super) fn update_visibilities(
-    mut q_peers      : Query<(&mut VisibleCharacters,), (With<Peer>,)>,
-    mut q_vis        : Query<(
+    mut q_peers   : Query<(
+        &mut VisibleCharacters,
+        &CharacterPos,
+        &ViewDist
+    ), (With<Peer>,)>,
+    mut q_vis     : Query<(
         Entity,
         &mut CharacterVisibility,
         &CharacterId,
@@ -89,7 +96,7 @@ pub(super) fn update_visibilities(
         &CharacterRot,
         &CharacterVel,
     ), (Changed<CharacterVisibility>,)>,
-    mut ew_packet    : EventWriter<SendPacket>
+    mut ew_packet : EventWriter<SendPacket>
 ) {
 
     for (
@@ -97,21 +104,27 @@ pub(super) fn update_visibilities(
         mut character_visibility,
             &character_id,
             character,
-            &pos, &rot, &vel,
+            &character_pos,
+            &character_rot,
+            &character_vel,
     ) in &mut q_vis {
         for &peer_entity in &character_visibility.modified_visibilities {
-            if let Ok((mut visible_characters,)) = q_peers.get_mut(peer_entity) {
+            if let Ok((mut visible_characters, player_pos, player_view_dist)) = q_peers.get_mut(peer_entity) {
                 // If the player is supposed to be able to see this character, but doesn't, send an add character packet.
-                if (character_visibility.should_be_visible_to.contains(&peer_entity)) { // TODO: Make sure the player is in range.
+                if (character_visibility.should_be_visible_to.contains(&peer_entity)
+                    // Also make sure the character is in range.
+                    && character_pos.chunk().cardinal_dist(player_pos.chunk()) < (player_view_dist.as_u8() as u32)
+                ) {
                     if (visible_characters.visible_characters.try_insert(character_entity, character_id).is_ok()) {
                         ew_packet.write(SendPacket::new(peer_entity).with(
                             S2CPlayAddCharacterPacket {
                                 eid  : character_id,
                                 uuid : character.uuid,
                                 ty   : character.ty,
-                                pos, rot,
+                                pos  : character_pos,
+                                rot  : character_rot,
                                 data : character.data,
-                                vel
+                                vel  : character_vel
                             }
                         ));
                     }
