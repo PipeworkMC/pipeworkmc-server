@@ -17,6 +17,7 @@ use pipeworkmc_packet::s2c::play::{
     add_character::S2CPlayAddCharacterPacket,
     remove_characters::S2CPlayRemoveCharactersPacket
 };
+use core::num::NonZeroU32;
 use std::{
     borrow::Cow,
     collections::{
@@ -81,8 +82,8 @@ impl CharacterVisibility {
 pub(crate) struct VisibleCharacters {
     this_entity            : Entity,
     visible_character_ids  : HashMap<Entity, CharacterId>,
-    next_character_id      : u32, // TODO: Make NonZeroU32
-    reusable_character_ids : HashSet<u32> // TODO: Make NonZeroU32
+    next_character_id      : NonZeroU32,
+    reusable_character_ids : HashSet<NonZeroU32>
 }
 impl VisibleCharacters {
 
@@ -90,7 +91,7 @@ impl VisibleCharacters {
     pub(crate) fn new(this_entity : Entity) -> Self { Self {
         this_entity,
         visible_character_ids  : HashMap::new(),
-        next_character_id      : 0,
+        next_character_id      : NonZeroU32::MIN,
         reusable_character_ids : HashSet::new()
     } }
 
@@ -98,26 +99,29 @@ impl VisibleCharacters {
         match (self.visible_character_ids.entry(entity)) {
             HashMapEntry::Occupied(_) => None,
             HashMapEntry::Vacant(entry) => {
-                // TODO: Use 0 only when entity == self.this_entity.
-                let chid = CharacterId(self.reusable_character_ids.iter().next().cloned()
-                    .map_or_else(|| {
-                        let chid = self.next_character_id;
-                        self.next_character_id += 1;
-                        chid
-                    }, |chid| {
-                        self.reusable_character_ids.remove(&chid);
-                        chid
-                    })
-                );
-                entry.insert(chid);
-                Some(chid)
+                let character_id = CharacterId(if (entity == self.this_entity) { 0 } else {
+                    self.reusable_character_ids.iter().next().cloned()
+                        .map_or_else(|| {
+                            let character_id = self.next_character_id;
+                            self.next_character_id = self.next_character_id.checked_add(1).unwrap();
+                            character_id
+                        }, |character_id| {
+                            self.reusable_character_ids.remove(&character_id);
+                            character_id
+                        })
+                        .get()
+                });
+                entry.insert(character_id);
+                Some(character_id)
             }
         }
     }
 
     fn remove(&mut self, entity : Entity) -> Option<CharacterId> {
         self.visible_character_ids.remove(&entity).map(|character_id| {
-            self.reusable_character_ids.insert(character_id.0);
+            if let Some(character_id) = NonZeroU32::new(character_id.0) {
+                self.reusable_character_ids.insert(character_id);
+            }
             character_id
         })
     }
