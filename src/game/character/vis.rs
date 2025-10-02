@@ -192,7 +192,7 @@ pub(super) fn update_visibilities(
 /// Updates character visibilities for players when a [`CharacterVisibility`] [`Component`] is removed.
 pub(super) fn on_remove_character(
     mut q_peers   : Query<(Entity, &mut VisibleCharacters,), (With<Peer>,)>,
-    mut d_vis     : RemovedComponents<CharacterVisibility>, // TODO: Use observer.
+    mut d_vis     : RemovedComponents<CharacterVisibility>,
     mut mw_packet : MessageWriter<SendPacket>,
     mut l_buf0    : Local<Vec<Entity>>,
     mut l_buf1    : Local<Vec<CharacterId>>

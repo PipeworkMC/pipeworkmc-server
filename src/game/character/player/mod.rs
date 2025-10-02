@@ -19,8 +19,10 @@ use bevy_ecs::{
     bundle::Bundle,
     component::Component,
     entity::Entity,
+    lifecycle::Add,
     message::MessageWriter,
-    query::{ Added, With },
+    observer::On,
+    query::With,
     system::{ Commands, Query }
 };
 use bevy_eqchanged::EqChanged;
@@ -62,10 +64,11 @@ pub struct ReadyPlayerCharacter;
 
 /// Iterates through all characters marked as player-type, and sets data used by entity spawners.
 pub(in crate::game::character) fn set_character(
+        add         : On<Add, PlayerCharacter>,
     mut cmds        : Commands,
-        q_character : Query<(Entity, &AccountProfile), (Added<PlayerCharacter>,)> // TODO: Use observer.
+        q_character : Query<(Entity, &AccountProfile,)>
 ) {
-    for (entity, profile,) in &q_character {
+    if let Ok((entity, profile,)) = q_character.get(add.entity) {
         cmds.entity(entity).insert(Character {
             ty   : CharacterType::Player,
             uuid : profile.uuid,
