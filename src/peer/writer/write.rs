@@ -3,7 +3,7 @@ use crate::peer::{
     writer::PeerStreamWriter,
     state::PeerState
 };
-use crate::game::login::PlayerLoggedOutEvent;
+use crate::game::login::PlayerLoggedOutMessage;
 use crate::util::VecDequeExt;
 use pipeworkmc_data::profile::AccountProfile;
 use std::{
@@ -18,7 +18,7 @@ use bevy_ecs::{
         Query
     }
 };
-use bevy_pareventwriter::ParallelEventWriter;
+use bevy_parmessagewriter::ParallelMessageWriter;
 
 
 const WRITE_BYTES_PER_CYCLE : usize = 256;
@@ -28,7 +28,7 @@ const WRITE_BYTES_PER_CYCLE : usize = 256;
 pub(in crate::peer) fn write_peer_bytes(
         pcmds     : ParallelCommands,
     mut q_peers   : Query<(Entity, &mut PeerStreamWriter, &PeerState, Option<&AccountProfile>), (With<Peer>,)>,
-        ew_logout : ParallelEventWriter<PlayerLoggedOutEvent>
+        mw_logout : ParallelMessageWriter<PlayerLoggedOutMessage>
 ) {
     q_peers.par_iter_mut().for_each(|(entity, mut writer, state, profile,)| {
         let writer = &mut*writer;
@@ -43,7 +43,11 @@ pub(in crate::peer) fn write_peer_bytes(
                     _ = writer.stream.shutdown(Shutdown::Both);
                     pcmds.command_scope(|mut cmds| cmds.entity(entity).despawn());
                     if let Some(profile) = profile {
-                        ew_logout.write(PlayerLoggedOutEvent::new(entity, profile.uuid, profile.username.clone()));
+                        mw_logout.write(PlayerLoggedOutMessage {
+                            peer     : entity,
+                            uuid     : profile.uuid,
+                            username : profile.username.clone()
+                        });
                     }
                 }
                 return;

@@ -25,17 +25,17 @@ fn main() -> AppExit {
 
 
 fn login(
-    mut er_loggedin : EventReader<PlayerLoggedInEvent>
+    mut mr_loggedin : MessageReader<PlayerLoggedInMessage>
 ) {
-    for e in er_loggedin.read() {
-        println!("Player {} {} ({}) logged in.", e.peer, e.username, e.uuid);
+    for m in mr_loggedin.read() {
+        println!("Player {} {} ({}) logged in.", m.peer, m.username, m.uuid);
     }
 }
 
 fn logout(
-    mut er_loggedout : EventReader<PlayerLoggedOutEvent>
+    mut mr_loggedout : MessageReader<PlayerLoggedOutMessage>
 ) {
-    for e in er_loggedout.read() {
-        println!("Player {} {} ({}) logged out.", e.peer, e.username, e.uuid);
+    for m in mr_loggedout.read() {
+        println!("Player {} {} ({}) logged out.", m.peer, m.username, m.uuid);
     }
 }

@@ -10,7 +10,7 @@ use crate::peer::{
         PeerStreamWriter,
         PacketSender
     },
-    event::{
+    message::{
         PacketReceived,
         SendPacket
     }
@@ -40,9 +40,9 @@ use pipeworkmc_packet::{
 };
 use bevy_callback::Callback;
 use bevy_ecs::{
-    event::{
-        EventReader,
-        EventWriter
+    message::{
+        MessageWriter,
+        MessageReader
     },
     query::With,
     system::{
@@ -69,37 +69,37 @@ const OFFLINE_NAMESPACE : Uuid = Uuid::from_bytes(*b"Pipework_Offline");
 pub(in crate::peer) fn finish_key_exchange_and_check_mojauth(
     mut cmds      : Commands,
     mut q_peers   : Query<(&mut PeerStreamReader, &mut PeerStreamWriter, &mut PeerLoginFlow,), (With<Peer>,)>,
-    mut er_packet : EventReader<PacketReceived>,
-    mut ew_packet : EventWriter<SendPacket>,
+    mut mr_packet : MessageReader<PacketReceived>,
+    mut mw_packet : MessageWriter<SendPacket>,
         r_options : Res<PeerOptions>,
     mut c_login   : Callback<PlayerLoginRequest>
 ) {
-    for e in er_packet.read() {
+    for m in mr_packet.read() {
         if let C2SPackets::Login(C2SLoginPackets::EncryptResponse(
             C2SLoginEncryptResponsePacket { encrypted_secret_key, encrypted_vtoken }
-        )) = &e.packet
-            && let Ok((mut reader, mut writer, mut flow,)) = q_peers.get_mut(e.peer)
+        )) = &m.packet
+            && let Ok((mut reader, mut writer, mut flow,)) = q_peers.get_mut(m.peer)
         {
             let PeerLoginFlow::KeyExchange { declared_username, private_key, public_key_der, verify_token } = &*flow else {
-                ew_packet.write(SendPacket::new(e.peer).kick_login_failed("Key exchange invalid at this time"));
+                mw_packet.write(SendPacket::new(m.peer).kick_login_failed("Key exchange invalid at this time"));
                 continue;
             };
 
             // Check verify token.
             let mut decrypted_vtoken = [0u8; 256];
             let Ok(vtoken_size) = unsafe { private_key.as_ref() }.private_decrypt(encrypted_vtoken, &mut decrypted_vtoken, Padding::PKCS1) else {
-                ew_packet.write(SendPacket::new(e.peer).kick_login_failed("Public key exchange failed"));
+                mw_packet.write(SendPacket::new(m.peer).kick_login_failed("Public key exchange failed"));
                 continue;
             };
             if (*verify_token != decrypted_vtoken[0..vtoken_size]) {
-                ew_packet.write(SendPacket::new(e.peer).kick_login_failed("Public key exchange verification failed"));
+                mw_packet.write(SendPacket::new(m.peer).kick_login_failed("Public key exchange verification failed"));
                 continue;
             }
 
             // Decrypt secret key.
             let mut decrypted_secret_key = Redacted::from([0u8; 256]);
             let Ok(secret_key_size) = unsafe { private_key.as_ref() }.private_decrypt(unsafe { encrypted_secret_key.as_ref() }, unsafe { decrypted_secret_key.as_mut() }, Padding::PKCS1) else {
-                ew_packet.write(SendPacket::new(e.peer).kick_login_failed("Secret key exchange failed"));
+                mw_packet.write(SendPacket::new(m.peer).kick_login_failed("Secret key exchange failed"));
                 continue;
             };
             let decrypted_secret_key = Redacted::from(&unsafe { decrypted_secret_key.as_ref() }[0..secret_key_size]);
@@ -108,13 +108,13 @@ pub(in crate::peer) fn finish_key_exchange_and_check_mojauth(
             let cipher = Cipher::aes_128_cfb8();
 
             let Ok(decrypter) = Crypter::new(cipher, CrypterMode::Decrypt, unsafe { decrypted_secret_key.as_ref() }, Some(unsafe { decrypted_secret_key.as_ref() }) ) else {
-                ew_packet.write(SendPacket::new(e.peer).kick_login_failed("Invalid secret key received"));
+                mw_packet.write(SendPacket::new(m.peer).kick_login_failed("Invalid secret key received"));
                 continue;
             };
             reader.set_decrypter(Redacted::from(decrypter));
 
             let Ok(encrypter) = Crypter::new(cipher, CrypterMode::Encrypt, unsafe { decrypted_secret_key.as_ref() }, Some(unsafe { decrypted_secret_key.as_ref() }) ) else {
-                ew_packet.write(SendPacket::new(e.peer).kick_login_failed("Invalid secret key received"));
+                mw_packet.write(SendPacket::new(m.peer).kick_login_failed("Invalid secret key received"));
                 continue;
             };
             writer.set_encrypter(Redacted::from(encrypter));
@@ -145,27 +145,27 @@ pub(in crate::peer) fn finish_key_exchange_and_check_mojauth(
                     skin     : None
                 };
                 let approval = c_login.request(PlayerLoginRequest {
-                    peer     : e.peer,
+                    peer     : m.peer,
                     uuid     : profile.uuid,
                     username : profile.username.clone()
                 });
                 match (approval) {
                     Ok(()) => {
-                        ew_packet.write(SendPacket::new(e.peer)
+                        mw_packet.write(SendPacket::new(m.peer)
                             .with_before_switch(S2CLoginFinishPacket {
                                 profile : profile.clone()
                             })
                             .with_switch_state(PacketState::Config, true)
                         );
-                        cmds.entity(e.peer).insert((
+                        cmds.entity(m.peer).insert((
                             profile,
                             PlayerCharacterBundle::default(),
-                            VisibleCharacters::default()
+                            VisibleCharacters::new(m.peer)
                         ));
                         *flow = PeerLoginFlow::Acknowledge;
                     },
                     Err(reason) => {
-                        ew_packet.write(SendPacket::new(e.peer).kick(&reason));
+                        mw_packet.write(SendPacket::new(m.peer).kick(&reason));
                         *flow = PeerLoginFlow::Done;
                     }
                 }

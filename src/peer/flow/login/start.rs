@@ -3,7 +3,7 @@ use crate::peer::{
     Peer,
     PeerOptions,
     writer::PacketSender,
-    event::{
+    message::{
         PacketReceived,
         SendPacket
     }
@@ -21,14 +21,14 @@ use pipeworkmc_packet::{
 };
 use std::borrow::Cow;
 use bevy_ecs::{
-    event::EventReader,
+    message::MessageReader,
     query::With,
     system::{
         Query,
         Res
     }
 };
-use bevy_pareventwriter::ParallelEventWriter;
+use bevy_parmessagewriter::ParallelMessageWriter;
 use openssl::rsa::Rsa;
 use rand::RngCore;
 
@@ -36,18 +36,18 @@ use rand::RngCore;
 /// Responds to login start requests.
 pub(in crate::peer) fn begin_key_exchange(
     mut q_packet  : Query<(&mut PeerLoginFlow,), (With<Peer>,)>,
-    mut er_packet : EventReader<PacketReceived>,
-        ew_packet : ParallelEventWriter<SendPacket>,
+    mut mr_packet : MessageReader<PacketReceived>,
+        mw_packet : ParallelMessageWriter<SendPacket>,
         r_options : Res<PeerOptions>
 ) {
-    for e in er_packet.read() {
+    for m in mr_packet.read() {
         if let C2SPackets::Login(C2SLoginPackets::Start(
             C2SLoginStartPacket { username, uuid : _ }
-        )) = &e.packet
-            && let Ok((mut flow,)) = q_packet.get_mut(e.peer)
+        )) = &m.packet
+            && let Ok((mut flow,)) = q_packet.get_mut(m.peer)
         {
             let PeerLoginFlow::Unstarted = &*flow else {
-                ew_packet.write(SendPacket::new(e.peer).kick_login_failed("Login start invalid at this time"));
+                mw_packet.write(SendPacket::new(m.peer).kick_login_failed("Login start invalid at this time"));
                 continue;
             };
 
@@ -59,7 +59,7 @@ pub(in crate::peer) fn begin_key_exchange(
             rand::rng().fill_bytes(&mut verify_token);
 
             // Begin the key exchange process.
-            ew_packet.write(SendPacket::new(e.peer).with_before_switch(S2CLoginEncryptRequestPacket {
+            mw_packet.write(SendPacket::new(m.peer).with_before_switch(S2CLoginEncryptRequestPacket {
                 server_id       : r_options.server_id.clone(),
                 public_key      : Redacted::from(Cow::Owned(unsafe { public_key_der.as_ref() }.clone())),
                 verify_token,

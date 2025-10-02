@@ -4,25 +4,18 @@ use pipeworkmc_data::{
 };
 use bevy_ecs::{
     entity::Entity,
-    event::Event
+    message::Message
 };
 
 
-/// An [`Event`] which is emitted when a player successfully logs in.
-#[derive(Event, Debug)]
+/// An [`Message`] which is emitted when a player successfully logs in.
+#[derive(Message, Debug)]
 #[non_exhaustive]
-pub struct PlayerLoggedInEvent {
+pub struct PlayerLoggedInMessage {
     /// The [`Entity`] of the peer who logged in.
     pub peer     : Entity,
     /// The UUID of the player who logged in.
     pub uuid     : Uuid,
     /// The username of the player who logged in.
     pub username : BoundedString<16>
-}
-
-impl PlayerLoggedInEvent {
-    #[inline]
-    pub(crate) fn new(peer : Entity, uuid : Uuid, username : BoundedString<16>) -> Self {
-        Self { peer, uuid, username }
-    }
 }

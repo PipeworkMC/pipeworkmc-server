@@ -23,8 +23,8 @@ pub use writer::PacketSender;
 mod state;
 pub use state::PeerState;
 
-mod event;
-pub use event::{
+mod message;
+pub use message::{
     PacketReceived,
     SendPacket
 };

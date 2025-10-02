@@ -19,7 +19,7 @@ use bevy_ecs::{
     bundle::Bundle,
     component::Component,
     entity::Entity,
-    event::EventWriter,
+    message::MessageWriter,
     query::{ Added, With },
     system::{ Commands, Query }
 };
@@ -63,7 +63,7 @@ pub struct ReadyPlayerCharacter;
 /// Iterates through all characters marked as player-type, and sets data used by entity spawners.
 pub(in crate::game::character) fn set_character(
     mut cmds        : Commands,
-        q_character : Query<(Entity, &AccountProfile), (Added<PlayerCharacter>,)>
+        q_character : Query<(Entity, &AccountProfile), (Added<PlayerCharacter>,)> // TODO: Use observer.
 ) {
     for (entity, profile,) in &q_character {
         cmds.entity(entity).insert(Character {
@@ -121,9 +121,9 @@ impl Default for ViewDist {
 /// Sends game mode updates to players on change.
 pub(in crate::game::character) fn update_game_mode(
         q_players : Query<(Entity, &GameMode), (With<Peer>, With<PlayerCharacter>, With<ReadyPlayerCharacter>, EqChanged<GameMode>,)>,
-    mut ew_packet : EventWriter<SendPacket>
+    mut mw_packet : MessageWriter<SendPacket>
 ) {
-    ew_packet.write_batch(q_players.iter().map(|(entity, &game_mode,)| {
+    mw_packet.write_batch(q_players.iter().map(|(entity, &game_mode,)| {
         SendPacket::new(entity).with(S2CPlayGameEventPacket::ChangeGameMode { to : game_mode })
     }));
 }

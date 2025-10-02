@@ -1,7 +1,7 @@
 use crate::peer::{
     Peer,
     writer::PacketSender,
-    event::{
+    message::{
         SendPacket,
         PacketReceived
     }
@@ -28,11 +28,11 @@ use core::time::Duration;
 use bevy_ecs::{
     component::Component,
     entity::Entity,
-    event::EventReader,
+    message::MessageReader,
     query::With,
     system::Query
 };
-use bevy_pareventwriter::ParallelEventWriter;
+use bevy_parmessagewriter::ParallelMessageWriter;
 use bevy_time::{
     Timer,
     TimerMode
@@ -70,18 +70,18 @@ impl PeerKeepAlive {
 
 pub(in crate::peer) fn handle_keepalive_expiration(
     mut q_peers   : Query<(Entity, &mut PeerKeepAlive,), (With<Peer>,)>,
-        ew_packet : ParallelEventWriter<SendPacket>
+        mw_packet : ParallelMessageWriter<SendPacket>
 ) {
     q_peers.par_iter_mut().for_each(|(entity, mut keepalive,)| {
-        if (keepalive.timer.finished()) {
+        if (keepalive.timer.is_finished()) {
             match (keepalive.next_bound) {
 
                 PacketBound::C2S => {
-                    ew_packet.write(SendPacket::new(entity).kick_timeout());
+                    mw_packet.write(SendPacket::new(entity).kick_timeout());
                 },
 
                 PacketBound::S2C => {
-                    ew_packet.write(SendPacket::new(entity)
+                    mw_packet.write(SendPacket::new(entity)
                         .with_before_switch(S2CConfigKeepAlivePacket { id : keepalive.id })
                         .with_before_switch(S2CPlayKeepAlivePacket   { id : keepalive.id })
                     );
@@ -96,14 +96,14 @@ pub(in crate::peer) fn handle_keepalive_expiration(
 
 pub(in crate::peer) fn handle_keepalive_response(
     mut q_peers   : Query<(&mut PeerKeepAlive,), (With<Peer>,)>,
-    mut er_packet : EventReader<PacketReceived>
+    mut mr_packet : MessageReader<PacketReceived>
 ) {
-    for e in er_packet.read() {
+    for m in mr_packet.read() {
         if
             let C2SPackets::Config(C2SConfigPackets::KeepAlive(C2SConfigKeepAlivePacket { .. }))
                 | C2SPackets::Play(C2SPlayPackets::KeepAlive(C2SPlayKeepAlivePacket { .. }))
-                = &e.packet
-            && let Ok((mut keepalive,)) = q_peers.get_mut(e.peer)
+                = &m.packet
+            && let Ok((mut keepalive,)) = q_peers.get_mut(m.peer)
         { keepalive.received_c2s(); }
     }
 }

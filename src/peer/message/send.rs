@@ -9,12 +9,12 @@ use pipeworkmc_codec::{
 use pipeworkmc_packet::s2c::S2CPackets;
 use bevy_ecs::{
     entity::Entity,
-    event::Event
+    message::Message
 };
 
 
-/// An [`Event`] which can be emitted to send a packet to a peer.
-#[derive(Event)]
+/// An [`Message`] which can be emitted to send a packet to a peer.
+#[derive(Message)]
 pub struct SendPacket {
     entity        : Entity,
     status_before : Option<Box<[u8]>>,
@@ -65,7 +65,7 @@ impl SendPacket {
 
 impl SendPacket {
 
-    /// Create a new [`SendPacket`] event which can be sent to a peer.
+    /// Create a new [`SendPacket`] message which can be sent to a peer.
     #[cfg_attr(debug_assertions, track_caller)]
     pub fn new(entity : Entity) -> Self { Self {
         entity,
@@ -92,18 +92,18 @@ impl PacketSender for &mut SendPacket {
         let     (state, _, kick,) = packet.meta();
 
         let slot = match (state) {
-            PacketState::Handshake => { panic!("can not send handshake packet in event"); },
+            PacketState::Handshake => { panic!("can not send handshake packet in SendPacket"); },
             PacketState::Status    => &mut self.status_before,
             PacketState::Login     => &mut self.login_before,
             PacketState::Config    => &mut self.config_before,
             PacketState::Play      => &mut self.play_before
         };
         if (slot.is_some()) {
-            panic!("already added {state:?} before switch packet to event");
+            panic!("already added {state:?} before switch packet to SendPacket");
         }
 
         if (self.kick.is_some_and(|k| k != kick)) {
-            panic!("can not combine kick and non-kick packets in event");
+            panic!("can not combine kick and non-kick packets in SendPacket");
         }
         self.kick = Some(kick);
 
@@ -129,7 +129,7 @@ impl PacketSender for &mut SendPacket {
         }
 
         if (self.kick.is_some_and(|k| k != kick)) {
-            panic!("can not combine kick and non-kick packets in event");
+            panic!("can not combine kick and non-kick packets in SendPacket");
         }
         self.kick = Some(kick);
 

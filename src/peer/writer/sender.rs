@@ -1,7 +1,7 @@
 use crate::peer::{
     Peer,
     writer::PeerStreamWriter,
-    event::SendPacket
+    message::SendPacket
 };
 use pipeworkmc_codec::meta::PacketState;
 use pipeworkmc_data::text::{
@@ -17,19 +17,19 @@ use pipeworkmc_packet::s2c::{
 };
 use std::borrow::Cow;
 use bevy_ecs::{
-    event::EventReader,
+    message::MessageReader,
     query::With,
     system::Query
 };
 
 
-pub(in crate::peer) fn handle_send_events(
+pub(in crate::peer) fn handle_send_messages(
     mut q_peers   : Query<(&mut PeerStreamWriter,), (With<Peer>,)>,
-    mut er_packet : EventReader<SendPacket>
+    mut mr_packet : MessageReader<SendPacket>
 ) {
-    for e in er_packet.read() {
-        if let Ok((mut writer,)) = q_peers.get_mut(e.entity()) {
-            writer.handle_send_packet(e);
+    for m in mr_packet.read() {
+        if let Ok((mut writer,)) = q_peers.get_mut(m.entity()) {
+            writer.handle_send_packet(m);
         }
     }
 }

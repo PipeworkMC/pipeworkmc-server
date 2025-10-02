@@ -5,15 +5,15 @@ use crate::peer::{
     reader::{ self, PeerStreamReader },
     writer::{ self, PeerStreamWriter },
     state::{ self, PeerState },
-    event,
+    message,
     flow::{ self,
         login::PeerLoginFlow
     },
     keepalive::{ self, PeerKeepAlive }
 };
 use crate::game::login::{
-    PlayerLoggedInEvent,
-    PlayerLoggedOutEvent
+    PlayerLoggedInMessage,
+    PlayerLoggedOutMessage
 };
 use pipeworkmc_codec::meta::{
     AtomicPacketState,
@@ -102,10 +102,11 @@ impl Plugin for PeerManagerPlugin {
     fn build(&self, app : &mut App) {
         _ = IoTaskPool::get_or_init(TaskPool::new);
 
-        app .add_event::<event::PacketReceived>()
-            .add_event::<event::SendPacket>()
-            .add_event::<PlayerLoggedInEvent>()
-            .add_event::<PlayerLoggedOutEvent>()
+        app
+            .add_message::<message::PacketReceived>()
+            .add_message::<message::SendPacket>()
+            .add_message::<PlayerLoggedInMessage>()
+            .add_message::<PlayerLoggedOutMessage>()
 
             .insert_resource(PeerListener::new(&*self.listen_addrs).unwrap()) // TODO: Error handler.
             .insert_resource(PeerOptions {
@@ -118,7 +119,7 @@ impl Plugin for PeerManagerPlugin {
             .add_systems(Update, accept_new_peers)
             .add_systems(Update, reader::read_peer_bytes)
             .add_systems(Update, reader::decode_peer_packets)
-            .add_systems(Update, writer::handle_send_events)
+            .add_systems(Update, writer::handle_send_messages)
             .add_systems(Update, writer::write_peer_bytes)
             .add_systems(Update, state::timeout_peers)
 
@@ -133,8 +134,6 @@ impl Plugin for PeerManagerPlugin {
             .add_systems(Update, keepalive::handle_keepalive_expiration)
             .add_systems(Update, keepalive::handle_keepalive_response)
 
-            // .add_systems(Update, peer::event::config::handle_config
-            //     .before(peer::decode_conn_peer_incoming))
         ;
     }
 }

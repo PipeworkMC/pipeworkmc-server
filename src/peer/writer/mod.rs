@@ -13,7 +13,7 @@ use pipeworkmc_packet::s2c::{
     S2CPackets,
     config::finish::S2CConfigFinishPacket
 };
-use crate::peer::event::SendPacket;
+use crate::peer::message::SendPacket;
 use core::sync::atomic::{
     AtomicBool,
     Ordering as AtomicOrdering

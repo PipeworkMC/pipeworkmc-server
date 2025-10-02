@@ -3,13 +3,13 @@ use crate::peer::{
     Peer,
     PeerOptions,
     writer::PacketSender,
-    event::{
+    message::{
         PacketReceived,
         SendPacket
     }
 };
 use crate::game::{
-    login::PlayerLoggedInEvent,
+    login::PlayerLoggedInMessage,
     character::{
         CharacterVisibility,
         player::{
@@ -25,8 +25,8 @@ use crate::game::{
 use pipeworkmc_data::{
     cat_variant::CatVariant,
     channel_data::ChannelData,
-    character::CharacterId,
     chicken_variant::ChickenVariant,
+    character::CharacterId,
     cow_variant::CowVariant,
     damage_type::DamageType,
     frog_variant::FrogVariant,
@@ -63,9 +63,9 @@ use pipeworkmc_packet::{
 };
 use std::borrow::Cow;
 use bevy_ecs::{
-    event::{
-        EventReader,
-        EventWriter
+    message::{
+        MessageReader,
+        MessageWriter
     },
     query::{ Has, With },
     system::{
@@ -82,7 +82,6 @@ pub(in crate::peer) fn handle_login_acknowledge(
     mut q_peers   : Query<(
         &mut PeerLoginFlow,
         &AccountProfile,
-        &CharacterId,
         &Dimension,
         Has<IsHardcore>,
         &ViewDist,
@@ -91,17 +90,16 @@ pub(in crate::peer) fn handle_login_acknowledge(
         &GameMode,
         &mut CharacterVisibility
     ), (With<Peer>,)>,
-    mut er_packet : EventReader<PacketReceived>,
-    mut ew_packet : EventWriter<SendPacket>,
-    mut ew_login  : EventWriter<PlayerLoggedInEvent>,
+    mut mr_packet : MessageReader<PacketReceived>,
+    mut mw_packet : MessageWriter<SendPacket>,
+    mut mw_login  : MessageWriter<PlayerLoggedInMessage>,
         r_options : Res<PeerOptions>
 ) {
-    for e in er_packet.read() {
-        if let C2SPackets::Login(C2SLoginPackets::FinishAcknowledged(C2SLoginFinishAcknowledgedPacket { })) = e.packet // TODO: Hold this until at least 2 cycles after the login request was called.
+    for m in mr_packet.read() {
+        if let C2SPackets::Login(C2SLoginPackets::FinishAcknowledged(C2SLoginFinishAcknowledgedPacket { })) = m.packet // TODO: Hold this until at least 2 cycles after the login request was called.
             && let Ok((
                 mut flow,
                 profile,
-                chid,
                 dimension,
                 is_hardcore,
                 view_dist,
@@ -109,25 +107,25 @@ pub(in crate::peer) fn handle_login_acknowledge(
                 no_respawn_screen,
                 game_mode,
                 mut vis,
-            )) = q_peers.get_mut(e.peer)
+            )) = q_peers.get_mut(m.peer)
         {
             let PeerLoginFlow::Acknowledge = &*flow else {
-                ew_packet.write(SendPacket::new(e.peer).kick_login_failed("Login acknowledgement invalid at this time"));
+                mw_packet.write(SendPacket::new(m.peer).kick_login_failed("Login acknowledgement invalid at this time"));
                 continue;
             };
 
             *flow = PeerLoginFlow::Done;
-            cmds.entity(e.peer).remove::<PeerLoginFlow>();
+            cmds.entity(m.peer).remove::<PeerLoginFlow>();
 
             // Send server brand.
-            ew_packet.write(SendPacket::new(e.peer).with_before_switch(
+            mw_packet.write(SendPacket::new(m.peer).with_before_switch(
                 S2CConfigCustomPayloadPacket { data : ChannelData::Brand {
                     brand : Cow::Borrowed(&r_options.server_brand)
                 } }
             ));
 
             // Send server known packs.
-            ew_packet.write(SendPacket::new(e.peer).with_before_switch(
+            mw_packet.write(SendPacket::new(m.peer).with_before_switch(
                 S2CConfigKnownPacksPacket { known_packs : Cow::Borrowed(&[ KnownPack {
                     namespace : Cow::Borrowed("minecraft"),
                     id        : Cow::Borrowed("core"),
@@ -137,47 +135,47 @@ pub(in crate::peer) fn handle_login_acknowledge(
 
             // Send registries.
             // TODO: Make these customisable.
-            ew_packet.write(SendPacket::new(e.peer).with_before_switch(
+            mw_packet.write(SendPacket::new(m.peer).with_before_switch(
                 S2CConfigRegistryDataPacket::from(CatVariant::VANILLA_REGISTRY_ENTRIES))
             );
-            ew_packet.write(SendPacket::new(e.peer).with_before_switch(
+            mw_packet.write(SendPacket::new(m.peer).with_before_switch(
                 S2CConfigRegistryDataPacket::from(ChickenVariant::VANILLA_REGISTRY_ENTRIES))
             );
-            ew_packet.write(SendPacket::new(e.peer).with_before_switch(
+            mw_packet.write(SendPacket::new(m.peer).with_before_switch(
                 S2CConfigRegistryDataPacket::from(CowVariant::VANILLA_REGISTRY_ENTRIES))
             );
-            ew_packet.write(SendPacket::new(e.peer).with_before_switch(
+            mw_packet.write(SendPacket::new(m.peer).with_before_switch(
                 S2CConfigRegistryDataPacket::from(DamageType::VANILLA_REGISTRY_ENTRIES))
             );
-            ew_packet.write(SendPacket::new(e.peer).with_before_switch(
+            mw_packet.write(SendPacket::new(m.peer).with_before_switch(
                 S2CConfigRegistryDataPacket::from(FrogVariant::VANILLA_REGISTRY_ENTRIES))
             );
-            ew_packet.write(SendPacket::new(e.peer).with_before_switch(
+            mw_packet.write(SendPacket::new(m.peer).with_before_switch(
                 S2CConfigRegistryDataPacket::from(PaintingVariant::VANILLA_REGISTRY_ENTRIES))
             );
-            ew_packet.write(SendPacket::new(e.peer).with_before_switch(
+            mw_packet.write(SendPacket::new(m.peer).with_before_switch(
                 S2CConfigRegistryDataPacket::from(PigVariant::VANILLA_REGISTRY_ENTRIES))
             );
-            ew_packet.write(SendPacket::new(e.peer).with_before_switch(
+            mw_packet.write(SendPacket::new(m.peer).with_before_switch(
                 S2CConfigRegistryDataPacket::from(WolfVariant::VANILLA_REGISTRY_ENTRIES))
             );
-            ew_packet.write(SendPacket::new(e.peer).with_before_switch(
+            mw_packet.write(SendPacket::new(m.peer).with_before_switch(
                 S2CConfigRegistryDataPacket::from(WolfSoundVariant::VANILLA_REGISTRY_ENTRIES))
             );
-            ew_packet.write(SendPacket::new(e.peer).with_before_switch(
+            mw_packet.write(SendPacket::new(m.peer).with_before_switch(
                 S2CConfigRegistryDataPacket::from(WorldgenBiome::VANILLA_REGISTRY_ENTRIES))
             );
 
-            ew_packet.write(SendPacket::new(e.peer).with_before_switch(
+            mw_packet.write(SendPacket::new(m.peer).with_before_switch(
                 S2CConfigRegistryDataPacket::from(&[
                     RegistryEntry { id : dimension.id.clone(), data : &dimension.dim_type }
                 ])
             ));
 
             // Finalise login.
-            ew_packet.write(SendPacket::new(e.peer).with(
+            mw_packet.write(SendPacket::new(m.peer).with(
                 S2CPlayLoginPacket {
-                    eid                   : *chid,
+                    eid                   : CharacterId(0),
                     hardcore              : is_hardcore,
                     all_dim_ids           : Cow::Owned(vec![dimension.id.clone()]),
                     max_players           : 0,
@@ -199,15 +197,17 @@ pub(in crate::peer) fn handle_login_acknowledge(
                     requires_chat_signing : false
                 }
             ));
-            vis.show_to(e.peer); // Make sure the player can see themself.
-            ew_packet.write(SendPacket::new(e.peer).with_before_switch(
+            vis.show_to(m.peer); // Make sure the player can see themself.
+            mw_packet.write(SendPacket::new(m.peer).with_before_switch(
                 S2CPlayGameEventPacket::WaitForChunks
             ));
 
-            ew_login.write(PlayerLoggedInEvent::new(
-                e.peer, profile.uuid, profile.username.clone()
-            ));
-            cmds.entity(e.peer).insert(ReadyPlayerCharacter);
+            mw_login.write(PlayerLoggedInMessage {
+                peer     : m.peer,
+                uuid     : profile.uuid,
+                username : profile.username.clone()
+            });
+            cmds.entity(m.peer).insert(ReadyPlayerCharacter);
 
         }
     }

@@ -19,14 +19,17 @@ use pipeworkmc_packet::s2c::play::{
 };
 use std::{
     borrow::Cow,
-    collections::{ HashSet, HashMap }
+    collections::{
+        HashSet, HashMap,
+        hash_map::Entry as HashMapEntry
+    }
 };
 use bevy_ecs::{
     component::Component,
     entity::Entity,
-    event::EventWriter,
+    lifecycle::RemovedComponents,
+    message::MessageWriter,
     query::{ With, Changed },
-    removal_detection::RemovedComponents,
     system::{ Local, Query }
 };
 
@@ -74,9 +77,51 @@ impl CharacterVisibility {
 
 
 /// A [`Component`] which tracks what characters this player is currently able to see.
-#[derive(Component, Default)]
+#[derive(Component)]
 pub(crate) struct VisibleCharacters {
-    visible_characters : HashMap<Entity, CharacterId>
+    this_entity            : Entity,
+    visible_character_ids  : HashMap<Entity, CharacterId>,
+    next_character_id      : u32, // TODO: Make NonZeroU32
+    reusable_character_ids : HashSet<u32> // TODO: Make NonZeroU32
+}
+impl VisibleCharacters {
+
+    #[inline]
+    pub(crate) fn new(this_entity : Entity) -> Self { Self {
+        this_entity,
+        visible_character_ids  : HashMap::new(),
+        next_character_id      : 0,
+        reusable_character_ids : HashSet::new()
+    } }
+
+    fn try_insert(&mut self, entity : Entity) -> Option<CharacterId> {
+        match (self.visible_character_ids.entry(entity)) {
+            HashMapEntry::Occupied(_) => None,
+            HashMapEntry::Vacant(entry) => {
+                // TODO: Use 0 only when entity == self.this_entity.
+                let chid = CharacterId(self.reusable_character_ids.iter().next().cloned()
+                    .map_or_else(|| {
+                        let chid = self.next_character_id;
+                        self.next_character_id += 1;
+                        chid
+                    }, |chid| {
+                        self.reusable_character_ids.remove(&chid);
+                        chid
+                    })
+                );
+                entry.insert(chid);
+                Some(chid)
+            }
+        }
+    }
+
+    fn remove(&mut self, entity : Entity) -> Option<CharacterId> {
+        self.visible_character_ids.remove(&entity).map(|character_id| {
+            self.reusable_character_ids.insert(character_id.0);
+            character_id
+        })
+    }
+
 }
 
 
@@ -90,19 +135,17 @@ pub(super) fn update_visibilities(
     mut q_vis     : Query<(
         Entity,
         &mut CharacterVisibility,
-        &CharacterId,
         &Character,
         &CharacterPos,
         &CharacterRot,
         &CharacterVel,
     ), (Changed<CharacterVisibility>,)>,
-    mut ew_packet : EventWriter<SendPacket>
+    mut mw_packet : MessageWriter<SendPacket>
 ) {
 
     for (
             character_entity,
         mut character_visibility,
-            &character_id,
             character,
             &character_pos,
             &character_rot,
@@ -115,8 +158,8 @@ pub(super) fn update_visibilities(
                     // Also make sure the character is in range.
                     && character_pos.chunk().cardinal_dist(player_pos.chunk()) < (player_view_dist.as_u8() as u32)
                 ) {
-                    if (visible_characters.visible_characters.try_insert(character_entity, character_id).is_ok()) {
-                        ew_packet.write(SendPacket::new(peer_entity).with(
+                    if let Some(character_id) = visible_characters.try_insert(character_entity) {
+                        mw_packet.write(SendPacket::new(peer_entity).with(
                             S2CPlayAddCharacterPacket {
                                 eid  : character_id,
                                 uuid : character.uuid,
@@ -130,8 +173,8 @@ pub(super) fn update_visibilities(
                     }
                 }
                 // If the player is not supposed to be able to see this character, but can, send a remove character packet.
-                else if let Some(character_id) = visible_characters.visible_characters.remove(&character_entity) {
-                    ew_packet.write(SendPacket::new(peer_entity).with(
+                else if let Some(character_id) = visible_characters.remove(character_entity) {
+                    mw_packet.write(SendPacket::new(peer_entity).with(
                         S2CPlayRemoveCharactersPacket { eids : Cow::Borrowed(&[character_id]) }
                     ));
                 }
@@ -145,8 +188,8 @@ pub(super) fn update_visibilities(
 /// Updates character visibilities for players when a [`CharacterVisibility`] [`Component`] is removed.
 pub(super) fn on_remove_character(
     mut q_peers   : Query<(Entity, &mut VisibleCharacters,), (With<Peer>,)>,
-    mut d_vis     : RemovedComponents<CharacterVisibility>,
-    mut ew_packet : EventWriter<SendPacket>,
+    mut d_vis     : RemovedComponents<CharacterVisibility>, // TODO: Use observer.
+    mut mw_packet : MessageWriter<SendPacket>,
     mut l_buf0    : Local<Vec<Entity>>,
     mut l_buf1    : Local<Vec<CharacterId>>
 ) {
@@ -157,14 +200,14 @@ pub(super) fn on_remove_character(
     for (peer_entity, mut visible_characters,) in &mut q_peers {
         // For each player, get which characters that are to be removed are visible.
         l_buf1.clear();
-        for character_entity in &*l_buf0 {
-            if let Some(character_id) = visible_characters.visible_characters.remove(character_entity) {
+        for &character_entity in &*l_buf0 {
+            if let Some(character_id) = visible_characters.remove(character_entity) {
                 l_buf1.push(character_id);
             }
         }
         // Send a remove character packet for the characters that are to be removed.
         if (! l_buf1.is_empty()) {
-            ew_packet.write(SendPacket::new(peer_entity).with(
+            mw_packet.write(SendPacket::new(peer_entity).with(
                 S2CPlayRemoveCharactersPacket { eids : Cow::Borrowed(l_buf1.as_slice()) }
             ));
         }

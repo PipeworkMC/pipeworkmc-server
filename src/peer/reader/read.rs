@@ -3,7 +3,7 @@ use crate::peer::{
     reader::PeerStreamReader,
     writer::PacketSender,
     state::PeerState,
-    event::SendPacket
+    message::SendPacket
 };
 use std::io::{ self, Read };
 use bevy_ecs::{
@@ -11,7 +11,7 @@ use bevy_ecs::{
     query::With,
     system::Query
 };
-use bevy_pareventwriter::ParallelEventWriter;
+use bevy_parmessagewriter::ParallelMessageWriter;
 
 
 const READ_BYTES_PER_CYCLE : usize = 256;
@@ -20,14 +20,14 @@ const READ_BYTES_PER_CYCLE : usize = 256;
 /// Reads bytes from the stream, decrypting and queueing them for decoding.
 pub(in crate::peer) fn read_peer_bytes(
     mut q_peers   : Query<(Entity, &mut PeerStreamReader, &PeerState,), (With<Peer>,)>,
-        ew_packet : ParallelEventWriter<SendPacket>
+        mw_packet : ParallelMessageWriter<SendPacket>
 ) {
     q_peers.par_iter_mut().for_each(|(entity, mut reader, state,)| {
         if (state.disconnecting()) { return; }
         let mut buf = [0u8; READ_BYTES_PER_CYCLE];
         match (reader.stream.read(&mut buf)) { // TODO: Ratelimit
             // No bytes received. Connection closed by peer.
-            Ok(0) => { ew_packet.write(SendPacket::new(entity).kick_end_of_stream()); },
+            Ok(0) => { mw_packet.write(SendPacket::new(entity).kick_end_of_stream()); },
             // Bytes received. Decrypt and queue them for decoding.
             Ok(count) => {
                 let mut incoming_slice = &buf[0..count];

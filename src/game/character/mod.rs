@@ -3,7 +3,6 @@
 
 use pipeworkmc_data::{
     character::{
-        CharacterId,
         CharacterPos,
         CharacterRot,
         CharacterVel,
@@ -32,8 +31,6 @@ pub mod player;
 /// It is not recommended that this is used by itself.
 #[derive(Bundle, Default)]
 pub struct CharacterBundle {
-    /// The networked character ID, used to track and update this character later.
-    pub eid        : CharacterId, // TODO: Get rid of character IDs here and move it to vis
     /// The position of this character.
     pub pos        : CharacterPos,
     /// The rotation of this character.

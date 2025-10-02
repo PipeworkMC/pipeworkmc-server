@@ -55,8 +55,8 @@ pub mod prelude {
         login::{
             AutoApproveLoginsPlugin,
             PlayerLoginRequest,
-            PlayerLoggedInEvent,
-            PlayerLoggedOutEvent
+            PlayerLoggedInMessage,
+            PlayerLoggedOutMessage
         }
     };
 
@@ -86,7 +86,7 @@ pub mod prelude {
                 pub use bevy_eqchanged::EqChanged;
             }
         }
-        pub use bevy_pareventwriter as pareventwriter;
+        pub use bevy_parmessagewriter as parmessagewriter;
         pub use bevy_tasks as tasks;
         pub use bevy_time as time;
         /// Bevy prelude.
@@ -95,7 +95,7 @@ pub mod prelude {
             pub use bevy_callback::prelude::*;
             pub use bevy_ecs::prelude::*;
             pub use bevy_eqchanged::EqChanged;
-            pub use bevy_pareventwriter::ParallelEventWriter;
+            pub use bevy_parmessagewriter::ParallelMessageWriter;
             pub use bevy_tasks::prelude::*;
             pub use bevy_time::prelude::*;
         }

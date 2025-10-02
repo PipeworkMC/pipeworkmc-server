@@ -17,7 +17,7 @@ use pipeworkmc_packet::s2c::login::finish::S2CLoginFinishPacket;
 use bevy_callback::Callback;
 use bevy_ecs::{
     entity::Entity,
-    event::EventWriter,
+    message::MessageWriter,
     query::With,
     system::{
         Commands,
@@ -36,7 +36,7 @@ pub(super) use uri::*;
 pub(in crate::peer) fn poll_mojauth_tasks(
     mut cmds      : Commands,
     mut q_peers   : Query<(Entity, &mut PeerLoginFlow,), (With<Peer>,)>,
-    mut ew_packet : EventWriter<SendPacket>,
+    mut mw_packet : MessageWriter<SendPacket>,
     mut c_login   : Callback<PlayerLoginRequest>,
 ) {
     for (entity, mut flow,) in &mut q_peers {
@@ -52,7 +52,7 @@ pub(in crate::peer) fn poll_mojauth_tasks(
                     });
                     match (approval) {
                         Ok(()) => {
-                            ew_packet.write(SendPacket::new(entity)
+                            mw_packet.write(SendPacket::new(entity)
                                 .with_before_switch(S2CLoginFinishPacket {
                                     profile : profile.clone()
                                 })
@@ -61,12 +61,12 @@ pub(in crate::peer) fn poll_mojauth_tasks(
                             cmds.entity(entity).insert((
                                 profile,
                                 PlayerCharacterBundle::default(),
-                                VisibleCharacters::default()
+                                VisibleCharacters::new(entity)
                             ));
                             *flow = PeerLoginFlow::Acknowledge;
                         },
                         Err(reason) => {
-                            ew_packet.write(SendPacket::new(entity).kick(&reason));
+                            mw_packet.write(SendPacket::new(entity).kick(&reason));
                             *flow = PeerLoginFlow::Done;
                         }
                     }
