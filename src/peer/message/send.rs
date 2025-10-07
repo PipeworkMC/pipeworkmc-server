@@ -88,10 +88,10 @@ impl PacketSender for &mut SendPacket {
     where
         T : Into<S2CPackets<'l>>
     {
-        let     packet            = packet.into();
-        let     (state, _, kick,) = packet.meta();
+        let     packet = packet.into();
+        let     meta   = packet.meta();
 
-        let slot = match (state) {
+        let slot = match (meta.state) {
             PacketState::Handshake => { panic!("can not send handshake packet in SendPacket"); },
             PacketState::Status    => &mut self.status_before,
             PacketState::Login     => &mut self.login_before,
@@ -99,13 +99,13 @@ impl PacketSender for &mut SendPacket {
             PacketState::Play      => &mut self.play_before
         };
         if (slot.is_some()) {
-            panic!("already added {state:?} before switch packet to SendPacket");
+            panic!("already added {:?} before switch packet to SendPacket", meta.state);
         }
 
-        if (self.kick.is_some_and(|k| k != kick)) {
+        if (self.kick.is_some_and(|k| k != meta.kick)) {
             panic!("can not combine kick and non-kick packets in SendPacket");
         }
-        self.kick = Some(kick);
+        self.kick = Some(meta.kick);
 
         let mut buf = EncodeBuf::new_len_prefixed(packet.encode_prefixed_len());
         // SAFETY: `buf` has space for `packet.encode_prefixed_len()` bytes.
@@ -121,21 +121,21 @@ impl PacketSender for &mut SendPacket {
     where
         T : Into<S2CPackets<'l>>
     {
-        let packet            = packet.into();
-        let (state, _, kick,) = packet.meta();
+        let packet = packet.into();
+        let meta   = packet.meta();
 
         if let Some(switch_state) = &self.switch_state {
             panic!("already switching state to {switch_state:?}");
         }
 
-        if (self.kick.is_some_and(|k| k != kick)) {
+        if (self.kick.is_some_and(|k| k != meta.kick)) {
             panic!("can not combine kick and non-kick packets in SendPacket");
         }
-        self.kick = Some(kick);
+        self.kick = Some(meta.kick);
 
         let mut buf = EncodeBuf::new_len_prefixed(packet.encode_prefixed_len());
         unsafe { packet.encode_prefixed(&mut buf); }
-        self.switch_state = Some((state, Some(unsafe { buf.into_inner() }), false,));
+        self.switch_state = Some((meta.state, Some(unsafe { buf.into_inner() }), false,));
 
         self
     }
