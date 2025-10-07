@@ -39,7 +39,7 @@ use bevy_ecs::{
         MessageWriter
     },
     observer::On,
-    query::With,
+    query::{ With, Has },
     system::{ Commands, Query }
 };
 use bevy_eqchanged::EqChanged;
@@ -70,6 +70,7 @@ pub struct PlayerCharacterBundle {
 /// A marker for player-type characters.
 #[derive(Component, Default)]
 #[component(immutable)]
+#[require(OldNoRespawnScreen, OldReducedDebugInfo)]
 #[non_exhaustive]
 pub struct PlayerCharacter;
 
@@ -108,14 +109,6 @@ pub struct ClientBrand {
 #[derive(Component)]
 #[component(immutable)]
 pub struct IsHardcore;
-
-/// Whether the player's F3 debug screen is reduced.
-#[derive(Component)]
-pub struct ReducedDebugInfo; // TODO: Detect changes and update player RDI.
-
-/// Whether the player will immediately respawn without showing the respawn screen on death.
-#[derive(Component)]
-pub struct NoRespawnScreen; // TODO: Detect changes and update player respawn screen.
 
 
 /// The player's view distance.
@@ -162,3 +155,39 @@ pub(in crate::game::character) fn update_game_mode(
         SendPacket::new(entity).with(S2CPlayGameEventPacket::ChangeGameMode { to : game_mode })
     }));
 }
+
+
+/// Whether the player will immediately respawn without showing the respawn screen on death.
+#[derive(Component)]
+#[require(OldNoRespawnScreen)]
+pub struct NoRespawnScreen;
+#[derive(Component, Default)]
+pub(in crate::game::character) struct OldNoRespawnScreen(bool);
+
+/// Sends respawn screen updates to players on change.
+pub(in crate::game::character) fn update_no_respawn_screen(
+    mut q_players : Query<(
+        Entity,
+        Has<NoRespawnScreen>,
+        &mut OldNoRespawnScreen,
+        Has<ReadyPlayerCharacter>,
+    ), (With<Peer>, With<PlayerCharacter>,)>,
+    mut ew_packet : MessageWriter<SendPacket>
+) {
+    for (entity, nrs, mut old_nrs, is_ready) in &mut q_players {
+        if (nrs != old_nrs.0) {
+            old_nrs.0 = nrs;
+            if (is_ready) {
+                ew_packet.write(SendPacket::new(entity).with(
+                    S2CPlayGameEventPacket::SetRespawnScreen { show_respawn_screen : true }
+                ));
+            }
+        }
+    }
+}
+
+/// Whether the player's F3 debug screen is reduced.
+#[derive(Component, Default)]
+pub struct ReducedDebugInfo; // TODO: Update RDI on changed.
+#[derive(Component, Default)]
+pub(in crate::game::character) struct OldReducedDebugInfo(#[expect(dead_code)] bool);

@@ -12,7 +12,7 @@ use pipeworkmc_data::{
 };
 use bevy_app::{
     App, Plugin,
-    PreUpdate, PostUpdate
+    PostUpdate
 };
 use bevy_ecs::{
     component::Component,
@@ -69,8 +69,9 @@ impl Plugin for CharactersPlugin {
 
             // Player
             .add_observer(player::set_character)
-            .add_systems(PreUpdate, player::update_client_info)
-            .add_systems(PreUpdate, player::update_game_mode)
+            .add_systems(PostUpdate, player::update_client_info)
+            .add_systems(PostUpdate, player::update_game_mode)
+            .add_systems(PostUpdate, player::update_no_respawn_screen)
         ;
     }
 }
