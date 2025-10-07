@@ -7,6 +7,7 @@ use pipeworkmc_data::{
     redacted::Redacted
 };
 use core::net::SocketAddr;
+use std::borrow::Cow;
 use bevy_ecs::{
     bundle::Bundle,
     component::Component,
@@ -43,7 +44,7 @@ pub struct PeerOptions {
     /// The server brand which is shown in the client F3 debug screen.
     ///
     /// *Note: Changing this will not automatically update the brand known by existing peers. They will need to rejoin.*
-    pub server_brand       : String,
+    pub server_brand       : Cow<'static, str>,
 
     /// How large packets need to be before being compressed.
     ///

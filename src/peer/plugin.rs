@@ -63,7 +63,7 @@ pub struct PeerManagerPlugin {
     pub server_id          : BoundedString<20>,
 
     /// The server brand which is shown in the client F3 debug screen.
-    pub server_brand       : String,
+    pub server_brand       : Cow<'static, str>,
 
     /// How large packets need to be before being compressed.
     ///
@@ -94,7 +94,7 @@ impl Default for PeerManagerPlugin {
         Self {
             listen_addrs       : Cow::Borrowed(Self::DEFAULT_LISTEN_ADDRS),
             server_id          : BoundedString::try_from("PipeworkMC").unwrap(),
-            server_brand       : String::from("PipeworkMC"),
+            server_brand       : Cow::Borrowed("PipeworkMC"),
             compress_threshold : Some(64),
             #[cfg(feature = "mojauth")]
             mojauth_enabled    : false
