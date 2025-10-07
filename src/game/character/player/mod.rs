@@ -74,6 +74,8 @@ pub struct PlayerCharacterBundle {
     pub game_mode   : GameMode,
     /// The player's operator permission level.
     pub op_level    : OperatorLevel,
+    /// The movement flags of this character.
+    pub move_flags  : CharacterMoveFlags,
     /// General character components.
     pub character   : super::CharacterBundle
 }
