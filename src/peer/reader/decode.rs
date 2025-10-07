@@ -24,9 +24,9 @@ use pipeworkmc_packet::c2s::{
     C2SPackets,
     handshake::{
         C2SHandshakePackets,
-        intention::{
-            C2SHandshakeIntentionPacket,
-            Intention
+        intent::{
+            C2SHandshakeIntentPacket,
+            Intent
         }
     },
     status::C2SStatusPackets,
@@ -89,10 +89,10 @@ pub(in crate::peer) fn decode_peer_packets(
 
                     PacketState::Handshake => { match (C2SHandshakePackets::decode_prefixed(&mut iter)) {
                         Ok(packet) => {
-                            let C2SHandshakePackets::Intention(C2SHandshakeIntentionPacket { intent, .. }) = &packet;
+                            let C2SHandshakePackets::Intent(C2SHandshakeIntentPacket { intent, .. }) = &packet;
                             match (intent) {
-                                Intention::Status       => { state.both_to_status(); },
-                                Intention::Login { .. } => { state.both_to_login(); }
+                                Intent::Status       => { state.both_to_status(); },
+                                Intent::Login { .. } => { state.both_to_login(); }
                             }
                             mw_received.write(PacketReceived::new(entity, C2SPackets::Handshake(packet)));
                         },

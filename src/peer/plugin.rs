@@ -38,7 +38,10 @@ use std::{
     net::{ TcpListener, ToSocketAddrs },
     sync::Arc
 };
-use bevy_app::{ App, Plugin, Update };
+use bevy_app::{
+    App, Plugin,
+    First, PreUpdate, Update, Last
+};
 use bevy_ecs::{
     resource::Resource,
     schedule::IntoScheduleConfigs,
@@ -116,20 +119,21 @@ impl Plugin for PeerManagerPlugin {
                 mojauth_enabled    : self.mojauth_enabled
             })
 
-            .add_systems(Update, accept_new_peers)
-            .add_systems(Update, reader::read_peer_bytes)
-            .add_systems(Update, reader::decode_peer_packets)
-            .add_systems(Update, writer::handle_send_messages)
-            .add_systems(Update, writer::write_peer_bytes)
-            .add_systems(Update, state::timeout_peers)
+            .add_systems(First, accept_new_peers)
+            .add_systems(First, reader::read_peer_bytes)
+            .add_systems(First, reader::decode_peer_packets.after(reader::read_peer_bytes))
+            .add_systems(Last, writer::handle_send_messages)
+            .add_systems(Last, writer::write_peer_bytes.after(writer::handle_send_messages))
+            .add_systems(Last, state::timeout_peers)
 
             .add_systems(Update, flow::status::respond_to_requests)
             .add_systems(Update, flow::status::respond_to_pings)
-            .add_systems(Update, flow::login::start::begin_key_exchange)
-            .add_systems(Update, flow::login::encrypt::finish_key_exchange_and_check_mojauth)
-            .add_systems(Update, flow::login::mojauth::poll_mojauth_tasks
+
+            .add_systems(PreUpdate, flow::login::start::begin_key_exchange)
+            .add_systems(PreUpdate, flow::login::encrypt::finish_key_exchange_and_check_mojauth)
+            .add_systems(PreUpdate, flow::login::mojauth::poll_mojauth_tasks
                 .run_if(flow::login::mojauth::is_mojauth_enabled))
-            .add_systems(Update, flow::login::finish::handle_login_acknowledge)
+            .add_systems(PreUpdate, flow::login::finish::handle_login_acknowledge)
 
             .add_systems(Update, keepalive::handle_keepalive_expiration)
             .add_systems(Update, keepalive::handle_keepalive_response)

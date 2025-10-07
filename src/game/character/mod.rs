@@ -12,7 +12,7 @@ use pipeworkmc_data::{
 };
 use bevy_app::{
     App, Plugin,
-    PreUpdate, Update
+    PreUpdate, Update, PostUpdate
 };
 use bevy_ecs::{
     component::Component,
@@ -64,11 +64,12 @@ pub struct CharactersPlugin;
 impl Plugin for CharactersPlugin {
     fn build(&self, app : &mut App) {
         app
-            .add_systems(Update, vis::update_visibilities)
-            .add_systems(Update, vis::on_remove_character)
+            .add_systems(PostUpdate, vis::update_visibilities)
+            .add_systems(PostUpdate, vis::on_remove_character)
 
             // Player
             .add_observer(player::set_character)
+            .add_systems(PreUpdate, player::update_client_info)
             .add_systems(PreUpdate, player::update_game_mode)
         ;
     }

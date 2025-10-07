@@ -82,8 +82,8 @@ pub(in crate::peer) fn handle_keepalive_expiration(
 
                 PacketBound::S2C => {
                     mw_packet.write(SendPacket::new(entity)
-                        .with_before_switch(S2CConfigKeepAlivePacket { id : keepalive.id })
-                        .with_before_switch(S2CPlayKeepAlivePacket   { id : keepalive.id })
+                        .with_before_switch(S2CConfigKeepAlivePacket { transaction : keepalive.id })
+                        .with_before_switch(S2CPlayKeepAlivePacket   { transaction : keepalive.id })
                     );
                     keepalive.sent_s2c();
                 }

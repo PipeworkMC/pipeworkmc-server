@@ -5,7 +5,8 @@ use super::Character;
 use crate::peer::{
     Peer,
     PacketSender,
-    SendPacket
+    SendPacket,
+    PacketReceived
 };
 use pipeworkmc_data::{
     character::CharacterType,
@@ -13,14 +14,30 @@ use pipeworkmc_data::{
     game_mode::GameMode,
     profile::AccountProfile
 };
-use pipeworkmc_packet::s2c::play::game_event::S2CPlayGameEventPacket;
+use pipeworkmc_packet::{
+    c2s::{
+        C2SPackets,
+        config::{
+            C2SConfigPackets,
+            client_info::C2SConfigClientInfoPacket
+        },
+        play::{
+            C2SPlayPackets,
+            client_info::C2SPlayClientInfoPacket
+        }
+    },
+    s2c::play::game_event::S2CPlayGameEventPacket
+};
 use core::num::NonZeroU8;
 use bevy_ecs::{
     bundle::Bundle,
     component::Component,
     entity::Entity,
     lifecycle::Add,
-    message::MessageWriter,
+    message::{
+        MessageReader,
+        MessageWriter
+    },
     observer::On,
     query::With,
     system::{ Commands, Query }
@@ -117,6 +134,21 @@ impl Default for ViewDist {
     fn default() -> Self {
         // SAFETY: 8 is not 0.
         Self(unsafe { NonZeroU8::new_unchecked(8) })
+    }
+}
+
+
+/// Updates client info on received.
+pub(in crate::game::character) fn update_client_info(
+    mut cmds      : Commands,
+    mut mr_packet : MessageReader<PacketReceived>
+) {
+    for m in mr_packet.read() {
+        if let C2SPackets::Config(C2SConfigPackets::ClientInfo(C2SConfigClientInfoPacket { info }))
+            | C2SPackets::Play(C2SPlayPackets::ClientInfo(C2SPlayClientInfoPacket { info }))
+        = &m.packet {
+            cmds.entity(m.peer).insert(info.clone());
+        }
     }
 }
 
