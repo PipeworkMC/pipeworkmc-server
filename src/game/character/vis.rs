@@ -118,11 +118,10 @@ impl VisibleCharacters {
     }
 
     fn remove(&mut self, entity : Entity) -> Option<CharacterId> {
-        self.visible_character_ids.remove(&entity).map(|character_id| {
+        self.visible_character_ids.remove(&entity).inspect(|character_id| {
             if let Some(character_id) = NonZeroU32::new(character_id.0) {
                 self.reusable_character_ids.insert(character_id);
             }
-            character_id
         })
     }
 

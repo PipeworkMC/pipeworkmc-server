@@ -12,7 +12,7 @@ use pipeworkmc_data::{
 };
 use bevy_app::{
     App, Plugin,
-    PreUpdate, Update, PostUpdate
+    PreUpdate, PostUpdate
 };
 use bevy_ecs::{
     component::Component,

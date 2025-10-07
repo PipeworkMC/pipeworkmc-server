@@ -17,7 +17,7 @@ use pipeworkmc_data::{
     version::Version
 };
 use pipeworkmc_packet::s2c::status::response::{
-    Status, StatusVersion, StatusPlayers, StatusPlayer
+    Status, StatusVersion, StatusPlayers, StatusPlayer, StatusPlayerName
 };
 use std::borrow::Cow;
 use bevy_app::{ App, Plugin };
@@ -94,11 +94,14 @@ fn status_response(
         players : Some(StatusPlayers {
             current : q_players.iter().len() as u32,
             max     : r_options.max_players,
-            sample  : Cow::Owned(q_players
-                .iter().filter_map(|(profile, ci,)| {
-                    ci.is_some_and(|ci| ci.allow_motd_listing)
-                        .then(|| StatusPlayer { uuid : profile.uuid, name : profile.username.to_string() })
-                }).collect::<Vec<_>>()),
+            // sample  : Cow::Owned(q_players.iter().filter_map(|(profile, ci,)| {
+            //     ci.is_some_and(|ci| ci.allow_motd_listing)
+            //         .then(|| StatusPlayer { uuid : profile.uuid, name : StatusPlayerName::Bounded(profile.username.clone()) })
+            // }).collect::<Vec<_>>()),
+            sample  : Cow::Owned(q_players.iter()
+                .filter(|(_, ci,)| ci.is_some_and(|ci| ci.allow_motd_listing))
+                .map(|(profile, _,)| StatusPlayer { uuid : profile.uuid, name : StatusPlayerName::Bounded(profile.username.clone()) })
+                .collect::<Vec<_>>()),
         }),
         motd                  : Some(r_options.motd.clone()),
         favicon               : Some(r_options.favicon.clone()),

@@ -50,7 +50,7 @@ pub mod prelude {
         status::{
             AutoStatusPlugin,
             StatusRequest,
-            Status, StatusVersion, StatusPlayers, StatusPlayer
+            Status, StatusVersion, StatusPlayers, StatusPlayer, StatusPlayerName
         },
         login::{
             AutoApproveLoginsPlugin,

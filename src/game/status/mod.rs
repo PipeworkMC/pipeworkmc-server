@@ -2,7 +2,7 @@
 
 
 pub use pipeworkmc_packet::s2c::status::response::{
-    Status, StatusVersion, StatusPlayers, StatusPlayer
+    Status, StatusVersion, StatusPlayers, StatusPlayer, StatusPlayerName
 };
 use bevy_callback::Request;
 use bevy_ecs::entity::Entity;
