@@ -11,7 +11,8 @@ use crate::peer::{
 use pipeworkmc_data::{
     character::{
         CharacterId,
-        CharacterType
+        CharacterType,
+        CharacterMoveFlags
     },
     client_info::ClientInfo,
     game_mode::GameMode,
