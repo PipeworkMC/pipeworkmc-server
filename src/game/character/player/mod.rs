@@ -17,7 +17,8 @@ use pipeworkmc_data::{
     client_info::ClientInfo,
     game_mode::GameMode,
     operator_level::OperatorLevel,
-    profile::AccountProfile
+    profile::AccountProfile,
+    selected_hotbar::SelectedHotbar
 };
 use pipeworkmc_packet::{
     c2s::{
@@ -64,21 +65,23 @@ pub use dimension::*;
 #[derive(Bundle, Default)]
 pub struct PlayerCharacterBundle {
     /// A marker for player-type characters.
-    pub player      : PlayerCharacter,
+    pub player          : PlayerCharacter,
     /// Client settings.
-    pub client_info : ClientInfo,
+    pub client_info     : ClientInfo,
     /// The dimension that the player is in.
-    pub dimension   : Dimension,
+    pub dimension       : Dimension,
     /// The player's view distance.
-    pub view_dist   : ViewDist,
+    pub view_dist       : ViewDist,
     /// The player's game mode.
-    pub game_mode   : GameMode,
+    pub game_mode       : GameMode,
     /// The player's operator permission level.
-    pub op_level    : OperatorLevel,
+    pub op_level        : OperatorLevel,
     /// The movement flags of this character.
-    pub move_flags  : CharacterMoveFlags,
+    pub move_flags      : CharacterMoveFlags,
+    /// The player's selected hotbar slot.
+    pub selected_hotbar : SelectedHotbar, // TODO: Send update to client on changed.
     /// General character components.
-    pub character   : super::CharacterBundle
+    pub character       : super::CharacterBundle
 }
 
 
