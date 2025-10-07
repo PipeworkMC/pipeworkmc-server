@@ -16,7 +16,7 @@ path = "../pipeworkmc-codec"
 
 [dependencies.pipeworkmc-data]
 path     = "../pipeworkmc-data"
-features = [ "generated" ]
+features = [ "bevy", "generated" ]
 
 [dependencies.pipeworkmc-packet]
 path = "../pipeworkmc-packet"
