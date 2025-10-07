@@ -15,6 +15,7 @@ use pipeworkmc_data::{
     },
     client_info::ClientInfo,
     game_mode::GameMode,
+    operator_level::OperatorLevel,
     profile::AccountProfile
 };
 use pipeworkmc_packet::{
@@ -71,6 +72,8 @@ pub struct PlayerCharacterBundle {
     pub view_dist   : ViewDist,
     /// The player's game mode.
     pub game_mode   : GameMode,
+    /// The player's operator permission level.
+    pub op_level    : OperatorLevel,
     /// General character components.
     pub character   : super::CharacterBundle
 }
@@ -79,7 +82,7 @@ pub struct PlayerCharacterBundle {
 /// A marker for player-type characters.
 #[derive(Component, Default)]
 #[component(immutable)]
-#[require(OldNoRespawnScreen, OldReducedDebugInfo)]
+#[require(OldNoRespawnScreen, OldReducedDebugInfo, OldOperatorLevel)]
 #[non_exhaustive]
 pub struct PlayerCharacter;
 
@@ -219,6 +222,41 @@ pub(in crate::game::character) fn update_reduced_debug_info(
                     S2CPlayCharacterEventPacket {
                         eid    : CharacterId(0),
                         status : if (rdi) { CharacterStatus::ENABLE_REDUCED_DEBUG_INFO } else { CharacterStatus::DISABLE_REDUCED_DEBUG_INFO }
+                    }
+                ));
+            }
+        }
+    }
+}
+
+#[derive(Component, Default)]
+pub(in crate::game::character) struct OldOperatorLevel(OperatorLevel);
+
+/// Sends operator level updates to players on change.
+pub(in crate::game::character) fn update_operator_levle(
+    mut q_players : Query<(
+        Entity,
+        Option<&OperatorLevel>,
+        &mut OldOperatorLevel,
+        Has<ReadyPlayerCharacter>,
+    ), (With<Peer>, With<PlayerCharacter>,)>,
+    mut ew_packet : MessageWriter<SendPacket>
+) {
+    for (entity, ol, mut old_ol, is_ready) in &mut q_players {
+        let ol = ol.map_or(OperatorLevel::default(), |&ol| ol);
+        if (ol != old_ol.0) {
+            old_ol.0 = ol;
+            if (is_ready) {
+                ew_packet.write(SendPacket::new(entity).with(
+                    S2CPlayCharacterEventPacket {
+                        eid    : CharacterId(0),
+                        status : { match (ol) {
+                            OperatorLevel::All        => CharacterStatus::SET_OP_LEVEL_0,
+                            OperatorLevel::Moderator  => CharacterStatus::SET_OP_LEVEL_1,
+                            OperatorLevel::Gamemaster => CharacterStatus::SET_OP_LEVEL_2,
+                            OperatorLevel::Admin      => CharacterStatus::SET_OP_LEVEL_3,
+                            OperatorLevel::Owner      => CharacterStatus::SET_OP_LEVEL_4
+                        } }
                     }
                 ));
             }
