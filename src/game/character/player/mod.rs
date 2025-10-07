@@ -206,7 +206,7 @@ pub(in crate::game::character) fn update_no_respawn_screen(
 
 /// Whether the player's F3 debug screen is reduced.
 #[derive(Component, Default)]
-pub struct ReducedDebugInfo; // TODO: Update RDI on changed.
+pub struct ReducedDebugInfo;
 #[derive(Component, Default)]
 pub(in crate::game::character) struct OldReducedDebugInfo(bool);
 
