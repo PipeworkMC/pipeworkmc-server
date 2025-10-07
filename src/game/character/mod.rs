@@ -72,6 +72,7 @@ impl Plugin for CharactersPlugin {
             .add_systems(PostUpdate, player::update_client_info)
             .add_systems(PostUpdate, player::update_game_mode)
             .add_systems(PostUpdate, player::update_no_respawn_screen)
+            .add_systems(PostUpdate, player::update_reduced_debug_info)
         ;
     }
 }

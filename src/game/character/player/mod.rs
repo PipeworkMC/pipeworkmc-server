@@ -9,7 +9,10 @@ use crate::peer::{
     PacketReceived
 };
 use pipeworkmc_data::{
-    character::CharacterType,
+    character::{
+        CharacterId,
+        CharacterType
+    },
     client_info::ClientInfo,
     game_mode::GameMode,
     profile::AccountProfile
@@ -26,7 +29,13 @@ use pipeworkmc_packet::{
             client_info::C2SPlayClientInfoPacket
         }
     },
-    s2c::play::game_event::S2CPlayGameEventPacket
+    s2c::play::{
+        character_event::{
+            S2CPlayCharacterEventPacket,
+            CharacterStatus
+        },
+        game_event::S2CPlayGameEventPacket
+    }
 };
 use core::num::NonZeroU8;
 use bevy_ecs::{
@@ -190,4 +199,29 @@ pub(in crate::game::character) fn update_no_respawn_screen(
 #[derive(Component, Default)]
 pub struct ReducedDebugInfo; // TODO: Update RDI on changed.
 #[derive(Component, Default)]
-pub(in crate::game::character) struct OldReducedDebugInfo(#[expect(dead_code)] bool);
+pub(in crate::game::character) struct OldReducedDebugInfo(bool);
+
+/// Sends debug screen updates to players on change.
+pub(in crate::game::character) fn update_reduced_debug_info(
+    mut q_players : Query<(
+        Entity,
+        Has<ReducedDebugInfo>,
+        &mut OldReducedDebugInfo,
+        Has<ReadyPlayerCharacter>,
+    ), (With<Peer>, With<PlayerCharacter>,)>,
+    mut ew_packet : MessageWriter<SendPacket>
+) {
+    for (entity, rdi, mut old_rdi, is_ready) in &mut q_players {
+        if (rdi != old_rdi.0) {
+            old_rdi.0 = rdi;
+            if (is_ready) {
+                ew_packet.write(SendPacket::new(entity).with(
+                    S2CPlayCharacterEventPacket {
+                        eid    : CharacterId(0),
+                        status : if (rdi) { CharacterStatus::ENABLE_REDUCED_DEBUG_INFO } else { CharacterStatus::DISABLE_REDUCED_DEBUG_INFO }
+                    }
+                ));
+            }
+        }
+    }
+}
