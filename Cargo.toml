@@ -1,7 +1,10 @@
 [package]
-name = "pipeworkmc-server"
+name    = "pipeworkmc-server"
 version = "0.1.0"
 edition = "2024"
+
+[features]
+mojauth = [ "dep:surf" ]
 
 [lints.rust]
 unused_parens = "allow"
@@ -67,4 +70,5 @@ version = "0.9"
 # Communication
 
 [dependencies.surf]
-version = "2.3"
+version  = "2.3"
+optional = true

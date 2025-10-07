@@ -76,6 +76,7 @@ pub struct PeerManagerPlugin {
     /// **WARNING**
     /// Setting this to `false` allows any player to join with any username,
     ///  potentially letting them steal other player's data.
+    #[cfg(feature = "mojauth")]
     pub mojauth_enabled    : bool
 
 }
@@ -95,6 +96,7 @@ impl Default for PeerManagerPlugin {
             server_id          : BoundedString::try_from("PipeworkMC").unwrap(),
             server_brand       : String::from("PipeworkMC"),
             compress_threshold : Some(64),
+            #[cfg(feature = "mojauth")]
             mojauth_enabled    : false
         }
     }
@@ -116,6 +118,7 @@ impl Plugin for PeerManagerPlugin {
                 server_id          : self.server_id.clone(),
                 server_brand       : self.server_brand.clone(),
                 compress_threshold : self.compress_threshold,
+                #[cfg(feature = "mojauth")]
                 mojauth_enabled    : self.mojauth_enabled
             })
 
@@ -130,9 +133,11 @@ impl Plugin for PeerManagerPlugin {
             .add_systems(Update, flow::status::respond_to_pings)
 
             .add_systems(PreUpdate, flow::login::start::begin_key_exchange)
-            .add_systems(PreUpdate, flow::login::encrypt::finish_key_exchange_and_check_mojauth)
-            .add_systems(PreUpdate, flow::login::mojauth::poll_mojauth_tasks
-                .run_if(flow::login::mojauth::is_mojauth_enabled))
+            .add_systems(PreUpdate, flow::login::encrypt::finish_key_exchange_and_check_mojauth);
+        #[cfg(feature = "mojauth")]
+        app .add_systems(PreUpdate, flow::login::mojauth::poll_mojauth_tasks
+                .run_if(flow::login::mojauth::is_mojauth_enabled));
+        app
             .add_systems(PreUpdate, flow::login::finish::handle_login_acknowledge)
 
             .add_systems(Update, keepalive::handle_keepalive_expiration)

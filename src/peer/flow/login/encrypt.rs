@@ -1,10 +1,6 @@
-use super::{
-    PeerLoginFlow,
-    mojauth::build_mojauth_uri
-};
+use super::PeerLoginFlow;
 use crate::peer::{
     Peer,
-    PeerOptions,
     reader::PeerStreamReader,
     writer::{
         PeerStreamWriter,
@@ -47,11 +43,9 @@ use bevy_ecs::{
     query::With,
     system::{
         Commands,
-        Query,
-        Res
+        Query
     }
 };
-use bevy_tasks::IoTaskPool;
 use openssl::{
     rsa::Padding,
     symm::{
@@ -71,7 +65,8 @@ pub(in crate::peer) fn finish_key_exchange_and_check_mojauth(
     mut q_peers   : Query<(&mut PeerStreamReader, &mut PeerStreamWriter, &mut PeerLoginFlow,), (With<Peer>,)>,
     mut mr_packet : MessageReader<PacketReceived>,
     mut mw_packet : MessageWriter<SendPacket>,
-        r_options : Res<PeerOptions>,
+    #[cfg(feature = "mojauth")]
+        r_options : bevy_ecs::system::Res<crate::peer::PeerOptions>,
     mut c_login   : Callback<PlayerLoginRequest>
 ) {
     for m in mr_packet.read() {
@@ -80,7 +75,13 @@ pub(in crate::peer) fn finish_key_exchange_and_check_mojauth(
         )) = &m.packet
             && let Ok((mut reader, mut writer, mut flow,)) = q_peers.get_mut(m.peer)
         {
-            let PeerLoginFlow::KeyExchange { declared_username, private_key, public_key_der, verify_token } = &*flow else {
+            let PeerLoginFlow::KeyExchange {
+                declared_username,
+                private_key,
+                #[cfg(feature = "mojauth")]
+                public_key_der,
+                verify_token
+            } = &*flow else {
                 mw_packet.write(SendPacket::new(m.peer).kick_login_failed("Key exchange invalid at this time"));
                 continue;
             };
@@ -120,14 +121,15 @@ pub(in crate::peer) fn finish_key_exchange_and_check_mojauth(
             writer.set_encrypter(Redacted::from(encrypter));
 
             // Begin mojauth if enabled.
+            #[cfg(feature = "mojauth")]
             if (r_options.mojauth_enabled) {
-                let (url_buf, url_len,) = build_mojauth_uri(
+                let (url_buf, url_len,) = super::mojauth::build_mojauth_uri(
                     &r_options.server_id,
                     &decrypted_secret_key,
                     public_key_der,
                     declared_username
                 );
-                *flow = PeerLoginFlow::Mojauth { task : IoTaskPool::get().spawn(async move {
+                *flow = PeerLoginFlow::Mojauth { task : bevy_tasks::IoTaskPool::get().spawn(async move {
                     // SAFETY: `build_mojauth_uri` only returns valid UTF8.
                     //         `url_len` is always less than `url_buf.len()`.
                     let url = unsafe { str::from_utf8_unchecked(url_buf.get_unchecked(0..url_len)) };
@@ -136,38 +138,37 @@ pub(in crate::peer) fn finish_key_exchange_and_check_mojauth(
                         Err(err)         => Err(err)
                     }
                 }) };
+                return;
             }
             // If mojauth disabled, skip to requesting approval.
-            else {
-                let profile = AccountProfile {
-                    uuid     : Uuid::new_v3(&OFFLINE_NAMESPACE, declared_username.as_bytes()),
-                    username : declared_username.clone(),
-                    skin     : None
-                };
-                let approval = c_login.request(PlayerLoginRequest {
-                    peer     : m.peer,
-                    uuid     : profile.uuid,
-                    username : profile.username.clone()
-                });
-                match (approval) {
-                    Ok(()) => {
-                        mw_packet.write(SendPacket::new(m.peer)
-                            .with_before_switch(S2CLoginFinishPacket {
-                                profile : profile.clone()
-                            })
-                            .with_switch_state(PacketState::Config, true)
-                        );
-                        cmds.entity(m.peer).insert((
-                            profile,
-                            PlayerCharacterBundle::default(),
-                            VisibleCharacters::new(m.peer)
-                        ));
-                        *flow = PeerLoginFlow::Acknowledge;
-                    },
-                    Err(reason) => {
-                        mw_packet.write(SendPacket::new(m.peer).kick(&reason));
-                        *flow = PeerLoginFlow::Done;
-                    }
+            let profile = AccountProfile {
+                uuid     : Uuid::new_v3(&OFFLINE_NAMESPACE, declared_username.as_bytes()),
+                username : declared_username.clone(),
+                skin     : None
+            };
+            let approval = c_login.request(PlayerLoginRequest {
+                peer     : m.peer,
+                uuid     : profile.uuid,
+                username : profile.username.clone()
+            });
+            match (approval) {
+                Ok(()) => {
+                    mw_packet.write(SendPacket::new(m.peer)
+                        .with_before_switch(S2CLoginFinishPacket {
+                            profile : profile.clone()
+                        })
+                        .with_switch_state(PacketState::Config, true)
+                    );
+                    cmds.entity(m.peer).insert((
+                        profile,
+                        PlayerCharacterBundle::default(),
+                        VisibleCharacters::new(m.peer)
+                    ));
+                    *flow = PeerLoginFlow::Acknowledge;
+                },
+                Err(reason) => {
+                    mw_packet.write(SendPacket::new(m.peer).kick(&reason));
+                    *flow = PeerLoginFlow::Done;
                 }
             }
 

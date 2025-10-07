@@ -63,12 +63,19 @@ pub(in crate::peer) fn begin_key_exchange(
                 server_id       : r_options.server_id.clone(),
                 public_key      : Redacted::from(Cow::Owned(unsafe { public_key_der.as_ref() }.clone())),
                 verify_token,
-                mojauth_enabled : r_options.mojauth_enabled
+                mojauth_enabled : {
+                    #[cfg(feature = "mojauth")]
+                    let me = r_options.mojauth_enabled;
+                    #[cfg(not(feature = "mojauth"))]
+                    let me = false;
+                    me
+                }
             }));
 
             *flow = PeerLoginFlow::KeyExchange {
                 declared_username : username.clone(),
                 private_key,
+                #[cfg(feature = "mojauth")]
                 public_key_der,
                 verify_token
             };

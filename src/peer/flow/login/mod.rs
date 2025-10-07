@@ -1,10 +1,8 @@
 use pipeworkmc_data::{
     bounded_string::BoundedString,
-    profile::AccountProfile,
     redacted::Redacted
 };
 use bevy_ecs::component::Component;
-use bevy_tasks::Task;
 use openssl::{
     pkey::Private,
     rsa::Rsa
@@ -13,6 +11,7 @@ use openssl::{
 
 pub(in crate::peer) mod start;
 pub(in crate::peer) mod encrypt;
+#[cfg(feature = "mojauth")]
 pub(in crate::peer) mod mojauth;
 pub(in crate::peer) mod finish;
 
@@ -30,14 +29,16 @@ pub(in crate::peer) enum PeerLoginFlow {
     KeyExchange {
         declared_username : BoundedString<16>,
         private_key       : Redacted<Rsa<Private>>,
+        #[cfg(feature = "mojauth")]
         public_key_der    : Redacted<Vec<u8>>,
         verify_token      : [u8; 4]
     },
 
     // Key exchange complete.
     // Server is requesting session validation from Mojauth servers.
+    #[cfg(feature = "mojauth")]
     Mojauth {
-        task : Task<surf::Result<AccountProfile>>
+        task : bevy_tasks::Task<surf::Result<pipeworkmc_data::profile::AccountProfile>>
     },
 
     // Server has approved the profile.

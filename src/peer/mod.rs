@@ -62,6 +62,7 @@ pub struct PeerOptions {
     /// **WARNING**
     /// Setting this to `false` allows any player to join with any username,
     ///  potentially letting them steal other player's data.
+    #[cfg(feature = "mojauth")]
     pub mojauth_enabled    : bool
 
 }
